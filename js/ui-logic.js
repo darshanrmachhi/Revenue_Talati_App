@@ -243,3 +243,53 @@ window.onload = function() {
     enforceMaxTodayOnDates();
     checkLoginSession();
 };
+
+// ==========================================
+// PWA INSTALL PROMPT LOGIC
+// ==========================================
+let deferredPrompt;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    // બ્રાઉઝરના ડિફૉલ્ટ પ્રોમ્પ્ટને અટકાવો
+    e.preventDefault();
+    // ઇવેન્ટને સેવ કરી રાખો જેથી પછીથી યુઝર ક્લિક કરે ત્યારે વાપરી શકાય
+    deferredPrompt = e;
+    
+    // ડેશબોર્ડ પર ઇન્સ્ટોલ બૅનર બતાવો
+    let installContainer = document.getElementById('pwa-install-container');
+    if (installContainer) {
+        installContainer.style.display = 'flex';
+    }
+});
+
+function installPWAApp() {
+    if (!deferredPrompt) return;
+    
+    // ઇન્સ્ટોલ પ્રોમ્પ્ટ બતાવો
+    deferredPrompt.prompt();
+    
+    // યુઝરના રિસ્પોન્સની રાહ જુઓ
+    deferredPrompt.userChoice.then((choiceResult) => {
+        if (choiceResult.outcome === 'accepted') {
+            console.log('User accepted the install prompt');
+        } else {
+            console.log('User dismissed the install prompt');
+        }
+        deferredPrompt = null;
+        
+        // ઇન્સ્ટોલ થઈ ગયા પછી બૅનર છુપાવી દો
+        let installContainer = document.getElementById('pwa-install-container');
+        if (installContainer) {
+            installContainer.style.display = 'none';
+        }
+    });
+}
+
+// જો એપ પહેલેથી જ ઇન્સ્ટોલ થયેલી હોય તો બૅનર નહીં દેખાય
+window.addEventListener('appinstalled', (evt) => {
+    console.log('App successfully installed.');
+    let installContainer = document.getElementById('pwa-install-container');
+    if (installContainer) {
+        installContainer.style.display = 'none';
+    }
+});
