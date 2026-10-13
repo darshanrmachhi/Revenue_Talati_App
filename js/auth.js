@@ -67,57 +67,68 @@ async function executeLogin() {
         let loadedSejas = [];
         
         try {
-            let masterDoc = await db.collection("Master_Data").doc("Taluka_Directory").get();
-            if (masterDoc.exists) {
-                let masterData = masterDoc.data();
+            // ૧. Cache ચેક કરો
+            let masterData = getMasterDataCache();
+            
+            // ૨. જો Cache ન હોય, તો જ Firebase માંથી લાવો
+            if (!masterData) {
+                let masterDoc = await db.collection("Master_Data").doc("Taluka_Directory").get();
+                if (masterDoc.exists) {
+                    masterData = masterDoc.data();
+                    setMasterDataCache(masterData); // Cache માં સેવ કરો
+                }
+            }
+
+           // ૩. મેચિંગ લોજીક ચાલુ કરો
+            if (masterData && masterData.sejas && masterData.sejas.length > 0) {
                 
-                // યુઝરના પ્રોફાઈલમાં આપેલા સેજાના નામ (Comma separated જો એકથી વધુ હોય)
+                // યુઝરના પ્રોફાઈલમાં આપેલા સેજાના નામ...
                 let userSejaStr = String(foundUser.Seja_Name || foundUser.Seja || "").trim().toLowerCase();
 
-                if (masterData.sejas && masterData.sejas.length > 0) {
-                    masterData.sejas.forEach(s => {
-                        let tName = String(s.talatiName || "").trim().toLowerCase();
-                        let sCont = String(s.contact || "").trim();
-                        let sName = String(s.sejaName || s.name || "").trim().toLowerCase();
+                masterData.sejas.forEach(s => {
+                    let tName = String(s.talatiName || "").trim().toLowerCase();
+                    
+                    // આ બે લાઈનો તમારા કોડમાંથી મિસિંગ હતી:
+                    let sCont = String(s.contact || "").trim();
+                    let sName = String(s.sejaName || s.name || "").trim().toLowerCase();
                         
-                        // મેચિંગ લોજિક: નામ મેચ થાય, મોબાઈલ નંબર મેચ થાય, અથવા સેજાનું નામ મેચ થાય!
-                        let isMatch = false;
-                        if (sCont && sCont.includes(mob)) isMatch = true;
-                        else if (userSejaStr && sName && userSejaStr.includes(sName)) isMatch = true;
-                        else if (tName && userName.toLowerCase() && (tName.includes(userName.toLowerCase()) || userName.toLowerCase().includes(tName))) isMatch = true;
+                    // મેચિંગ લોજિક: નામ મેચ થાય, મોબાઈલ નંબર મેચ થાય, અથવા સેજાનું નામ મેચ થાય!
+                    let isMatch = false;
+                    if (sCont && sCont.includes(mob)) isMatch = true;
+                    else if (userSejaStr && sName && userSejaStr.includes(sName)) isMatch = true;
+                    else if (tName && userName.toLowerCase() && (tName.includes(userName.toLowerCase()) || userName.toLowerCase().includes(tName))) isMatch = true;
 
-                        if (isMatch) {
-                            let vList = [];
-                            
-                            // પંચાયત અને મહેસૂલી ગામોનું હાયરાર્કી (Hierarchy) એક્સટ્રેક્શન
-                            if (s.panchayats && Array.isArray(s.panchayats)) {
-                                s.panchayats.forEach(p => {
-                                    if (p.villages && Array.isArray(p.villages)) {
-                                        p.villages.forEach(v => {
-                                            let vName = typeof v === 'string' ? v : (v.villageName || v.name || "");
-                                            if(vName) vList.push(vName);
-                                        });
-                                    }
-                                });
-                            } else if (s.villages && Array.isArray(s.villages)) {
-                                // જો સીધા જ ગામડાં આપ્યા હોય
-                                s.villages.forEach(v => {
-                                    let vName = typeof v === 'string' ? v : (v.villageName || v.name || "");
-                                    if(vName) vList.push(vName);
-                                });
-                            }
-
-                            // ડુપ્લીકેટ ગામ દૂર કરવા
-                            vList = [...new Set(vList)].filter(v => v !== "");
-                            
-                            loadedSejas.push({
-                                sejaName: s.sejaName || s.name || "સેજો",
-                                chargeType: (userSejaStr && userSejaStr.startsWith(sName)) ? "કાયમી" : "ચાર્જ", 
-                                villages: vList
+                    if (isMatch) {
+                        let vList = [];
+                        
+                        // પંચાયત અને મહેસૂલી ગામોનું હાયરાર્કી (Hierarchy) એક્સટ્રેક્શન
+                        if (s.panchayats && Array.isArray(s.panchayats)) {
+                            s.panchayats.forEach(p => {
+                                if (p.villages && Array.isArray(p.villages)) {
+                                    p.villages.forEach(v => {
+                                        let vName = typeof v === 'string' ? v : (v.villageName || v.name || "");
+                                        if(vName) vList.push(vName);
+                                    });
+                                }
+                            });
+                        } else if (s.villages && Array.isArray(s.villages)) {
+                            // જો સીધા જ ગામડાં આપ્યા હોય
+                            s.villages.forEach(v => {
+                                let vName = typeof v === 'string' ? v : (v.villageName || v.name || "");
+                                if(vName) vList.push(vName);
                             });
                         }
-                    });
-                }
+
+                        // ડુપ્લીકેટ ગામ દૂર કરવા
+                        vList = [...new Set(vList)].filter(v => v !== "");
+                        
+                        loadedSejas.push({
+                            sejaName: s.sejaName || s.name || "સેજો",
+                            chargeType: (userSejaStr && userSejaStr.startsWith(sName)) ? "કાયમી" : "ચાર્જ", 
+                            villages: vList
+                        });
+                    }
+                });
             }
         } catch(e) { console.log("Master data fetch error:", e); }
         

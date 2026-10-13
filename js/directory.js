@@ -9,24 +9,43 @@ function loadDirectoryData() {
     
     let mySejaName = (activeSeja && activeSeja.sejaName) ? activeSeja.sejaName : "";
     
+    // ૧. પહેલા LocalStorage Cache માં ચેક કરો
+    let cachedData = getMasterDataCache();
+    if (cachedData) {
+        processDirectoryData(cachedData, mySejaName, container);
+        return;
+    }
+
+    // ૨. જો Cache ખાલી હોય કે એક્સપાયર થયો હોય તો જ Firebase માંથી લાવો
     db.collection("Master_Data").doc("Taluka_Directory").get().then((doc) => {
         if (doc.exists) {
             let response = doc.data();
-            talukaDirectoryData = response;
-            
-            let statTotal = document.getElementById('stat-total-sejas');
-            if (statTotal) statTotal.innerText = toGujaratiDigits(response.totalSejas || (response.sejas ? response.sejas.length : 0));
-            
-            if (response.sejas && response.sejas.length > 0) {
-                response.sejas.sort((a, b) => { 
-                    if (a.sejaName === mySejaName) return -1; 
-                    if (b.sejaName === mySejaName) return 1; 
-                    return a.sejaName.localeCompare(b.sejaName, 'gu'); 
-                });
-                renderSejasGrid(response.sejas);
-            } else { if (container) container.innerHTML = `<p style="grid-column: 1/-1; text-align:center;">કોઈ સેજો મળ્યો નથી.</p>`; }
-        } else { if (container) container.innerHTML = `<p style="color:red; text-align:center;">ડિરેક્ટરી ડેટા હજુ સેટ થયો નથી.</p>`; }
-    }).catch((err) => { if (container) container.innerHTML = `<p style="color:red; text-align:center;">ડિરેક્ટરી એરર: ${err.message}</p>`; });
+            setMasterDataCache(response); // નવો ડેટા Cache માં સેવ કરો
+            processDirectoryData(response, mySejaName, container);
+        } else { 
+            if (container) container.innerHTML = `<p style="color:red; text-align:center;">ડિરેક્ટરી ડેટા હજુ સેટ થયો નથી.</p>`; 
+        }
+    }).catch((err) => { 
+        if (container) container.innerHTML = `<p style="color:red; text-align:center;">ડિરેક્ટરી એરર: ${err.message}</p>`; 
+    });
+}
+
+// રિપીટ થતો કોડ બચાવવા માટે એક નાનું Helper Function
+function processDirectoryData(response, mySejaName, container) {
+    talukaDirectoryData = response;
+    let statTotal = document.getElementById('stat-total-sejas');
+    if (statTotal) statTotal.innerText = toGujaratiDigits(response.totalSejas || (response.sejas ? response.sejas.length : 0));
+    
+    if (response.sejas && response.sejas.length > 0) {
+        response.sejas.sort((a, b) => { 
+            if (a.sejaName === mySejaName) return -1; 
+            if (b.sejaName === mySejaName) return 1; 
+            return a.sejaName.localeCompare(b.sejaName, 'gu'); 
+        });
+        renderSejasGrid(response.sejas);
+    } else { 
+        if (container) container.innerHTML = `<p style="grid-column: 1/-1; text-align:center;">કોઈ સેજો મળ્યો નથી.</p>`; 
+    }
 }
 
 function renderSejasGrid(sejasList) {
