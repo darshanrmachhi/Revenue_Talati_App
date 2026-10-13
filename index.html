@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="gu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>મહેસૂલી તલાટી દફતર</title>
+    <link rel="manifest" href="manifest.json">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <!-- HEADER -->
+    <header class="header">
+        <div style="display:flex; gap:10px; align-items:center;">
+            <i class="fa-solid fa-arrow-left no-print" id="back-btn" style="display:none; cursor:pointer; font-size:18px;" onclick="window.history.back()"></i>
+            <div>
+                <h1 id="header-title">મહેસૂલી તલાટી દફતર</h1>
+                <p id="header-subtitle">લુણાવાડા તાલુકો</p>
+            </div>
+        </div>
+        <i class="fa-regular fa-circle-user" style="font-size: 20px; cursor: pointer;" title="પ્રોફાઈલ / લોગઆઉટ" onclick="userLogout()"></i>
+    </header>
+
+    <div class="container">
+        
+        <!-- VIEW 1: DASHBOARD -->
+        <div id="view-dashboard" class="app-view active">
+            <div class="hero-seja-card">
+                <div class="hero-content">
+                    <span class="hero-badge"><i class="bi bi-shield-check"></i> <span id="current-charge-badge">કાયમી ચાર્જ</span></span>
+                    <h2 id="current-seja-title">સાલાવાડા સેજો</h2>
+                    <p><i class="bi bi-person-badge"></i> <span id="user-display-name">તલાટી</span></p>
+                </div>
+                <div id="seja-switch-btn-container" style="display:none;">
+                    <button class="btn-switch-hero" onclick="openSejaSwitchModal()"><i class="bi bi-arrow-repeat"></i> સેજો બદલો</button>
+                </div>
+            </div>
+
+            <div class="section-title"><i class="bi bi-speedometer2"></i> આજની દફતર સ્થિતિ <span id="loading-status" style="font-size:11px; color:var(--primary); font-weight:normal;"></span></div>
+            <div class="stats-grid">
+                <div class="stat-card modern-stat stat-red" onclick="switchNoticeTabAndShow('pending')">
+                    <div class="stat-icon-wrap"><i class="bi bi-exclamation-octagon-fill"></i></div>
+                    <div class="stat-number" id="pending-notices">-</div>
+                    <div class="stat-label">૧૩૫-ડી બજવણી બાકી</div>
+                </div>
+                <div class="stat-card modern-stat stat-amber" onclick="switchNoticeTabAndShow('active')">
+                    <div class="stat-icon-wrap"><i class="bi bi-hourglass-split"></i></div>
+                    <div class="stat-number" id="due-notices">-</div>
+                    <div class="stat-label">મુદતમાં ચાલુ</div>
+                </div>
+                <div class="stat-card modern-stat stat-emerald" onclick="switchNoticeTabAndShow('completed')">
+                    <div class="stat-icon-wrap"><i class="bi bi-check-circle-fill"></i></div>
+                    <div class="stat-number" id="completed-notices">-</div>
+                    <div class="stat-label">કચેરીએ જમા</div>
+                </div>
+                <div class="stat-card modern-stat stat-blue" onclick="showView('pedhinamu-list')">
+                    <div class="stat-icon-wrap"><i class="bi bi-diagram-3-fill"></i></div>
+                    <div class="stat-number" id="total-pedhinamu">-</div>
+                    <div class="stat-label">પેઢીનામા ઇશ્યૂ</div>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3><i class="bi bi-pie-chart-fill"></i> ૧૩૫-ડી નોટિસ સ્થિતિ પૃથક્કરણ</h3>
+                    <span style="font-size:11px; color:#64748b;">લાઈવ ચાર્ટ</span>
+                </div>
+                <div id="notices-chart-container" style="min-height: 220px; display:flex; align-items:center; justify-content:center;">
+                    <p style="color:#94a3b8; font-size:12px;">ચાર્ટ લોડ થઈ રહ્યો છે...</p>
+                </div>
+            </div>
+
+            <div class="section-title"><i class="bi bi-lightning-charge-fill"></i> ઝડપી સેવાઓ (QUICK ACTIONS)</div>
+            <div class="quick-grid">
+                <div class="action-btn modern-action" onclick="showView('135d-desk')">
+                    <div class="action-icon icon-grad-red"><i class="bi bi-file-earmark-text-fill"></i></div>
+                    <div>
+                        <h3 style="font-size: 15px; font-weight:700;">૧૩૫-ડી નોટિસ ડેસ્ક</h3>
+                        <p style="font-size: 12px; color: var(--text-muted);">નવી નોંધ ઉમેરો & ૩૦ દિવસ ટ્રેકિંગ</p>
+                    </div>
+                </div>
+                <div class="action-btn modern-action" onclick="showView('pedhinamu-list')">
+                    <div class="action-icon icon-grad-blue"><i class="bi bi-tree-fill"></i></div>
+                    <div>
+                        <h3 style="font-size: 15px; font-weight:700;">પેઢીનામું રજીસ્ટર</h3>
+                        <p style="font-size: 12px; color: var(--text-muted);">સ્માર્ટ આંબો & પ્રિન્ટ તૈયાર કરો</p>
+                    </div>
+                </div>
+                <div class="action-btn modern-action" onclick="openAreaCalcModal()">
+                    <div class="action-icon icon-grad-emerald"><i class="bi bi-calculator-fill"></i></div>
+                    <div>
+                        <h3 style="font-size: 15px; font-weight:700;">ક્ષેત્રફળ કેલ્ક્યુલેટર (Area Calculator)</h3>
+                        <p style="font-size: 12px; color: var(--text-muted);">હે.-આરે કન્વર્ટર, સરવાળા-બાદબાકી & હિસ્સા વહેંચણી</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 2: TALUKA DIRECTORY -->
+        <div id="view-directory" class="app-view">
+            <div class="dir-sticky-header">
+                <div class="breadcrumbs" id="dir-breadcrumbs">
+                    <span class="crumb-link" onclick="restoreSejasGrid()"><i class="fa-solid fa-house"></i> લુણાવાડા</span>
+                </div>
+                <div class="search-box">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" id="dir-search-input" placeholder="સેજો, તલાટી કે ગામ શોધો..." oninput="filterDirectory(this.value)">
+                    <i class="fa-solid fa-circle-xmark clear-icon" id="clear-search" onclick="clearSearchInput()" style="display:none;"></i>
+                </div>
+                <div class="dir-summary-strip">
+                    <span>કુલ સેજા: <b id="stat-total-sejas">-</b></span>
+                    <span>પંચાયતો: <b id="stat-total-panchayats">-</b></span>
+                    <span>મહેસૂલી ગામ: <b id="stat-total-villages">-</b></span>
+                </div>
+            </div>
+
+            <div id="directory-grid-container" class="seja-grid">
+                <div class="loading-state"><i class="fa-solid fa-spinner fa-spin"></i><p>તાલુકા દફતર ડેટા લોડ થઈ રહ્યો છે...</p></div>
+            </div>
+
+            <div id="panchayat-view-container" style="display: none;">
+                <div class="seja-detail-banner" id="seja-detail-header"></div>
+                <div class="section-title" style="margin-top: 15px;"><i class="fa-solid fa-building"></i> સમાવિષ્ટ ગ્રામ પંચાયતો અને ગામો</div>
+                <div id="panchayats-list" class="panchayat-grid"></div>
+            </div>
+
+            <div id="village-profile-modal" class="modal-backdrop" style="display: none;">
+                <div class="modal-card">
+                    <div class="modal-header">
+                        <div><h3 id="vp-village-name">ગામનું નામ</h3><p id="vp-hierarchy-path" style="font-size: 12px; color: var(--text-muted);"></p></div>
+                        <button class="modal-close-btn" onclick="closeVillageProfile()"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="profile-section">
+                            <div class="profile-section-title"><i class="fa-solid fa-map-location-dot"></i> જમીન મહેસૂલ વિગત</div>
+                            <div class="vp-stats-grid">
+                                <div class="vp-stat-box"><span class="vp-stat-val" id="vp-area-sqm">-</span><span class="vp-stat-lbl">કુલ ક્ષેત્રફળ (ચો.મી.)</span></div>
+                                <div class="vp-stat-box"><span class="vp-stat-val" id="vp-area-ha">-</span><span class="vp-stat-lbl">હે.-આરે-ચો.મી.</span></div>
+                            </div>
+                            <div style="margin-top: 10px;"><a href="https://anyror.gujarat.gov.in/" target="_blank" class="btn-external-link"><i class="fa-solid fa-arrow-up-right-from-square"></i> AnyRoR પર ૭/૧૨ અને ૮-અ જુઓ</a></div>
+                        </div>
+                        <div class="profile-section">
+                            <div class="profile-section-title"><i class="fa-solid fa-users"></i> વસ્તી વિષયક વિગત</div>
+                            <div class="vp-stats-grid">
+                                <div class="vp-stat-box"><span class="vp-stat-val" id="vp-population">-</span><span class="vp-stat-lbl">કુલ વસ્તી</span></div>
+                                <div class="vp-stat-box"><span class="vp-stat-val" id="vp-village-id">-</span><span class="vp-stat-lbl">વિલેજ કોડ (ID)</span></div>
+                            </div>
+                        </div>
+                        <div class="profile-section">
+                            <div class="profile-section-title"><i class="fa-solid fa-address-book"></i> સ્થાનિક પદાધિકારી / સ્ટાફ</div>
+                            <div id="vp-contacts-list"></div>
+                        </div>
+                        <div id="vp-edit-container" style="display: none; margin-top: 15px;">
+                            <button class="btn btn-primary" style="width: 100%;" onclick="openEditVillageForm()"><i class="fa-solid fa-pen-to-square"></i> ગામની માહિતીમાં સુધારો કરો</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 3: PEDHINAMU LIST -->
+        <div id="view-pedhinamu-list" class="app-view">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div class="section-title" style="margin:0; border:none;"><i class="bi bi-folder-fill"></i> પેઢીનામું દફતર</div>
+                <button class="btn-new" onclick="openPedhinamuModal()"><i class="bi bi-plus-lg"></i> નવું બનાવો</button>
+            </div>
+
+            <div class="search-box" style="margin-bottom: 15px;">
+                <i class="bi bi-search search-icon"></i>
+                <input type="text" id="pedhinamu-search-input" placeholder="ગુજરનાર, અરજદાર કે ગામ શોધો..." oninput="filterPedhinamuList(this.value)">
+                <i class="bi bi-x-circle-fill clear-icon" id="clear-pedhinamu-search" onclick="clearPedhinamuSearch()" style="display:none;"></i>
+            </div>
+
+            <div id="pedhinamu-history-container">
+                <p style="text-align:center; color:#777; margin-top:20px;"><i class="fa-solid fa-spinner fa-spin"></i> ડેટા લોડ થઈ રહ્યો છે...</p>
+            </div>
+        </div>
+
+        <!-- VIEW 5: 135-D NOTICE DESK -->
+        <div id="view-135d-desk" class="app-view">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div class="section-title" style="margin:0; border:none;">૧૩૫-ડી નોટિસ ડેસ્ક</div>
+                <button class="btn-new" onclick="openNewNoticeModal()"><i class="fa-solid fa-plus"></i> નવી નોંધ</button>
+            </div>
+
+            <div class="search-box" style="margin-bottom: 12px;">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input type="text" id="notice-search-input" placeholder="નોંધ નંબર, ગામ કે પ્રકાર શોધો..." oninput="filterNotices(this.value)">
+                <i class="fa-solid fa-circle-xmark clear-icon" id="clear-notice-search" onclick="clearNoticeSearch()" style="display:none;"></i>
+            </div>
+
+            <div class="notice-tabs">
+                <div class="tab-btn active" onclick="switchNoticeTab('pending', this)">બજાવવાની બાકી</div>
+                <div class="tab-btn" onclick="switchNoticeTab('active', this)">મુદતમાં</div>
+                <div class="tab-btn" onclick="switchNoticeTab('ready', this)">તૈયાર (૩૦ દિવસ પૂર્ણ)</div>
+                <div class="tab-btn" onclick="switchNoticeTab('completed', this)">કચેરીએ જમા</div>
+            </div>
+
+            <div id="notice-list-container">
+                <p style="text-align:center; color:#777; margin-top:20px;"><i class="fa-solid fa-spinner fa-spin"></i> ડેટા લોડ થઈ રહ્યો છે...</p>
+            </div>
+        </div>
+
+    </div> <!-- CONTAINER END -->
+
+    <!-- ================= 4. PEDHINAMU MODAL (SLIDE-UP SHEET) ================= -->
+    <div id="modal-pedhinamu-form" class="modal-backdrop" style="display: none; align-items: flex-end; z-index: 250;">
+        <div class="modal-card pedhinamu-modal-card">
+            <div class="modal-header" style="padding: 14px 18px; border-bottom: 1px solid var(--border-color);">
+                <div>
+                    <h3 style="color: var(--primary-blue); font-size: 16px; margin: 0;"><i class="bi bi-diagram-3-fill"></i> પેઢીનામું તૈયાર કરો</h3>
+                    <p style="font-size: 11px; color: var(--text-muted); margin: 2px 0 0 0;">લુણાવાડા તાલુકો દફતર</p>
+                </div>
+                <button class="modal-close-btn" onclick="closePedhinamuModal()"><i class="bi bi-x-lg"></i></button>
+            </div>
+
+            <div class="modal-body" style="padding: 16px; overflow-y: auto; max-height: calc(92vh - 65px);">
+                <div class="stepper" style="margin-bottom: 16px;">
+                    <div id="step-ind-1" class="step-indicator active" onclick="changeStep(1)">૧. પ્રાથમિક વિગત</div>
+                    <div id="step-ind-2" class="step-indicator" onclick="changeStep(2)">૨. પેઢી આંબો</div>
+                    <div id="step-ind-3" class="step-indicator" onclick="changeStep(3)">૩. પંચો અને પ્રિન્ટ</div>
+                </div>
+
+                <!-- Step 1 -->
+                <div id="step-content-1" class="step-content active">
+                    <div class="section-title" style="margin-top:0;">અરજીનો પ્રકાર અને હેતુ</div>
+                    <div class="form-grid-3">
+                        <div class="form-group">
+                            <label class="form-label">પેઢીનામાનો પ્રકાર:</label>
+                            <select class="form-control" id="inp-type" onchange="toggleTypeSpecificInputs()">
+                                <option value="મરણ">૧. મરણ (જમીન વારસાઈ)</option>
+                                <option value="હયાત">૨. હયાત (પોતાની હયાતીમાં હક્ક)</option>
+                                <option value="અન્ય">૩. અન્ય (જાતિનો દાખલો / લોન)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">અરજીનો હેતુ:</label>
+                            <select class="form-control" id="inp-purpose" onchange="checkCustom(this, 'inp-purpose-custom')">
+                                <option value="જમીન વારસાઈ">જમીન વારસાઈ</option>
+                                <option value="હયાતીમાં હક્ક દાખલ કરવા">હયાતીમાં હક્ક દાખલ કરવા</option>
+                                <option value="custom">અન્ય (જાતે લખો)</option>
+                            </select>
+                            <input type="text" class="form-control custom-input" id="inp-purpose-custom" placeholder="અહીં હેતુ લખો">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">અરજીની તારીખ:</label>
+                            <input type="date" class="form-control" id="inp-date">
+                        </div>
+                    </div>
+                    
+                    <div class="section-title">સોગંદનામાની વિગત (તલાટી શેરા માટે)</div>
+                    <div class="form-grid-3">
+                        <div class="form-group">
+                            <label class="form-label">નોટરી / વકીલશ્રીનું નામ:</label>
+                            <input type="text" class="form-control" id="inp-advocate-name" placeholder="દા.ત. કે. એમ. પટેલ">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">સોગંદનામા ક્રમાંક:</label>
+                            <input type="text" class="form-control" id="inp-affidavit-no" placeholder="દા.ત. ૧૨૫૪/૨૦૨૬">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">સોગંદનામા તારીખ:</label>
+                            <input type="date" class="form-control" id="inp-affidavit-date">
+                        </div>
+                    </div>
+
+                    <div class="section-title">અરજદારની વિગત</div>
+                    <div class="form-grid-3">
+                        <div class="form-group"><label class="form-label">અરજદારનું નામ:</label><input type="text" class="form-control" id="inp-applicant" placeholder="પૂરું નામ"></div>
+                        <div class="form-group"><label class="form-label">અરજદારની ઉંમર:</label><input type="number" class="form-control" id="inp-age" placeholder="ઉંમર"></div>
+                        <div class="form-group"><label class="form-label">રહેવાસી (ગામ):</label><select class="form-control" id="inp-village"></select></div>
+                    </div>
+                    
+                    <div class="section-title" id="title-main-person">મુખ્ય ગુજરનારની વિગત</div>
+                    <div class="form-grid-3">
+                        <div class="form-group" id="grp-deceased"><label class="form-label" id="label-deceased">મુખ્ય વ્યક્તિ/ગુજરનારનું નામ:</label><input type="text" class="form-control" id="inp-deceased" oninput="updateRootName()"></div>
+                        <div class="form-group" id="grp-relation"><label class="form-label" id="label-relation-main">ગુજરનારનો અરજદાર સાથે સંબંધ:</label><select class="form-control" id="inp-applicant-relation" onchange="checkCustom(this, 'inp-app-rel-custom')"><option value="પિતા">પિતા</option><option value="પતિ">પતિ</option><option value="custom">અન્ય (જાતે લખો)</option></select><input type="text" class="form-control custom-input" id="inp-app-rel-custom"></div>
+                        <div class="form-group" id="grp-deathdate"><label class="form-label">મરણ તારીખ:</label><input type="date" class="form-control" id="inp-deathdate"></div>
+                    </div>
+                    <div class="action-btns" style="justify-content: flex-end;"><button class="btn btn-primary" onclick="proceedToStep2()">આગળ વધો ➔</button></div>
+                </div>
+
+                <!-- Step 2 -->
+                <div id="step-content-2" class="step-content">
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+                        <div class="form-grid-3">
+                            <div class="form-group"><label class="form-label">કોના વારસદાર છે?:</label><select class="form-control" id="heir-parent" onchange="onParentChange()"><option value="root">મુખ્ય ગુજરનાર</option></select></div>
+                            <div class="form-group"><label class="form-label">વારસદારનું નામ:</label><input type="text" class="form-control" id="heir-name"></div>
+                            <div class="form-group"><label class="form-label">જાતિ:</label><select class="form-control" id="heir-gender" onchange="updateRelationDropdown()"><option value="સ્ત્રી">સ્ત્રી</option><option value="પુરુષ">પુરુષ</option></select></div>
+                            <div class="form-group"><label class="form-label">સંબંધ:</label><select class="form-control" id="heir-relation"><option value="પત્ની">પત્ની</option><option value="પુત્રી">પુત્રી</option></select></div>
+                            <div class="form-group"><label class="form-label">સ્થિતિ:</label><select class="form-control" id="heir-status" onchange="toggleStatusInputs()"><option value="હયાત">હયાત</option><option value="મરણ">મરણ</option></select></div>
+                            <div class="form-group" id="age-group"><label class="form-label">ઉંમર:</label><input type="number" class="form-control" id="heir-age"></div>
+                            <div class="form-group" id="deathdate-group" style="display:none;"><label class="form-label">મરણ તારીખ:</label><input type="date" class="form-control" id="heir-death-date"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; flex-wrap: wrap; gap: 8px;">
+                            <div style="display: flex; gap: 15px;"><label><input type="checkbox" id="heir-wrap"> લાંબા નામને વાળો</label><label><input type="checkbox" id="heir-nirvansh"> નિર્વંશ</label></div>
+                            <button class="btn btn-primary" id="add-btn" onclick="addOrUpdateHeir()">+ વારસદાર ઉમેરો</button>
+                        </div>
+                    </div>
+                    <div class="list-box" id="heir-list-display"><span style="color:#777;">ઉમેરાયેલા વારસદારો અહીં દેખાશે...</span></div>
+                    <div class="action-btns"><button class="btn btn-secondary" onclick="changeStep(1)">⬅ પાછા જાવ</button><button class="btn btn-primary" onclick="proceedToStep3()">આગળ વધો ➔</button></div>
+                </div>
+
+                <!-- Step 3 -->
+                <div id="step-content-3" class="step-content">
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 14px; border-radius: 8px; margin-bottom: 16px;">
+                        <div class="form-grid-3">
+                            <div class="form-group"><label class="form-label">પંચનું નામ:</label><input type="text" class="form-control" id="panch-name"></div>
+                            <div class="form-group"><label class="form-label">ઉંમર:</label><input type="number" class="form-control" id="panch-age"></div>
+                            <div class="form-group"><label class="form-label">ગામ:</label><select class="form-control" id="panch-vill"></select></div>
+                            <div class="form-group"><label class="form-label">વ્યવસાય:</label><input type="text" class="form-control" id="panch-occ" value="ખેતી"></div>
+                            <div class="form-group"><label class="form-label">આધાર નંબર:</label><input type="text" class="form-control" id="panch-aadhar" maxlength="12" placeholder="૧૨ આંકડા"></div>
+                        </div>
+                        <div style="text-align: right; margin-top: 10px;"><button class="btn btn-primary" id="add-panch-btn" onclick="addOrUpdatePanch()">+ પંચ ઉમેરો</button></div>
+                    </div>
+                    <div class="list-box" id="panch-list-display"><span style="color:#777;">ઉમેરાયેલા પંચો અહીં દેખાશે...</span></div>
+                    <div class="action-btns" style="display: flex; justify-content: space-between;">
+                        <button class="btn btn-secondary" onclick="changeStep(2)">⬅ પાછા જાવ</button>
+                        <button class="btn btn-success" id="print-btn" onclick="saveAndPrint()"><i class="bi bi-printer-fill"></i> પ્રિન્ટ અને સેવ કરો</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= 5. ORIGINAL A4 PAGE FOR PDF ================= -->
+    <div class="a4-page" id="pedhinamu-page">
+        
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 2px;">
+            <span class="bold" style="font-size: 13px;" id="out-javak-no">જાવક નં. : ૨૦૨૬/૧૦/૧</span>
+        </div>
+
+        <div class="text-center bold" style="font-size: 15px;">
+            ગુજરાત સરકાર મહેસુલ વિભાગના પરિપત્ર ક્રમાંક: હકપ/૧૦૨૦૧૪/૭૫૬/જ<br>
+            તા. ૧૪/૦૫/૨૦૧૪ મુજબનું પેઢીનામું
+        </div>
+        <hr style="border: 1px solid black; margin: 10px 0 14px 0;">
+        
+        <div class="text-center bold underline" style="font-size: 15px; margin-bottom: 12px;">રૂબરૂ અરજદારની અરજી / જવાબ</div>
+        
+        <p class="justify-indent">
+            હું નીચે સહી કરનાર અરજદાર શ્રી <span class="bold" id="out-applicant"></span> ઉંમર વર્ષ: <span class="bold" id="out-age"></span>, રહેવાસી: મોજે <span class="bold" id="out-village"></span> તા. લુણાવાડા જિ. મહીસાગર આજરોજ રૂબરૂ હાજર થઈ પૂછવાથી લખાવું છું કે, મારે <span id="out-purpose-str"></span> ના કામે પેઢીનામાની જરૂર હોઈ, પેઢીનામું મેળવવા માટે તારીખ <span class="bold" id="out-date"></span> ના રોજ અરજી કરેલ છે.
+        </p>
+        
+        <p class="justify-indent" id="out-dynamic-para"></p>
+
+        <!-- TREE WRAPPER -->
+        <div class="tree-wrapper" id="tree-wrapper-id" style="margin: 15px 0;">
+            <div class="tree" id="main-tree">
+                <ul style="padding-top: 0;">
+                    <li>
+                        <div class="heir-box root-box male-box deceased-box" id="root-box-display">
+                            <span class="bold" id="tree-deceased-name"></span><br>
+                            <span id="tree-root-status"></span>
+                        </div>
+                        <div id="dynamic-tree-children"></div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <p class="justify-indent">
+            ઉપર પ્રમાણેનો પેઢી આંબો તથા પેઢીનામું અમો અરજદાર તથા પંચોના લખાવ્યા મુજબનું બરાબર છે. <u class="bold">આ પેઢીનામામાં અમોએ કોઈ સાચા વારસદારો બતાવવાના બાકી રાખેલા નથી કે કોઈ ખોટા વારસદારો દર્શાવેલ નથી.</u> જો આ પેઢીનામું ખોટું ઠરે તો તેમાં અમો અરજદાર તથા અમો પંચો જવાબદાર છીએ.
+        </p>
+
+        <div class="photo-box top-photo" style="float: right; margin-left: 20px; margin-bottom: 10px;">
+            અરજદારનો<br>ફોટો અહી<br>ચોંટાડવો
+        </div>
+
+        <p>
+            સ્થળ : <span class="bold" id="out-place"></span><br>
+            તારીખ : <span class="bold" id="out-date2"></span>
+        </p>
+        
+        <p style="margin-top: 35px;">
+            અરજદારની સહી: ________________________<br>
+            અરજદારનું નામ: <span class="bold" id="out-applicant2"></span>
+        </p>
+
+        <div style="page-break-before: always; margin-top: 20px;"></div>
+
+        <div class="text-center bold underline" style="font-size: 15px; margin-bottom: 12px; margin-top: 15px;">
+            રૂબરૂ પંચનામું (સાક્ષીઓની વિગત)
+        </div>
+
+        <p class="justify-indent" style="margin-bottom: 12px;">
+            અમો નીચે સહી કરનાર પંચો આજરોજ રૂબરૂ હાજર થઈ લખાવીએ છીએ કે અમો અરજદાર તથા તેમના કુટુંબીજનો અને વારસદારોને સારી રીતે ઓળખીએ છીએ. અરજદારનો જવાબ અમારી રૂબરૂ લેવામાં આવ્યો છે. <u class="bold">આ પેઢીનામામાં કોઈ કાયદેસરના વારસદારો લખાવાના રહી જતા નથી અને તેમાં કોઈ ખોટા વારસદાર દર્શાવેલા નથી તેની અમો પંચો ખાતરી આપીએ છીએ.</u>
+        </p>
+
+        <table id="pdf-panch-table" border="1">
+            <thead>
+                <tr style="background: #f8fafc;">
+                    <th style="width: 5%;">અ.નં</th>
+                    <th style="width: 17%;">પંચનું નામ</th>
+                    <th style="width: 6%;">ઉ.વ.</th>
+                    <th style="width: 8%;">ધંધો</th>
+                    <th style="width: 17%;">રહેવાસી</th>
+                    <th style="width: 15%;">આધાર કાર્ડ નંબર</th>
+                    <th style="width: 18%;">રૂબરૂ સહી</th>
+                    <th style="width: 14%;">ફોટો</th>
+                </tr>
+            </thead>
+            <tbody id="pdf-panch-body"></tbody>
+        </table>
+
+        <div class="text-center bold underline" style="font-size: 15px; margin-bottom: 8px; margin-top: 20px;">
+            મહેસૂલી તલાટીનો શેરો
+        </div>
+
+        <p class="justify-indent" id="out-talati-shero-para"></p>
+
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 40px;">
+            <div>
+                સ્થળ : <span class="bold" id="out-place2"></span><br>
+                તારીખ : <span class="bold" id="out-date4"></span>
+            </div>
+            <div class="text-center" style="min-width: 150px;">
+                <span class="bold" style="font-size: 16px;">રૂબરૂ,</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALS: NEW NOTICE & EDIT NOTICE -->
+    <div id="modal-new-notice" class="modal-backdrop" style="display: none; align-items: center;">
+        <div class="modal-card" style="border-radius: 12px; padding: 20px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header" style="padding: 0 0 15px 0;">
+                <h3 style="color: var(--primary-blue); margin: 0;">નવી ૧૩૫-ડી નોટિસ ઉમેરો</h3>
+                <button class="modal-close-btn" onclick="document.getElementById('modal-new-notice').style.display='none'"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 8px;">
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">ગામ:</label>
+                    <select class="form-control" id="notice-village"></select>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">નોંધ નં. (Mutation No):</label>
+                    <input type="number" class="form-control" id="notice-mutation-no" placeholder="દા.ત. 1452">
+                </div>
+            </div>
+            
+            <div class="form-group" style="margin-top:8px;">
+                <label class="form-label">ખાતેદાર / પક્ષકારનું નામ:</label>
+                <input type="text" class="form-control" id="notice-khatedar" placeholder="મુખ્ય ખાતેદાર / પક્ષકારનું નામ">
+            </div>
+
+            <div class="form-group" style="margin-top:8px;">
+                <label class="form-label">નોંધનો પ્રકાર:</label>
+                <select class="form-control" id="notice-type">
+                    <option value="વારસાઈ">વારસાઈ</option>
+                    <option value="વેચાણ">વેચાણ</option>
+                    <option value="વહેંચણી">વહેંચણી</option>
+                    <option value="હયાતીમાં હક્ક દાખલ">હયાતીમાં હક્ક દાખલ</option>
+                    <option value="બોજો દાખલ">બોજો દાખલ</option>
+                    <option value="બોજો કમી">બોજો કમી</option>
+                    <option value="અન્ય">અન્ય</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 8px;">
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">૧. નોટિસ તારીખ:</label>
+                    <input type="date" class="form-control" id="notice-gen-date">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">૨. તલાટીને મળ્યા તારીખ:</label>
+                    <input type="date" class="form-control" id="notice-received-date">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 8px;">
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">૩. બજાવ્યા તારીખ:</label>
+                    <input type="date" class="form-control" id="notice-served-date">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">૪. ઈ-ધરામાં પરત કર્યા તારીખ:</label>
+                    <input type="date" class="form-control" id="notice-submitted-date">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top:8px;">
+                <label class="form-label">શેરો (Remarks):</label>
+                <input type="text" class="form-control" id="notice-remarks" placeholder="કોઈ વિશેષ વિગત">
+            </div>
+            <button class="btn btn-primary" style="width:100%; margin-top:18px;" id="btn-save-notice" onclick="saveNewNotice()">સેવ કરો</button>
+        </div>
+    </div>
+
+    <!-- Edit Notice Modal -->
+    <div id="modal-edit-notice" class="modal-backdrop" style="display: none; align-items: center;">
+        <div class="modal-card" style="border-radius: 12px; padding: 20px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header" style="padding: 0 0 15px 0;">
+                <h3 style="color: var(--primary-blue); margin: 0;">નોટિસની વિગતો સુધારો (Edit)</h3>
+                <button class="modal-close-btn" onclick="document.getElementById('modal-edit-notice').style.display='none'"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <input type="hidden" id="edit-notice-id">
+            
+            <div style="display: flex; gap: 10px; margin-top: 8px;">
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">ગામ:</label>
+                    <select class="form-control" id="edit-notice-village"></select>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">નોંધ નં. (Mutation No):</label>
+                    <input type="number" class="form-control" id="edit-notice-mutation-no">
+                </div>
+            </div>
+            
+            <div class="form-group" style="margin-top:8px;">
+                <label class="form-label">ખાતેદાર / પક્ષકારનું નામ:</label>
+                <input type="text" class="form-control" id="edit-notice-khatedar" placeholder="ખાતેદારનું નામ">
+            </div>
+
+            <div class="form-group" style="margin-top:8px;">
+                <label class="form-label">નોંધનો પ્રકાર:</label>
+                <select class="form-control" id="edit-notice-type">
+                    <option value="વારસાઈ">વારસાઈ</option>
+                    <option value="વેચાણ">વેચાણ</option>
+                    <option value="વહેંચણી">વહેંચણી</option>
+                    <option value="હયાતીમાં હક્ક દાખલ">હયાતીમાં હક્ક દાખલ</option>
+                    <option value="બોજો દાખલ">બોજો દાખલ</option>
+                    <option value="બોજો કમી">બોજો કમી</option>
+                    <option value="અન્ય">અન્ય</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 8px;">
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">૧. નોટિસ તારીખ:</label>
+                    <input type="date" class="form-control" id="edit-notice-gen-date">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">૨. તલાટીને મળ્યા તારીખ:</label>
+                    <input type="date" class="form-control" id="edit-notice-received-date">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top:8px;">
+                <label class="form-label">૩. બજાવ્યા તારીખ (Served Date):</label>
+                <input type="date" class="form-control" id="edit-notice-served-date">
+            </div>
+
+            <div class="form-group" style="margin-top:8px;">
+                <label class="form-label">હાલની સ્થિતિ (Current Status):</label>
+                <select class="form-control" id="edit-notice-status" onchange="toggleSubmittedDateInput()">
+                    <option value="બજાવવાની બાકી">૧. બજાવવાની બાકી</option>
+                    <option value="મુદતમાં">૨. મુદતમાં</option>
+                    <option value="કચેરીએ જમા">૩. ઈ-ધરામાં પરત જમા / પ્રમાણિત</option>
+                    <option value="તકરારી">૪. તકરારી</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="grp-submitted-date" style="margin-top:8px; display:none;">
+                <label class="form-label" style="color: #047857; font-weight: bold;">૪. ઈ-ધરામાં પરત કર્યા તારીખ (Submitted Date):</label>
+                <input type="date" class="form-control" id="edit-notice-submitted-date">
+            </div>
+
+            <div class="form-group" style="margin-top:8px;">
+                <label class="form-label">શેરો / શેડ્યૂલ (Remarks):</label>
+                <input type="text" class="form-control" id="edit-notice-remarks" placeholder="કોઈ ખાસ નોંધ">
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 18px;">
+                <button class="btn btn-secondary" style="flex: 1; background: #fee2e2; color: #b91c1c;" id="btn-delete-notice" onclick="deleteNoticeAction()"><i class="bi bi-trash-fill"></i> રદ કરો</button>
+                <button class="btn btn-primary" style="flex: 2;" id="btn-update-notice" onclick="submitNoticeUpdate()"><i class="bi bi-check-lg"></i> સુધારો સેવ કરો</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= AREA CALCULATOR MODAL ================= -->
+    <div id="modal-area-calc" class="modal-backdrop" style="display: none; align-items: flex-end; z-index: 300;">
+        <div class="modal-card area-modal-card">
+            <div class="modal-header" style="padding: 14px 18px; border-bottom: 1px solid var(--border-color);">
+                <div>
+                    <h3 style="color: var(--primary-blue); font-size: 16px; margin: 0;"><i class="bi bi-calculator-fill"></i> મહેસૂલી ક્ષેત્રફળ કેલ્ક્યુલેટર</h3>
+                    <p style="font-size: 11px; color: var(--text-muted); margin: 2px 0 0 0;">મહીસાગર પંથક સ્ટાન્ડર્ડ ગણતરી (૧ વિઘો = ૧૬ ગુંઠા)</p>
+                </div>
+                <button class="modal-close-btn" onclick="closeAreaCalcModal()"><i class="bi bi-x-lg"></i></button>
+            </div>
+
+            <div class="modal-body" style="padding: 16px; overflow-y: auto; max-height: calc(88vh - 65px);">
+                <div class="calc-tabs">
+                    <button class="calc-tab-btn active" id="tab-btn-converter" onclick="switchCalcTab('converter')">૧. એકમ કન્વર્ટર</button>
+                    <button class="calc-tab-btn" id="tab-btn-math" onclick="switchCalcTab('math')">૨. સરવાળા / બાદબાકી</button>
+                    <button class="calc-tab-btn" id="tab-btn-share" onclick="switchCalcTab('share')">૩. હિસ્સા વહેંચણી</button>
+                </div>
+
+                <!-- TAB 1: REAL-TIME CONVERTER -->
+                <div id="calc-pane-converter" class="calc-pane active">
+                    <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:10px 12px; margin-bottom:14px; font-size:12px; color:#166534;">
+                        <i class="bi bi-info-circle-fill"></i> કોઈપણ એક બોક્સમાં માપ લખો, બાકીના તમામ એકમોમાં લાઈવ રૂપાંતરણ થશે.
+                    </div>
+
+                    <div class="form-group" style="margin-bottom:12px;">
+                        <label class="form-label" style="font-weight:700; color:#0d47a1;">હેક્ટર - આરે - ચો.મી. (૭/૧૨ રેકોર્ડ મુજબ):</label>
+                        <div style="display:flex; gap:6px;">
+                            <input type="number" step="any" class="form-control" id="calc-c-ha" placeholder="હેક્ટર" oninput="convertFromHaAreSq()">
+                            <input type="number" step="any" class="form-control" id="calc-c-are" placeholder="આરે" oninput="convertFromHaAreSq()">
+                            <input type="number" step="any" class="form-control" id="calc-c-sqm-part" placeholder="ચો.મી." oninput="convertFromHaAreSq()">
+                        </div>
+                    </div>
+
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label class="form-label">કુલ ચોરસ મીટર (Sq. Mtr):</label>
+                            <input type="number" step="any" class="form-control bold-input" id="calc-c-sqm" placeholder="દા.ત. 1618" oninput="convertFromTotalSqM(this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">વિઘા - ગુંઠા (૧ વિઘો = ૧૬ ગુંઠા):</label>
+                            <div style="display:flex; gap:6px;">
+                                <input type="number" step="any" class="form-control" id="calc-c-vigha" placeholder="વિઘા" oninput="convertFromVighaGuntha()">
+                                <input type="number" step="any" class="form-control" id="calc-c-v-guntha" placeholder="ગુંઠા" oninput="convertFromVighaGuntha()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-grid-2" style="margin-top:10px;">
+                        <div class="form-group">
+                            <label class="form-label">એકર - ગુંઠા (૧ એકર = ૪૦ ગુંઠા):</label>
+                            <div style="display:flex; gap:6px;">
+                                <input type="number" step="any" class="form-control" id="calc-c-acre" placeholder="એકર" oninput="convertFromAcreGuntha()">
+                                <input type="number" step="any" class="form-control" id="calc-c-a-guntha" placeholder="ગુંઠા" oninput="convertFromAcreGuntha()">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">કુલ ગુંઠા (Guntha):</label>
+                            <input type="number" step="any" class="form-control" id="calc-c-guntha-total" placeholder="ગુંઠા" oninput="convertFromTotalGuntha(this.value)">
+                        </div>
+                    </div>
+
+                    <div class="form-grid-2" style="margin-top:10px;">
+                        <div class="form-group">
+                            <label class="form-label">ચોરસ વાર (Sq. Yards):</label>
+                            <input type="number" step="any" class="form-control" id="calc-c-sqyard" placeholder="ચોરસ વાર" oninput="convertFromSqYard(this.value)">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ચોરસ ફૂટ (Sq. Feet):</label>
+                            <input type="number" step="any" class="form-control" id="calc-c-sqft" placeholder="ચોરસ ફૂટ" oninput="convertFromSqFt(this.value)">
+                        </div>
+                    </div>
+
+                    <div style="margin-top:15px; text-align:right;">
+                        <button class="btn btn-secondary" onclick="clearConverterFields()" style="font-size:12px; padding:6px 12px;"><i class="bi bi-eraser-fill"></i> ક્લિયર</button>
+                    </div>
+                </div>
+
+                <!-- TAB 2: ADDITION & SUBTRACTION -->
+                <div id="calc-pane-math" class="calc-pane" style="display:none;">
+                    <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:10px 12px; margin-bottom:14px; font-size:12px; color:#1e40af;">
+                        <i class="bi bi-plus-slash-minus"></i> સર્વે નંબરોનું હેક્ટર-આરે-ચો.મી. ઉમેરી ચોક્કસ સરવાળો કે બાદબાકી કરો.
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <span style="font-size:13px; font-weight:700; color:#334155;">ક્ષેત્રફળ યાદી (હે.-આરે-ચો.મી.):</span>
+                        <div style="display:flex; gap:6px;">
+                            <button class="btn btn-primary" onclick="addMathRow('+')" style="font-size:11px; padding:4px 8px;"><i class="bi bi-plus"></i> પ્લસ (+)</button>
+                            <button class="btn btn-secondary" onclick="addMathRow('-')" style="background:#fee2e2; color:#b91c1c; font-size:11px; padding:4px 8px;"><i class="bi bi-dash"></i> માઈનસ (-)</button>
+                        </div>
+                    </div>
+
+                    <div id="math-rows-container" style="display:flex; flex-direction:column; gap:8px;"></div>
+
+                    <div class="calc-result-box" style="margin-top:15px;">
+                        <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                            <span style="font-size:12px; color:#475569; font-weight:bold;">ચોખ્ખું પરિણામ (Net Area):</span>
+                            <button class="btn-copy-chip" onclick="copyMathResult()"><i class="bi bi-clipboard"></i> કોપી</button>
+                        </div>
+                        <div style="font-size:20px; font-weight:800; color:#0d47a1; margin:6px 0;" id="math-res-ha-are">૦-૦૦-૦૦ હે.આરે.ચો.મી.</div>
+                        <div style="font-size:12px; color:#334155;" id="math-res-detail">કુલ: ૦ ચો.મી. | ૦ વિઘા ૦ ગુંઠા</div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: PARTITION (હિસ્સા વહેંચણી) -->
+                <div id="calc-pane-share" class="calc-pane" style="display:none;">
+                    <div style="background:#fefce8; border:1px solid #fef08a; border-radius:8px; padding:10px 12px; margin-bottom:14px; font-size:12px; color:#854d0e;">
+                        <i class="bi bi-pie-chart-fill"></i> ખાતાનું કુલ ક્ષેત્રફળ સરખા હિસ્સે અથવા ટકાવારી/આનાવારી પ્રમાણે વહેંચો.
+                    </div>
+
+                    <div class="form-group" style="margin-bottom:12px;">
+                        <label class="form-label" style="font-weight:700;">મૂળ કુલ ક્ષેત્રફળ (હે.-આરે-ચો.મી.):</label>
+                        <div style="display:flex; gap:6px;">
+                            <input type="number" class="form-control" id="share-total-ha" placeholder="હેક્ટર" oninput="calculateShare()">
+                            <input type="number" class="form-control" id="share-total-are" placeholder="આરે" oninput="calculateShare()">
+                            <input type="number" class="form-control" id="share-total-sqm" placeholder="ચો.મી." oninput="calculateShare()">
+                        </div>
+                    </div>
+
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label class="form-label">કુલ ભાગીદાર / વારસદાર સંખ્યા:</label>
+                            <input type="number" min="1" class="form-control" id="share-person-count" value="2" oninput="calculateShare()">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ગણતરીની રીત:</label>
+                            <select class="form-control" id="share-calc-mode" onchange="toggleShareMode()">
+                                <option value="equal">સરખા ભાગે (Equal Share)</option>
+                                <option value="fraction">અપૂર્ણાંક / હિસ્સો (દા.ત. ૧/૩)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="share-fraction-row" style="display:none; margin-top:10px;">
+                        <label class="form-label">વિશિષ્ટ હિસ્સો (દા.ત. ૩ પૈકી ૧ ભાગ):</label>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <input type="number" min="1" class="form-control" id="share-frac-num" value="1" placeholder="અંશ (1)" style="max-width:100px;" oninput="calculateShare()">
+                            <span style="font-weight:bold; font-size:16px;">/</span>
+                            <input type="number" min="1" class="form-control" id="share-frac-den" value="3" placeholder="છેદ (3)" style="max-width:100px;" oninput="calculateShare()">
+                        </div>
+                    </div>
+
+                    <div class="calc-result-box" style="margin-top:15px;">
+                        <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                            <span style="font-size:12px; color:#475569; font-weight:bold;" id="share-res-title">પ્રત્યેક ખાતેદારના ભાગે આવતું ક્ષેત્રફળ:</span>
+                            <button class="btn-copy-chip" onclick="copyShareResult()"><i class="bi bi-clipboard"></i> કોપી</button>
+                        </div>
+                        <div style="font-size:20px; font-weight:800; color:#047857; margin:6px 0;" id="share-res-ha-are">૦-૦૦-૦૦ હે.આરે.ચો.મી.</div>
+                        <div style="font-size:12px; color:#334155;" id="share-res-detail">૦ ચો.મી. | ૦ વિઘા ૦ ગુંઠા</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <div class="bottom-nav">
+        <div class="nav-item active" id="nav-dashboard" onclick="showView('dashboard')">
+            <i class="fa-solid fa-house"></i>હોમ
+        </div>
+        <div class="nav-item" id="nav-135d-desk" onclick="showView('135d-desk')">
+            <i class="fa-solid fa-file-invoice"></i>૧૩૫-ડી
+        </div>
+        <div class="nav-item" id="nav-pedhinamu-list" onclick="showView('pedhinamu-list')">
+            <i class="fa-solid fa-sitemap"></i>પેઢીનામું
+        </div>
+        <div class="nav-item" id="nav-directory" onclick="showView('directory')">
+            <i class="fa-solid fa-address-book"></i>ડિરેક્ટરી
+        </div>
+    </div>
+    <div id="toast">નોટિફિકેશન</div>
+
+    <!-- LOGIN SCREEN MODAL -->
+    <div id="modal-login" class="modal-backdrop" style="display: none; align-items: center; z-index: 999; background: #0f172a;">
+        <div class="modal-card" style="border-radius: 16px; padding: 25px; max-width: 360px; margin: 0 auto;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <i class="fa-solid fa-landmark" style="font-size: 36px; color: var(--primary-blue);"></i>
+                <h2 style="color: var(--primary-blue); margin-top: 10px; font-size: 20px;">મહેસૂલી તલાટી દફતર</h2>
+                <p style="font-size: 13px; color: var(--text-muted);">લુણાવાડા તાલુકો</p>
+            </div>
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label class="form-label"><i class="fa-solid fa-mobile-screen"></i> મોબાઈલ નંબર:</label>
+                <input type="tel" class="form-control" id="login-mobile" placeholder="૧૦ આંકડાનો મોબાઈલ નં." maxlength="10">
+            </div>
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label class="form-label"><i class="fa-solid fa-lock"></i> પાસવર્ડ:</label>
+                <input type="password" class="form-control" id="login-password" placeholder="૬ આંકડાનો પાસવર્ડ દાખલ કરો" value="000000">
+            </div>
+            <button class="btn btn-primary" id="btn-login-submit" style="width: 100%; padding: 12px;" onclick="executeLogin()">લોગિન કરો</button>
+        </div>
+    </div>
+
+    <!-- SEJA SWITCH MODAL -->
+    <div id="modal-seja-switch" class="modal-backdrop" style="display: none; align-items: center;">
+        <div class="modal-card" style="border-radius: 12px; padding: 20px; max-width: 380px;">
+            <div class="modal-header" style="padding: 0 0 10px 0;">
+                <h3>સેજો પસંદ કરો</h3>
+                <button class="modal-close-btn" onclick="document.getElementById('modal-seja-switch').style.display='none'"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="seja-switch-list" style="margin-top: 15px; display: flex; flex-direction: column; gap: 10px;"></div>
+        </div>
+    </div>
+
+    <!-- FIREBASE LIBRARIES -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+    <!-- CUSTOM SCRIPTS -->
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/ui-logic.js"></script>
+    <script src="js/135d.js"></script>
+    <script src="js/pedhinamu.js"></script>
+    <script src="js/area-calc.js"></script>
+    <script src="js/directory.js"></script>
+
+</body>
+</html>
