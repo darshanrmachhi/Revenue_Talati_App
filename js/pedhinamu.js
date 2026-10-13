@@ -46,11 +46,17 @@ function renderPedhinamuList() {
 
     let filtered = allPedhinamuList.filter(r => {
         if (!pedhinamuSearchQuery) return true;
-        let dec = String(r.Deceased_Name || '').toLowerCase();
-        let app = String(r.Applicant_Name || '').toLowerCase();
-        let vill = String(r.Village_Name || '').toLowerCase();
-        let id = String(r.Pedhinamu_ID || '').toLowerCase();
-        return dec.includes(pedhinamuSearchQuery) || app.includes(pedhinamuSearchQuery) || vill.includes(pedhinamuSearchQuery) || id.includes(pedhinamuSearchQuery);
+        
+        let q = pedhinamuSearchQuery;
+        let idMatch = String(r.Pedhinamu_ID || '').toLowerCase().includes(q);
+
+        // સ્માર્ટ ફોનેટિક સર્ચ (ગુજરનાર, અરજદાર, ગામ અને હેતુ)
+        let matchDec = matchesSmartSearch(r.Deceased_Name, q);
+        let matchApp = matchesSmartSearch(r.Applicant_Name, q);
+        let matchVill = matchesSmartSearch(r.Village_Name, q);
+        let matchRemarks = matchesSmartSearch(r.Remarks, q);
+
+        return idMatch || matchDec || matchApp || matchVill || matchRemarks;
     });
 
     if (filtered.length === 0) {

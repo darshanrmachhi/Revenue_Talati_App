@@ -60,12 +60,21 @@ function renderNotices() {
     
     let filtered = allNotices.filter(n => {
         if (noticeSearchQuery) {
-            let matchMut = String(n.Mutation_No || '').toLowerCase().includes(noticeSearchQuery);
-            let matchVill = String(n.Village_Name || '').toLowerCase().includes(noticeSearchQuery);
-            let matchType = String(n.Entry_Type || '').toLowerCase().includes(noticeSearchQuery);
-            let matchKhat = String(n.Khatedar_Name || '').toLowerCase().includes(noticeSearchQuery);
+            let q = noticeSearchQuery;
+            let gujQ = toGujaratiDigits(q);
+
+            // ૧. નોંધ નંબર મેચિંગ (English કે ગુજરાતી આંકડા બંનેમાં)
+            let mutStr = String(n.Mutation_No || '');
+            let matchMut = mutStr.includes(q) || toGujaratiDigits(mutStr).includes(q) || mutStr.includes(gujQ);
+
+            // ૨. સ્માર્ટ ફોનેટિક સર્ચ (ગામ, પ્રકાર અને ખાતેદારનું નામ)
+            let matchVill = matchesSmartSearch(n.Village_Name, q);
+            let matchType = matchesSmartSearch(n.Entry_Type, q);
+            let matchKhat = matchesSmartSearch(n.Khatedar_Name, q);
+
             if (!matchMut && !matchVill && !matchType && !matchKhat) return false;
         }
+
         let isSubmitted = (String(n.Current_Status || '').includes('જમા') || !!n.Submitted_Date);
         if (currentNoticeTab === 'completed') return isSubmitted;
         if (isSubmitted) return false;
