@@ -64,11 +64,35 @@ function renderSejasGrid(sejasList) {
 }
 
 function filterDirectory(query) {
-    const clearBtn = document.getElementById('clear-search'); clearBtn.style.display = query ? "block" : "none";
+    const clearBtn = document.getElementById('clear-search'); 
+    if (clearBtn) clearBtn.style.display = query ? "block" : "none";
     if (!talukaDirectoryData) return;
+    
     const q = query.trim().toLowerCase();
     if (!q) { renderSejasGrid(talukaDirectoryData.sejas); return; }
-    const filtered = talukaDirectoryData.sejas.filter(s => s.sejaName.toLowerCase().includes(q) || s.talatiName.toLowerCase().includes(q) || s.panchayats.some(p => p.panchayatName.toLowerCase().includes(q) || p.villages.some(v => v.villageName.toLowerCase().includes(q))));
+
+    const filtered = talukaDirectoryData.sejas.filter(s => {
+        // ૧. સેજાનું નામ અથવા તલાટીનું નામ મેચ થાય
+        if (matchesSmartSearch(s.sejaName, q) || matchesSmartSearch(s.talatiName, q)) {
+            return true;
+        }
+
+        // ૨. સેજા હેઠળની પંચાયતો કે ગામો મેચ થાય
+        if (s.panchayats && Array.isArray(s.panchayats)) {
+            return s.panchayats.some(p => {
+                if (matchesSmartSearch(p.panchayatName, q)) return true;
+                if (p.villages && Array.isArray(p.villages)) {
+                    return p.villages.some(v => {
+                        let vName = typeof v === 'string' ? v : (v.villageName || v.name || "");
+                        return matchesSmartSearch(vName, q);
+                    });
+                }
+                return false;
+            });
+        }
+        return false;
+    });
+
     renderSejasGrid(filtered);
 }
 

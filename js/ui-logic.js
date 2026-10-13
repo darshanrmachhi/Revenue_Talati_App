@@ -293,3 +293,92 @@ window.addEventListener('appinstalled', (evt) => {
         installContainer.style.display = 'none';
     }
 });
+
+// ==========================================
+// SMART PHONETIC SEARCH (ENGLISH TO GUJARATI)
+// ==========================================
+function gujaratiToLatin(str) {
+    if (!str) return "";
+    
+    const charMap = {
+        'અ': 'a', 'આ': 'a', 'ઇ': 'i', 'ઈ': 'i', 'ઉ': 'u', 'ઊ': 'u', 'ઋ': 'ru',
+        'એ': 'e', 'ઐ': 'ai', 'ઓ': 'o', 'ઔ': 'au', 'અં': 'an', 'અઃ': 'ah',
+        'ા': 'a', 'િ': 'i', 'ી': 'i', 'ુ': 'u', 'ૂ': 'u', 'ૃ': 'ru',
+        'ે': 'e', 'ૈ': 'ai', 'ો': 'o', 'ૌ': 'au', 'ં': 'n', 'ઃ': 'h',
+        'ક': 'k', 'ખ': 'kh', 'ગ': 'g', 'ઘ': 'gh', 'ઙ': 'ng',
+        'ચ': 'ch', 'છ': 'chh', 'જ': 'j', 'ઝ': 'z', 'ઞ': 'ny',
+        'ટ': 't', 'ઠ': 'th', 'ડ': 'd', 'ઢ': 'dh', 'ણ': 'n',
+        'ત': 't', 'થ': 'th', 'દ': 'd', 'ધ': 'dh', 'ન': 'n',
+        'પ': 'p', 'ફ': 'f', 'બ': 'b', 'ભ': 'bh', 'મ': 'm',
+        'ય': 'y', 'ર': 'r', 'લ': 'l', 'વ': 'v', 'શ': 'sh', 'ષ': 'sh', 'સ': 's', 'હ': 'h', 'ળ': 'l',
+        'ક્ષ': 'ksh', 'જ્ઞ': 'gn'
+    };
+
+    const matras = ['ા', 'િ', 'ી', 'ુ', 'ૂ', 'ૃ', 'ે', 'ૈ', 'ો', 'ૌ', 'ં', 'ઃ'];
+    const virama = '્';
+    const consonants = [
+        'ક', 'ખ', 'ગ', 'ઘ', 'ઙ', 'ચ', 'છ', 'જ', 'ઝ', 'ઞ',
+        'ટ', 'ઠ', 'ડ', 'ઢ', 'ણ', 'ત', 'થ', 'દ', 'ધ', 'ન',
+        'પ', 'ફ', 'બ', 'ભ', 'મ', 'ય', 'ર', 'લ', 'વ', 'શ', 'ષ', 'સ', 'હ', 'ળ', 'ક્ષ', 'જ્ઞ'
+    ];
+
+    let result = '';
+    for (let i = 0; i < str.length; i++) {
+        let char = str[i];
+        let nextChar = str[i + 1];
+
+        if (charMap[char]) {
+            result += charMap[char];
+            if (consonants.includes(char)) {
+                if (!matras.includes(nextChar) && nextChar !== virama) {
+                    if (nextChar && nextChar !== ' ' && nextChar !== '-' && nextChar !== '(') {
+                        result += 'a';
+                    }
+                }
+            }
+        } else if (char !== virama) {
+            result += char;
+        }
+    }
+    return result.toLowerCase();
+}
+
+function normalizePhonetic(str) {
+    if (!str) return "";
+    return str.toLowerCase()
+        .replace(/w/g, 'v')             // 'w' અને 'v' સરખા ગણાય (Salawada / Salavada)
+        .replace(/ee/g, 'i')            // 'ee' -> 'i'
+        .replace(/oo/g, 'u')            // 'oo' -> 'u'
+        .replace(/sh/g, 's')            // 'sh' -> 's'
+        .replace(/aa/g, 'a')            // 'aa' -> 'a'
+        .replace(/([a-z])\1+/g, '$1')   // ડબલ અક્ષરો સરખા ગણાય (tt -> t, ll -> l)
+        .replace(/\s+/g, '');
+}
+
+function matchesSmartSearch(sourceGujaratiText, searchQuery) {
+    if (!sourceGujaratiText || !searchQuery) return false;
+    
+    let src = String(sourceGujaratiText).toLowerCase();
+    let query = String(searchQuery).trim().toLowerCase();
+
+    // ૧. ડાયરેક્ટ ગુજરાતી મેચ (જો યુઝરે સીધું ગુજરાતીમાં જ ટાઇપ કર્યું હોય)
+    if (src.includes(query)) return true;
+
+    // ૨. English Phonetical Match
+    let latinSrc = gujaratiToLatin(src);
+    let normSrc = normalizePhonetic(latinSrc);
+    let normQuery = normalizePhonetic(query);
+
+    if (normSrc.includes(normQuery)) return true;
+
+    // ૩. Consonant Skeleton Match (જો સ્પેલિંગમાં vowels નો થોડો ફેર હોય, દા.ત. kaslal vs kasalal)
+    if (normQuery.length >= 3) {
+        let skelSrc = normSrc.replace(/[aeiou]/g, '');
+        let skelQuery = normQuery.replace(/[aeiou]/g, '');
+        if (skelQuery.length >= 2 && skelSrc.includes(skelQuery)) {
+            return true;
+        }
+    }
+
+    return false;
+}
