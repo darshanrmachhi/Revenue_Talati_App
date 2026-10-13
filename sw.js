@@ -1,4 +1,7 @@
+// sw.js
 const CACHE_NAME = 'talati-app-v1';
+
+// ઓફલાઇન માટે જરૂરી લોકલ ફાઇલો
 const assetsToCache = [
   '/',
   '/index.html',
@@ -9,55 +12,55 @@ const assetsToCache = [
   '/js/135d.js',
   '/js/pedhinamu.js',
   '/js/area-calc.js',
-  '/js/directory.js'
+  '/js/directory.js',
+  '/manifest.json'
 ];
 
-// 1. Install Service Worker & Cache Assets
+// ૧. Install Service Worker & Cache Assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('Opened cache');
+      console.log('Static assets cached successfully.');
       return cache.addAll(assetsToCache);
     })
   );
+  self.skipWaiting();
 });
 
-// 2. Fetch Cached Files when Offline
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    })
-  );
-});const CACHE_NAME = 'talati-app-v1';
-const assetsToCache = [
-  '/',
-  '/index.html',
-  '/css/styles.css',
-  '/js/config.js',
-  '/js/auth.js',
-  '/js/ui-logic.js',
-  '/js/135d.js',
-  '/js/pedhinamu.js',
-  '/js/area-calc.js',
-  '/js/directory.js'
-];
-
-// 1. Install Service Worker & Cache Assets
-self.addEventListener('install', (event) => {
+// ૨. Activate & Clean Old Caches (વર્ઝન અપડેટ થાય ત્યારે જૂનો કેશ ક્લિયર કરશે)
+self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('Opened cache');
-      return cache.addAll(assetsToCache);
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cache) => {
+          if (cache !== CACHE_NAME) {
+            console.log('Old cache cleared:', cache);
+            return caches.delete(cache);
+          }
+        })
+      );
     })
   );
+  self.clients.claim();
 });
 
-// 2. Fetch Cached Files when Offline
+// ૩. Fetch Handler (Firebase/External API ને બાયપાસ કરીને બાકીની ફાઈલો કેશમાંથી આપશે)
 self.addEventListener('fetch', (event) => {
+  const requestUrl = event.request.url;
+
+  // Firebase Firestore, Auth કે Google APIs ને સર્વિસ વર્કર અટકાવશે નહીં
+  if (
+    requestUrl.includes('firestore.googleapis.com') ||
+    requestUrl.includes('firebase') ||
+    requestUrl.includes('identitytoolkit')
+  ) {
+    return;
+  }
+
+  // કેશમાં ફાઇલ હોય તો ત્યાંથી આપો, નહિતર નેટવર્ક પરથી લાવો
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
+    caches.match(event.request).then((cachedResponse) => {
+      return cachedResponse || fetch(event.request);
     })
   );
 });
