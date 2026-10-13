@@ -201,6 +201,12 @@ function userLogout() {
         localStorage.removeItem('revenue_talati_user'); 
         location.reload(); 
     };
+    // userLogout ફંક્શનની અંદર performLogout માં સૌથી પહેલા આ ઉમેરો:
+    if (typeof unsubscribeNotices === 'function' && unsubscribeNotices) unsubscribeNotices();
+    if (typeof unsubscribePedhinamu === 'function' && unsubscribePedhinamu) unsubscribePedhinamu();
+    if (typeof unsubscribeDashboardNotices === 'function' && unsubscribeDashboardNotices) unsubscribeDashboardNotices();
+    if (typeof unsubscribeDashboardPedhinamu === 'function' && unsubscribeDashboardPedhinamu) unsubscribeDashboardPedhinamu();
+   
     if (typeof Swal !== 'undefined') { Swal.fire({ title: 'લોગઆઉટ?', text: "શું તમે એપ્લિકેશનમાંથી બહાર નીકળવા માંગો છો?", icon: 'question', showCancelButton: true, confirmButtonColor: '#2563eb', confirmButtonText: 'હા, લોગઆઉટ', cancelButtonText: 'રદ કરો' }).then((result) => { if (result.isConfirmed) performLogout(); }); } 
     else { if (confirm('શું તમે લોગઆઉટ કરવા માંગો છો?')) performLogout(); }
 }

@@ -1,23 +1,46 @@
 // js/135d.js
 
+// લિસનર અનસબસ્ક્રાઈબ કરવા માટે ગ્લોબલ વેરીએબલ
+let unsubscribeNotices = null;
+
 function loadNoticesDesk() {
     let container = document.getElementById('notice-list-container');
     if (!container) return;
-    container.innerHTML = '<p style="text-align:center;"><i class="fa-solid fa-spinner fa-spin"></i> નોટિસ લોડ થઈ રહી છે...</p>';
     
-    let currentVillages = (activeSeja && activeSeja.villages) ? activeSeja.villages : [];
+    let currentVillages = (activeSeja && activeSeja.villages && activeSeja.villages.length > 0) 
+                          ? activeSeja.villages 
+                          : [];
     
-    db.collection("Notices_135D").get().then((querySnapshot) => {
+    // જો અગાઉથી કોઈ લિસનર ચાલુ હોય તો મેમરી લીક અટકાવવા તેને ડિસ્કનેક્ટ કરો
+    if (unsubscribeNotices) {
+        unsubscribeNotices();
+        unsubscribeNotices = null;
+    }
+
+    container.innerHTML = '<p style="text-align:center;"><i class="fa-solid fa-spinner fa-spin"></i> નોટિસ લાઈવ સિંક થાય છે...</p>';
+
+    // જો કોઈ ગામ ઉપલબ્ધ ન હોય
+    if (currentVillages.length === 0) {
+        allNotices = [];
+        renderNotices();
+        return;
+    }
+
+    // ફક્ત આ સેજાના ગામો માટે જ Firestore Real-time Query
+    let queryRef = db.collection("Notices_135D").where("Village_Name", "in", currentVillages);
+
+    unsubscribeNotices = queryRef.onSnapshot((querySnapshot) => {
         let data = [];
         querySnapshot.forEach((doc) => {
             let notice = doc.data();
             notice.Notice_ID = doc.id;
-            if (currentVillages.length === 0 || currentVillages.includes(notice.Village_Name) || !notice.Village_Name) { data.push(notice); }
+            data.push(notice);
         });
+        
         allNotices = data;
-        renderNotices();
-    }).catch((error) => {
-        container.innerHTML = `<p style="color:#ef4444; text-align:center; padding:15px;">એરર: ${error.message}</p>`;
+        renderNotices(); // ડેટા બદલાતા જ સ્ક્રીન પર લાઈવ અપડેટ થશે!
+    }, (error) => {
+        container.innerHTML = `<p style="color:#ef4444; text-align:center; padding:15px;">લાઈવ સિંક એરર: ${error.message}</p>`;
     });
 }
 
