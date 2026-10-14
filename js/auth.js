@@ -178,7 +178,7 @@ function initUserEnvironment() {
     }
     if (elSwitch) { elSwitch.style.display = (userSejas && userSejas.length > 1) ? 'block' : 'none'; }
     
-    // ૧. આજની તારીખ અને વાર ગુજરાતીમાં સેટ કરો
+    // ૧. આજની તારીખ અને વાર સેટ કરો
     let dateEl = document.getElementById('current-date-display');
     if (dateEl) {
         const days = ['રવિવાર', 'સોમવાર', 'મંગળવાર', 'બુધવાર', 'ગુરુવાર', 'શુક્રવાર', 'શનિવાર'];
@@ -187,7 +187,7 @@ function initUserEnvironment() {
         dateEl.innerHTML = `<i class="bi bi-calendar3"></i> ${days[now.getDay()]}, ${toGujaratiDigits(now.getDate())} ${months[now.getMonth()]} ${toGujaratiDigits(now.getFullYear())}`;
     }
 
-    // ૨. જે-તે તલાટીના સેજાના ગામોની ચિપ્સ ડાયનેમિક બતાવો
+    // ૨. સેજાના ગામોની ચિપ્સ ડાયનેમિક બતાવો
     let chipsCont = document.getElementById('hero-villages-chips');
     if (chipsCont && activeSeja.villages) {
         chipsCont.innerHTML = activeSeja.villages.map(v => 
@@ -196,24 +196,12 @@ function initUserEnvironment() {
     }
 
     if (activeSeja.villages && activeSeja.villages.length > 0) {
-        let vInp = document.getElementById('inp-village'); if (vInp) vInp.value = activeSeja.villages[0];
-        let nVInp = document.getElementById('notice-village'); if (nVInp) nVInp.value = activeSeja.villages[0];
+        let vInp = document.getElementById('inp-village'); 
+        if (vInp) vInp.value = activeSeja.villages[0];
+        let nVInp = document.getElementById('notice-village'); 
+        if (nVInp) nVInp.value = activeSeja.villages[0];
     }
-    loadDashboardData();
-}
-
-    // ૨. સેજાના ગામોની ચિપ્સ બતાવો
-    let chipsCont = document.getElementById('hero-villages-chips');
-    if (chipsCont && activeSeja.villages) {
-        chipsCont.innerHTML = activeSeja.villages.map(v => 
-            `<span class="hero-village-chip"><i class="bi bi-geo-alt-fill" style="font-size:10px;"></i> ${v}</span>`
-        ).join('');
-    }
-
-    if (activeSeja.villages && activeSeja.villages.length > 0) {
-        let vInp = document.getElementById('inp-village'); if (vInp) vInp.value = activeSeja.villages[0];
-        let nVInp = document.getElementById('notice-village'); if (nVInp) nVInp.value = activeSeja.villages[0];
-    }
+    
     loadDashboardData();
 }
 
