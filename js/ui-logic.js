@@ -186,18 +186,25 @@ function loadDashboardData() {
     if (unsubscribeDashboardPedhinamu) { unsubscribeDashboardPedhinamu(); }
 
     unsubscribeDashboardNotices = db.collection("Notices_135D").onSnapshot((querySnapshot) => {
-        let p = 0, d = 0, c = 0;
+        let p = 0, d = 0, rCount = 0, c = 0;
         let today = new Date();
         today.setHours(0,0,0,0);
+
+        // ગામવાર નોંધોની ગણતરી માટે ઓબ્જેક્ટ તૈયાર કરો
+        let villageCounts = {};
+        currentVillages.forEach(v => villageCounts[v] = 0);
 
         querySnapshot.forEach((doc) => {
             let r = doc.data();
             let vName = String(r.Village_Name || '').trim();
-            let isMatch = (currentVillages.length === 0) || 
-                          currentVillages.some(v => vName.includes(v) || v.includes(vName)) || 
-                          !vName;
+            let matchedVill = currentVillages.find(v => vName.includes(v) || v.includes(vName));
+            let isMatch = (currentVillages.length === 0) || !!matchedVill || !vName;
 
             if (isMatch) {
+                if (matchedVill) {
+                    villageCounts[matchedVill] = (villageCounts[matchedVill] || 0) + 1;
+                }
+
                 let isSubmitted = (String(r.Current_Status || '').includes("જમા") || !!r.Submitted_Date);
                 if (isSubmitted) {
                     c++;
@@ -207,7 +214,7 @@ function loadDashboardData() {
                         sDate.setHours(0,0,0,0);
                         let diffDays = Math.floor((today - sDate) / (1000 * 60 * 60 * 24));
                         if (diffDays < 30) d++;
-                        else p++;
+                        else rCount++;
                     } else { p++; }
                 } else { p++; }
             }
@@ -219,7 +226,30 @@ function loadDashboardData() {
         if (elP) elP.innerText = toGujaratiDigits(p); 
         if (elD) elD.innerText = toGujaratiDigits(d); 
         if (elC) elC.innerText = toGujaratiDigits(c); 
-        renderNoticeChart(p, d, c);
+
+        // ૧. ૩૦ દિવસ પૂર્ણ એલર્ટ બેનર
+        let alertBanner = document.getElementById('ready-notices-alert');
+        let alertTitle = document.getElementById('ready-alert-title');
+        if (alertBanner && alertTitle) {
+            if (rCount > 0) {
+                alertTitle.innerText = `${toGujaratiDigits(rCount)} નોંધોની મુદત પૂર્ણ (૩૦ દિવસ) - જમા કરવા પાત્ર`;
+                alertBanner.style.display = 'flex';
+            } else {
+                alertBanner.style.display = 'none';
+            }
+        }
+
+        // ૨. ગામવાર નોંધોની સ્ટ્રિપ રેન્ડર કરો
+        let vStrip = document.getElementById('village-wise-stats-strip');
+        if (vStrip && currentVillages.length > 0) {
+            vStrip.innerHTML = currentVillages.map(v => {
+                let shortVName = v.split('(')[0]; // 'ચારણગામ(સાલાવાડા)' ને નાનું બતાવવા
+                return `<div class="v-stat-item"><span>${shortVName}:</span> <span class="v-stat-badge">${toGujaratiDigits(villageCounts[v] || 0)}</span></div>`;
+            }).join('<span style="color:#e2e8f0;">|</span>');
+            vStrip.style.display = 'flex';
+        }
+
+        renderNoticeChart(p, d + rCount, c);
         if (loadStatus) loadStatus.innerText = "";
     });
 
@@ -244,15 +274,35 @@ function renderNoticeChart(pending, due, completed) {
 
     let options = {
         series: [pending, due, completed],
-        chart: { type: 'donut', height: 220, fontFamily: 'Noto Sans Gujarati, sans-serif' },
+        chart: { type: 'donut', height: 185, fontFamily: 'Noto Sans Gujarati, sans-serif' },
         labels: ['બજાવવાની બાકી', 'મુદતમાં ચાલુ', 'કચેરીએ જમા'],
         colors: ['#ef4444', '#f59e0b', '#10b981'],
-        legend: { position: 'bottom', fontSize: '12px' },
-        dataLabels: { enabled: true },
-        plotOptions: { pie: { donut: { size: '65%', labels: { show: true, total: { show: true, label: 'કુલ નોટિસો', fontSize: '13px', fontWeight: 600, formatter: function (w) { return toGujaratiDigits(w.globals.seriesTotals.reduce((a, b) => a + b, 0)); } } } } } }
+        legend: { position: 'right', fontSize: '12px', offsetY: 15 },
+        dataLabels: { enabled: false },
+        plotOptions: { 
+            pie: { 
+                donut: { 
+                    size: '70%', 
+                    labels: { 
+                        show: true, 
+                        total: { 
+                            show: true, 
+                            label: 'કુલ નોટિસો', 
+                            fontSize: '11px', 
+                            fontWeight: 600, 
+                            formatter: function (w) { 
+                                return toGujaratiDigits(w.globals.seriesTotals.reduce((a, b) => a + b, 0)); 
+                            } 
+                        } 
+                    } 
+                } 
+            } 
+        }
     };
 
-    if (noticeApexChart) { noticeApexChart.updateOptions(options); } else {
+    if (noticeApexChart) { 
+        noticeApexChart.updateOptions(options); 
+    } else {
         chartElem.innerHTML = "";
         noticeApexChart = new ApexCharts(chartElem, options);
         noticeApexChart.render();

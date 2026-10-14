@@ -34,14 +34,37 @@
         <!-- VIEW 1: DASHBOARD -->
         <div id="view-dashboard" class="app-view active">
             <div class="hero-seja-card">
-                <div class="hero-content">
-                    <span class="hero-badge"><i class="bi bi-shield-check"></i> <span id="current-charge-badge">કાયમી ચાર્જ</span></span>
-                    <h2 id="current-seja-title">સાલાવાડા સેજો</h2>
-                    <p><i class="bi bi-person-badge"></i> <span id="user-display-name">તલાટી</span></p>
+                <div class="hero-content" style="width: 100%;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <span class="hero-badge"><i class="bi bi-shield-check"></i> <span id="current-charge-badge">કાયમી ચાર્જ</span></span>
+                        <span id="current-date-display" style="font-size: 11px; opacity: 0.9; font-weight: 600;"><i class="bi bi-calendar3"></i> તા. -</span>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h2 id="current-seja-title">સાલાવાડા સેજો</h2>
+                            <p><i class="bi bi-person-badge"></i> <span id="user-display-name">તલાટી</span></p>
+                        </div>
+                        <div id="seja-switch-btn-container" style="display:none;">
+                            <button class="btn-switch-hero" onclick="openSejaSwitchModal()"><i class="bi bi-arrow-repeat"></i> સેજો બદલો</button>
+                        </div>
+                    </div>
+
+                    <!-- સેજા હેઠળના ગામોની ચિપ્સ અહીં દેખાશે -->
+                    <div id="hero-villages-chips" class="hero-villages-wrap"></div>
                 </div>
-                <div id="seja-switch-btn-container" style="display:none;">
-                    <button class="btn-switch-hero" onclick="openSejaSwitchModal()"><i class="bi bi-arrow-repeat"></i> સેજો બદલો</button>
+            </div>
+
+            <!-- ૩૦ દિવસ પૂર્ણ થયેલી નોંધો માટેનું એલર્ટ બેનર (જરૂર પડ્યે જ દેખાશે) -->
+            <div id="ready-notices-alert" class="alert-banner-ready" style="display: none;" onclick="switchNoticeTabAndShow('ready')">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div class="alert-icon-pulse"><i class="bi bi-bell-fill"></i></div>
+                    <div>
+                        <h4 id="ready-alert-title" style="font-size: 13px; font-weight: 700; margin: 0;">૦ નોંધોની મુદત પૂર્ણ (૩૦ દિવસ)</h4>
+                        <p style="font-size: 11px; margin: 2px 0 0 0; opacity: 0.9;">ઈ-ધરા કચેરીએ જમા કરાવવા અહીં ક્લિક કરો</p>
+                    </div>
                 </div>
+                <i class="bi bi-chevron-right" style="font-size: 16px;"></i>
             </div>
 
 <!-- PWA INSTALL BANNER (શરૂઆતમાં હાઈડ રહેશે) -->
@@ -57,62 +80,94 @@
 </div>
 
             <div class="section-title"><i class="bi bi-speedometer2"></i> આજની દફતર સ્થિતિ <span id="loading-status" style="font-size:11px; color:var(--primary); font-weight:normal;"></span></div>
-            <div class="stats-grid">
+            
+            <!-- COMPACT HORIZONTAL STATS GRID -->
+            <div class="stats-grid compact-stats-grid">
                 <div class="stat-card modern-stat stat-red" onclick="switchNoticeTabAndShow('pending')">
                     <div class="stat-icon-wrap"><i class="bi bi-exclamation-octagon-fill"></i></div>
-                    <div class="stat-number" id="pending-notices">-</div>
-                    <div class="stat-label">૧૩૫-ડી બજવણી બાકી</div>
+                    <div class="stat-info-wrap">
+                        <div class="stat-number" id="pending-notices">-</div>
+                        <div class="stat-label">બજવણી બાકી</div>
+                    </div>
                 </div>
                 <div class="stat-card modern-stat stat-amber" onclick="switchNoticeTabAndShow('active')">
                     <div class="stat-icon-wrap"><i class="bi bi-hourglass-split"></i></div>
-                    <div class="stat-number" id="due-notices">-</div>
-                    <div class="stat-label">મુદતમાં ચાલુ</div>
+                    <div class="stat-info-wrap">
+                        <div class="stat-number" id="due-notices">-</div>
+                        <div class="stat-label">મુદતમાં ચાલુ</div>
+                    </div>
                 </div>
                 <div class="stat-card modern-stat stat-emerald" onclick="switchNoticeTabAndShow('completed')">
                     <div class="stat-icon-wrap"><i class="bi bi-check-circle-fill"></i></div>
-                    <div class="stat-number" id="completed-notices">-</div>
-                    <div class="stat-label">કચેરીએ જમા</div>
+                    <div class="stat-info-wrap">
+                        <div class="stat-number" id="completed-notices">-</div>
+                        <div class="stat-label">કચેરીએ જમા</div>
+                    </div>
                 </div>
                 <div class="stat-card modern-stat stat-blue" onclick="showView('pedhinamu-list')">
                     <div class="stat-icon-wrap"><i class="bi bi-diagram-3-fill"></i></div>
-                    <div class="stat-number" id="total-pedhinamu">-</div>
-                    <div class="stat-label">પેઢીનામા ઇશ્યૂ</div>
+                    <div class="stat-info-wrap">
+                        <div class="stat-number" id="total-pedhinamu">-</div>
+                        <div class="stat-label">પેઢીનામા ઇશ્યૂ</div>
+                    </div>
                 </div>
             </div>
 
+            <!-- ગામવાર નોંધોની સંખ્યા બતાવતી સ્ટ્રિપ -->
+            <div id="village-wise-stats-strip" class="village-stats-strip" style="display:none;"></div>
+
+            <!-- ઝડપી સેવાઓ ચાર્ટની ઉપર જેથી તરત હાથવગી રહે -->
+            <div class="section-title"><i class="bi bi-lightning-charge-fill"></i> ઝડપી સેવાઓ (QUICK ACTIONS)</div>
+            <div class="quick-grid">
+                <div class="action-btn modern-action" onclick="showView('135d-desk')">
+                    <div class="action-icon icon-grad-red"><i class="bi bi-file-earmark-text-fill"></i></div>
+                    <div style="flex:1;">
+                        <h3 style="font-size: 15px; font-weight:700;">૧૩૫-ડી નોટિસ ડેસ્ક</h3>
+                        <p style="font-size: 12px; color: var(--text-muted);">નવી નોંધ ઉમેરો & ૩૦ દિવસ ટ્રેકિંગ</p>
+                    </div>
+                    <i class="bi bi-chevron-right" style="color:#cbd5e1;"></i>
+                </div>
+                <div class="action-btn modern-action" onclick="showView('pedhinamu-list')">
+                    <div class="action-icon icon-grad-blue"><i class="bi bi-tree-fill"></i></div>
+                    <div style="flex:1;">
+                        <h3 style="font-size: 15px; font-weight:700;">પેઢીનામું રજીસ્ટર</h3>
+                        <p style="font-size: 12px; color: var(--text-muted);">સ્માર્ટ આંબો & પ્રિન્ટ તૈયાર કરો</p>
+                    </div>
+                    <i class="bi bi-chevron-right" style="color:#cbd5e1;"></i>
+                </div>
+                <div class="action-btn modern-action" onclick="openAreaCalcModal()">
+                    <div class="action-icon icon-grad-emerald"><i class="bi bi-calculator-fill"></i></div>
+                    <div style="flex:1;">
+                        <h3 style="font-size: 15px; font-weight:700;">ક્ષેત્રફળ કેલ્ક્યુલેટર (Area Calculator)</h3>
+                        <p style="font-size: 12px; color: var(--text-muted);">હે.-આરે કન્વર્ટર, સરવાળા-બાદબાકી & હિસ્સા વહેંચણી</p>
+                    </div>
+                    <i class="bi bi-chevron-right" style="color:#cbd5e1;"></i>
+                </div>
+            </div>
+
+            <!-- COMPACT CHART CARD -->
             <div class="chart-card">
                 <div class="chart-header">
                     <h3><i class="bi bi-pie-chart-fill"></i> ૧૩૫-ડી નોટિસ સ્થિતિ પૃથક્કરણ</h3>
                     <span style="font-size:11px; color:#64748b;">લાઈવ ચાર્ટ</span>
                 </div>
-                <div id="notices-chart-container" style="min-height: 220px; display:flex; align-items:center; justify-content:center;">
+                <div id="notices-chart-container" style="min-height: 175px; display:flex; align-items:center; justify-content:center;">
                     <p style="color:#94a3b8; font-size:12px;">ચાર્ટ લોડ થઈ રહ્યો છે...</p>
                 </div>
             </div>
 
-            <div class="section-title"><i class="bi bi-lightning-charge-fill"></i> ઝડપી સેવાઓ (QUICK ACTIONS)</div>
-            <div class="quick-grid">
-                <div class="action-btn modern-action" onclick="showView('135d-desk')">
-                    <div class="action-icon icon-grad-red"><i class="bi bi-file-earmark-text-fill"></i></div>
-                    <div>
-                        <h3 style="font-size: 15px; font-weight:700;">૧૩૫-ડી નોટિસ ડેસ્ક</h3>
-                        <p style="font-size: 12px; color: var(--text-muted);">નવી નોંધ ઉમેરો & ૩૦ દિવસ ટ્રેકિંગ</p>
-                    </div>
-                </div>
-                <div class="action-btn modern-action" onclick="showView('pedhinamu-list')">
-                    <div class="action-icon icon-grad-blue"><i class="bi bi-tree-fill"></i></div>
-                    <div>
-                        <h3 style="font-size: 15px; font-weight:700;">પેઢીનામું રજીસ્ટર</h3>
-                        <p style="font-size: 12px; color: var(--text-muted);">સ્માર્ટ આંબો & પ્રિન્ટ તૈયાર કરો</p>
-                    </div>
-                </div>
-                <div class="action-btn modern-action" onclick="openAreaCalcModal()">
-                    <div class="action-icon icon-grad-emerald"><i class="bi bi-calculator-fill"></i></div>
-                    <div>
-                        <h3 style="font-size: 15px; font-weight:700;">ક્ષેત્રફળ કેલ્ક્યુલેટર (Area Calculator)</h3>
-                        <p style="font-size: 12px; color: var(--text-muted);">હે.-આરે કન્વર્ટર, સરવાળા-બાદબાકી & હિસ્સા વહેંચણી</p>
-                    </div>
-                </div>
+            <!-- USEFUL REVENUE PORTALS -->
+            <div class="section-title"><i class="bi bi-globe2"></i> મહેસૂલી પોર્ટલ લિંક્સ</div>
+            <div class="portal-links-grid">
+                <a href="https://anyror.gujarat.gov.in/" target="_blank" class="portal-chip">
+                    <i class="bi bi-file-earmark-check" style="color:#2563eb;"></i> AnyRoR (૭/૧૨)
+                </a>
+                <a href="https://iora.gujarat.gov.in/" target="_blank" class="portal-chip">
+                    <i class="bi bi-laptop" style="color:#047857;"></i> i-ORA પોર્ટલ
+                </a>
+                <a href="https://garvi.gujarat.gov.in/" target="_blank" class="portal-chip">
+                    <i class="bi bi-bank" style="color:#b45309;"></i> ગરવી (જંત્રી/દસ્તાવેજ)
+                </a>
             </div>
         </div>
 

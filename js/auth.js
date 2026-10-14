@@ -168,11 +168,40 @@ async function executeLogin() {
 
 function initUserEnvironment() {
     if (!currentUser || !activeSeja) return;
-    let elName = document.getElementById('user-display-name'); let elTitle = document.getElementById('current-seja-title'); let elBadge = document.getElementById('current-charge-badge'); let elSwitch = document.getElementById('seja-switch-btn-container');
+    let elName = document.getElementById('user-display-name'); 
+    let elTitle = document.getElementById('current-seja-title'); 
+    let elBadge = document.getElementById('current-charge-badge'); 
+    let elSwitch = document.getElementById('seja-switch-btn-container');
+    
     if (elName) elName.innerText = currentUser.name || "તલાટી";
     if (elTitle) elTitle.innerText = (activeSeja.sejaName || "સાલાવાડા") + " સેજો";
-    if (elBadge) { elBadge.innerText = activeSeja.chargeType || "કાયમી"; elBadge.className = "badge " + (activeSeja.chargeType === 'કાયમી' ? 'permanent' : 'additional'); }
+    if (elBadge) { 
+        elBadge.innerText = activeSeja.chargeType || "કાયમી"; 
+        elBadge.className = "badge " + (activeSeja.chargeType === 'કાયમી' ? 'permanent' : 'additional'); 
+    }
     if (elSwitch) { elSwitch.style.display = (userSejas && userSejas.length > 1) ? 'block' : 'none'; }
+    
+    // ૧. આજની તારીખ અને વાર ગુજરાતીમાં સેટ કરો
+    let dateEl = document.getElementById('current-date-display');
+    if (dateEl) {
+        const days = ['રવિવાર', 'સોમવાર', 'મંગળવાર', 'બુધવાર', 'ગુરુવાર', 'શુક્રવાર', 'શનિવાર'];
+        const months = ['જાન્યુઆરી', 'ફેબ્રુઆરી', 'માર્ચ', 'એપ્રિલ', 'મે', 'જૂન', 'જુલાઈ', 'ઓગસ્ટ', 'સપ્ટેમ્બર', 'ઓક્ટોબર', 'નવેમ્બર', 'ડિસેમ્બર'];
+        let now = new Date();
+        let dayName = days[now.getDay()];
+        let d = toGujaratiDigits(now.getDate());
+        let m = months[now.getMonth()];
+        let y = toGujaratiDigits(now.getFullYear());
+        dateEl.innerHTML = `<i class="bi bi-calendar3"></i> ${dayName}, ${d} ${m} ${y}`;
+    }
+
+    // ૨. સેજાના ગામોની ચિપ્સ બતાવો
+    let chipsCont = document.getElementById('hero-villages-chips');
+    if (chipsCont && activeSeja.villages) {
+        chipsCont.innerHTML = activeSeja.villages.map(v => 
+            `<span class="hero-village-chip"><i class="bi bi-geo-alt-fill" style="font-size:10px;"></i> ${v}</span>`
+        ).join('');
+    }
+
     if (activeSeja.villages && activeSeja.villages.length > 0) {
         let vInp = document.getElementById('inp-village'); if (vInp) vInp.value = activeSeja.villages[0];
         let nVInp = document.getElementById('notice-village'); if (nVInp) nVInp.value = activeSeja.villages[0];
