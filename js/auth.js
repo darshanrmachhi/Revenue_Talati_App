@@ -132,11 +132,16 @@ async function executeLogin() {
             }
         } catch(e) { console.log("Master data fetch error:", e); }
         
-        // જો માસ્ટર ડેટામાં બિલકુલ મેચ ન મળે તો...
+        // જો માસ્ટર ડેટામાં બિલકુલ મેચ ન મળે અથવા માત્ર 1 જ ગામ આવ્યું હોય તો...
         if (loadedSejas.length === 0) {
-            alert("ધ્યાન આપો: Master Data માં તમારું નામ કે મોબાઈલ નંબર મેચ થતો નથી. કૃપા કરીને Master Data અપડેટ કરો.");
-            let rawVillages = foundUser.Villages || foundUser.Village || foundUser.villages || "સાલાવાડા";
+            let rawVillages = foundUser.Villages || foundUser.Village || foundUser.villages || "સાલાવાડા, ચારણગામ(સાલાવાડા), કસલાલ";
             let villagesArray = String(rawVillages).split(',').map(v => v.trim()).filter(v => v !== "");
+            
+            // જો સાલાવાડા સેજો હોય અને ગામ ખૂટતા હોય તો ત્રણેય ગામ ઉમેરો
+            if ((foundUser.Seja_Name || "સાલાવાડા").includes("સાલાવાડા") && villagesArray.length === 1) {
+                villagesArray = ["સાલાવાડા", "ચારણગામ(સાલાવાડા)", "કસલાલ"];
+            }
+
             loadedSejas.push({
                 sejaName: foundUser.Seja_Name || "સાલાવાડા",
                 chargeType: "કાયમી",
@@ -168,7 +173,18 @@ async function executeLogin() {
 
 function initUserEnvironment() {
     if (!currentUser || !activeSeja) return;
-    let elName = document.getElementById('user-display-name'); 
+
+    // સેફ્ટી ચેક: જો સાલાવાડા સેજામાં ૧ જ ગામ સેવ થયેલું હોય તો ત્રણેય ગામ ઓટોમેટિક અપડેટ કરી દો
+    if (activeSeja.sejaName === "સાલાવાડા" && (!activeSeja.villages || activeSeja.villages.length < 3)) {
+        activeSeja.villages = ["સાલાવાડા", "ચારણગામ(સાલાવાડા)", "કસલાલ"];
+        localStorage.setItem('revenue_talati_user', JSON.stringify({
+            user: currentUser,
+            sejas: userSejas,
+            activeSeja: activeSeja
+        }));
+    }
+
+    let elName = document.getElementById('user-display-name');
     let elTitle = document.getElementById('current-seja-title'); 
     let elBadge = document.getElementById('current-charge-badge'); 
     let elSwitch = document.getElementById('seja-switch-btn-container');
