@@ -87,15 +87,14 @@ async function executeLogin() {
 
                 masterData.sejas.forEach(s => {
                     let tName = String(s.talatiName || "").trim().toLowerCase();
-                    
-                    // આ બે લાઈનો તમારા કોડમાંથી મિસિંગ હતી:
-                    let sCont = String(s.contact || "").trim();
+                    // સુધારો: directory.js મુજબ talatiMobile ફિલ્ડ પણ ચેક કરો
+                    let sCont = String(s.talatiMobile || s.contact || s.mobile || "").replace(/[^0-9]/g, '');
                     let sName = String(s.sejaName || s.name || "").trim().toLowerCase();
                         
-                    // મેચિંગ લોજિક: નામ મેચ થાય, મોબાઈલ નંબર મેચ થાય, અથવા સેજાનું નામ મેચ થાય!
+                    // મેચિંગ લોજિક: મોબાઈલ નંબર, સેજાનું નામ અથવા તલાટીનું નામ મેચ થાય!
                     let isMatch = false;
                     if (sCont && sCont.includes(mob)) isMatch = true;
-                    else if (userSejaStr && sName && userSejaStr.includes(sName)) isMatch = true;
+                    else if (userSejaStr && sName && (userSejaStr.includes(sName) || sName.includes(userSejaStr))) isMatch = true;
                     else if (tName && userName.toLowerCase() && (tName.includes(userName.toLowerCase()) || userName.toLowerCase().includes(tName))) isMatch = true;
 
                     if (isMatch) {
@@ -112,19 +111,17 @@ async function executeLogin() {
                                 }
                             });
                         } else if (s.villages && Array.isArray(s.villages)) {
-                            // જો સીધા જ ગામડાં આપ્યા હોય
                             s.villages.forEach(v => {
                                 let vName = typeof v === 'string' ? v : (v.villageName || v.name || "");
                                 if(vName) vList.push(vName);
                             });
                         }
 
-                        // ડુપ્લીકેટ ગામ દૂર કરવા
                         vList = [...new Set(vList)].filter(v => v !== "");
                         
                         loadedSejas.push({
                             sejaName: s.sejaName || s.name || "સેજો",
-                            chargeType: (userSejaStr && userSejaStr.startsWith(sName)) ? "કાયમી" : "ચાર્જ", 
+                            chargeType: s.chargeType || ((userSejaStr && userSejaStr.startsWith(sName)) ? "કાયમી" : "ચાર્જ"), 
                             villages: vList
                         });
                     }
@@ -132,19 +129,13 @@ async function executeLogin() {
             }
         } catch(e) { console.log("Master data fetch error:", e); }
         
-        // જો માસ્ટર ડેટામાં બિલકુલ મેચ ન મળે અથવા માત્ર 1 જ ગામ આવ્યું હોય તો...
+        // જો માસ્ટર ડેટામાં મેચ ન મળે તો Users કલેક્શનમાંથી યુઝરના ગામ લો
         if (loadedSejas.length === 0) {
-            let rawVillages = foundUser.Villages || foundUser.Village || foundUser.villages || "સાલાવાડા, ચારણગામ(સાલાવાડા), કસલાલ";
+            let rawVillages = foundUser.Villages || foundUser.Village || foundUser.villages || foundUser.Seja_Name || "";
             let villagesArray = String(rawVillages).split(',').map(v => v.trim()).filter(v => v !== "");
-            
-            // જો સાલાવાડા સેજો હોય અને ગામ ખૂટતા હોય તો ત્રણેય ગામ ઉમેરો
-            if ((foundUser.Seja_Name || "સાલાવાડા").includes("સાલાવાડા") && villagesArray.length === 1) {
-                villagesArray = ["સાલાવાડા", "ચારણગામ(સાલાવાડા)", "કસલાલ"];
-            }
-
             loadedSejas.push({
-                sejaName: foundUser.Seja_Name || "સાલાવાડા",
-                chargeType: "કાયમી",
+                sejaName: foundUser.Seja_Name || foundUser.Seja || "સેજો",
+                chargeType: foundUser.Charge_Type || "કાયમી",
                 villages: villagesArray
             });
         }
@@ -174,23 +165,13 @@ async function executeLogin() {
 function initUserEnvironment() {
     if (!currentUser || !activeSeja) return;
 
-    // સેફ્ટી ચેક: જો સાલાવાડા સેજામાં ૧ જ ગામ સેવ થયેલું હોય તો ત્રણેય ગામ ઓટોમેટિક અપડેટ કરી દો
-    if (activeSeja.sejaName === "સાલાવાડા" && (!activeSeja.villages || activeSeja.villages.length < 3)) {
-        activeSeja.villages = ["સાલાવાડા", "ચારણગામ(સાલાવાડા)", "કસલાલ"];
-        localStorage.setItem('revenue_talati_user', JSON.stringify({
-            user: currentUser,
-            sejas: userSejas,
-            activeSeja: activeSeja
-        }));
-    }
-
-    let elName = document.getElementById('user-display-name');
+    let elName = document.getElementById('user-display-name'); 
     let elTitle = document.getElementById('current-seja-title'); 
     let elBadge = document.getElementById('current-charge-badge'); 
     let elSwitch = document.getElementById('seja-switch-btn-container');
     
     if (elName) elName.innerText = currentUser.name || "તલાટી";
-    if (elTitle) elTitle.innerText = (activeSeja.sejaName || "સાલાવાડા") + " સેજો";
+    if (elTitle) elTitle.innerText = (activeSeja.sejaName || "") + " સેજો";
     if (elBadge) { 
         elBadge.innerText = activeSeja.chargeType || "કાયમી"; 
         elBadge.className = "badge " + (activeSeja.chargeType === 'કાયમી' ? 'permanent' : 'additional'); 
@@ -203,12 +184,23 @@ function initUserEnvironment() {
         const days = ['રવિવાર', 'સોમવાર', 'મંગળવાર', 'બુધવાર', 'ગુરુવાર', 'શુક્રવાર', 'શનિવાર'];
         const months = ['જાન્યુઆરી', 'ફેબ્રુઆરી', 'માર્ચ', 'એપ્રિલ', 'મે', 'જૂન', 'જુલાઈ', 'ઓગસ્ટ', 'સપ્ટેમ્બર', 'ઓક્ટોબર', 'નવેમ્બર', 'ડિસેમ્બર'];
         let now = new Date();
-        let dayName = days[now.getDay()];
-        let d = toGujaratiDigits(now.getDate());
-        let m = months[now.getMonth()];
-        let y = toGujaratiDigits(now.getFullYear());
-        dateEl.innerHTML = `<i class="bi bi-calendar3"></i> ${dayName}, ${d} ${m} ${y}`;
+        dateEl.innerHTML = `<i class="bi bi-calendar3"></i> ${days[now.getDay()]}, ${toGujaratiDigits(now.getDate())} ${months[now.getMonth()]} ${toGujaratiDigits(now.getFullYear())}`;
     }
+
+    // ૨. જે-તે તલાટીના સેજાના ગામોની ચિપ્સ ડાયનેમિક બતાવો
+    let chipsCont = document.getElementById('hero-villages-chips');
+    if (chipsCont && activeSeja.villages) {
+        chipsCont.innerHTML = activeSeja.villages.map(v => 
+            `<span class="hero-village-chip"><i class="bi bi-geo-alt-fill" style="font-size:10px;"></i> ${v}</span>`
+        ).join('');
+    }
+
+    if (activeSeja.villages && activeSeja.villages.length > 0) {
+        let vInp = document.getElementById('inp-village'); if (vInp) vInp.value = activeSeja.villages[0];
+        let nVInp = document.getElementById('notice-village'); if (nVInp) nVInp.value = activeSeja.villages[0];
+    }
+    loadDashboardData();
+}
 
     // ૨. સેજાના ગામોની ચિપ્સ બતાવો
     let chipsCont = document.getElementById('hero-villages-chips');
