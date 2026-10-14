@@ -178,33 +178,27 @@ let unsubscribeDashboardNotices = null;
 let unsubscribeDashboardPedhinamu = null;
 
 function loadDashboardData() {
-    let currentVillages = (activeSeja && activeSeja.villages && activeSeja.villages.length > 0) 
-                          ? activeSeja.villages 
-                          : [];
+    let currentVillages = (activeSeja && activeSeja.villages) ? activeSeja.villages : [];
     let loadStatus = document.getElementById('loading-status');
     if (loadStatus) loadStatus.innerText = "(લાઈવ સિંક...)";
 
-    // જૂના લિસનર્સ રીસેટ કરો
     if (unsubscribeDashboardNotices) { unsubscribeDashboardNotices(); }
     if (unsubscribeDashboardPedhinamu) { unsubscribeDashboardPedhinamu(); }
 
-    if (currentVillages.length === 0) {
-        if (loadStatus) loadStatus.innerText = "";
-        return;
-    }
+    unsubscribeDashboardNotices = db.collection("Notices_135D").onSnapshot((querySnapshot) => {
+        let p = 0, d = 0, c = 0;
+        let today = new Date();
+        today.setHours(0,0,0,0);
 
-    // ૧. ૧૩૫-ડી નોટિસો માટે લાઈવ લિસનર
-    unsubscribeDashboardNotices = db.collection("Notices_135D")
-        .where("Village_Name", "in", currentVillages)
-        .onSnapshot((querySnapshot) => {
-            let p = 0, d = 0, c = 0;
-            let today = new Date();
-            today.setHours(0,0,0,0);
+        querySnapshot.forEach((doc) => {
+            let r = doc.data();
+            let vName = String(r.Village_Name || '').trim();
+            let isMatch = (currentVillages.length === 0) || 
+                          currentVillages.some(v => vName.includes(v) || v.includes(vName)) || 
+                          !vName;
 
-            querySnapshot.forEach((doc) => {
-                let r = doc.data();
+            if (isMatch) {
                 let isSubmitted = (String(r.Current_Status || '').includes("જમા") || !!r.Submitted_Date);
-                
                 if (isSubmitted) {
                     c++;
                 } else if (r.Served_Date) {
@@ -212,39 +206,36 @@ function loadDashboardData() {
                     if (sDate) {
                         sDate.setHours(0,0,0,0);
                         let diffDays = Math.floor((today - sDate) / (1000 * 60 * 60 * 24));
-                        if (diffDays < 30) d++; // મુદતમાં ચાલુ
-                        else p++; // મુદત પૂર્ણ અથવા બાકી
-                    } else {
-                        p++;
-                    }
-                } else {
-                    p++; // બજવણી બાકી
-                }
-            });
-
-            let elP = document.getElementById('pending-notices');
-            let elD = document.getElementById('due-notices');
-            let elC = document.getElementById('completed-notices');
-            if (elP) elP.innerText = toGujaratiDigits(p); 
-            if (elD) elD.innerText = toGujaratiDigits(d); 
-            if (elC) elC.innerText = toGujaratiDigits(c); 
-            renderNoticeChart(p, d, c);
-            if (loadStatus) loadStatus.innerText = "";
-        }, (err) => {
-            if (loadStatus) loadStatus.innerText = "";
-            console.error("Dashboard Notices Error:", err);
+                        if (diffDays < 30) d++;
+                        else p++;
+                    } else { p++; }
+                } else { p++; }
+            }
         });
 
-    // ૨. પેઢીનામા કાઉન્ટ માટે લાઈવ લિસનર
-    unsubscribeDashboardPedhinamu = db.collection("Pedhinamu_Register")
-        .where("Village_Name", "in", currentVillages)
-        .onSnapshot((querySnapshot) => {
-            let count = querySnapshot.size;
-            let elT = document.getElementById('total-pedhinamu');
-            if (elT) elT.innerText = toGujaratiDigits(count);
-        }, (err) => {
-            console.error("Dashboard Pedhinamu Error:", err);
+        let elP = document.getElementById('pending-notices');
+        let elD = document.getElementById('due-notices');
+        let elC = document.getElementById('completed-notices');
+        if (elP) elP.innerText = toGujaratiDigits(p); 
+        if (elD) elD.innerText = toGujaratiDigits(d); 
+        if (elC) elC.innerText = toGujaratiDigits(c); 
+        renderNoticeChart(p, d, c);
+        if (loadStatus) loadStatus.innerText = "";
+    });
+
+    unsubscribeDashboardPedhinamu = db.collection("Pedhinamu_Register").onSnapshot((querySnapshot) => {
+        let count = 0;
+        querySnapshot.forEach((doc) => {
+            let r = doc.data();
+            let vName = String(r.Village_Name || '').trim();
+            let isMatch = (currentVillages.length === 0) || 
+                          currentVillages.some(v => vName.includes(v) || v.includes(vName)) || 
+                          !vName;
+            if (isMatch) count++;
         });
+        let elT = document.getElementById('total-pedhinamu');
+        if (elT) elT.innerText = toGujaratiDigits(count);
+    });
 }
 
 function renderNoticeChart(pending, due, completed) {

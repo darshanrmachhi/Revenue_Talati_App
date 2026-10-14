@@ -1,17 +1,12 @@
 // js/135d.js
-
-// લિસનર અનસબસ્ક્રાઈબ કરવા માટે ગ્લોબલ વેરીએબલ
 let unsubscribeNotices = null;
 
 function loadNoticesDesk() {
     let container = document.getElementById('notice-list-container');
     if (!container) return;
     
-    let currentVillages = (activeSeja && activeSeja.villages && activeSeja.villages.length > 0) 
-                          ? activeSeja.villages 
-                          : [];
+    let currentVillages = (activeSeja && activeSeja.villages) ? activeSeja.villages : [];
     
-    // જો અગાઉથી કોઈ લિસનર ચાલુ હોય તો મેમરી લીક અટકાવવા તેને ડિસ્કનેક્ટ કરો
     if (unsubscribeNotices) {
         unsubscribeNotices();
         unsubscribeNotices = null;
@@ -19,31 +14,30 @@ function loadNoticesDesk() {
 
     container.innerHTML = '<p style="text-align:center;"><i class="fa-solid fa-spinner fa-spin"></i> નોટિસ લાઈવ સિંક થાય છે...</p>';
 
-    // જો કોઈ ગામ ઉપલબ્ધ ન હોય
-    if (currentVillages.length === 0) {
-        allNotices = [];
-        renderNotices();
-        return;
-    }
-
-    // ફક્ત આ સેજાના ગામો માટે જ Firestore Real-time Query
-    let queryRef = db.collection("Notices_135D").where("Village_Name", "in", currentVillages);
-
-    unsubscribeNotices = queryRef.onSnapshot((querySnapshot) => {
+    // આખા કલેક્શન પર રીયલ-ટાઇમ લિસનર
+    unsubscribeNotices = db.collection("Notices_135D").onSnapshot((querySnapshot) => {
         let data = [];
         querySnapshot.forEach((doc) => {
             let notice = doc.data();
             notice.Notice_ID = doc.id;
-            data.push(notice);
+            
+            // સ્માર્ટ ફિલ્ટરિંગ: જો ગામનું નામ લિસ્ટમાં હોય અથવા અંશતઃ મેચ થતું હોય
+            let vName = String(notice.Village_Name || '').trim();
+            let isMatch = (currentVillages.length === 0) || 
+                          currentVillages.some(v => vName.includes(v) || v.includes(vName)) || 
+                          !vName;
+
+            if (isMatch) {
+                data.push(notice);
+            }
         });
         
         allNotices = data;
-        renderNotices(); // ડેટા બદલાતા જ સ્ક્રીન પર લાઈવ અપડેટ થશે!
+        renderNotices();
     }, (error) => {
         container.innerHTML = `<p style="color:#ef4444; text-align:center; padding:15px;">લાઈવ સિંક એરર: ${error.message}</p>`;
     });
 }
-
 function switchNoticeTab(tabName, el) {
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     if (el) el.classList.add('active');

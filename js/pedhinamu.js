@@ -1,15 +1,11 @@
 // js/pedhinamu.js
-
-// પેઢીનામા લિસનર વેરીએબલ
 let unsubscribePedhinamu = null;
 
 function loadPedhinamuList() {
     let container = document.getElementById('pedhinamu-history-container');
     if (!container) return;
 
-    let currentVillages = (activeSeja && activeSeja.villages && activeSeja.villages.length > 0) 
-                          ? activeSeja.villages 
-                          : [];
+    let currentVillages = (activeSeja && activeSeja.villages) ? activeSeja.villages : [];
 
     if (unsubscribePedhinamu) {
         unsubscribePedhinamu();
@@ -18,23 +14,23 @@ function loadPedhinamuList() {
 
     container.innerHTML = '<p style="text-align:center;"><i class="fa-solid fa-spinner fa-spin"></i> પેઢીનામું દફતર લાઈવ સિંક થાય છે...</p>';
 
-    if (currentVillages.length === 0) {
-        allPedhinamuList = [];
-        renderPedhinamuList();
-        return;
-    }
-
-    let queryRef = db.collection("Pedhinamu_Register").where("Village_Name", "in", currentVillages);
-
-    unsubscribePedhinamu = queryRef.onSnapshot((querySnapshot) => {
+    // આખા કલેક્શન પર રીયલ-ટાઇમ લિસનર
+    unsubscribePedhinamu = db.collection("Pedhinamu_Register").onSnapshot((querySnapshot) => {
         let data = [];
         querySnapshot.forEach((doc) => {
             let r = doc.data();
             r.Pedhinamu_ID = doc.id;
-            data.push(r);
+
+            let vName = String(r.Village_Name || '').trim();
+            let isMatch = (currentVillages.length === 0) || 
+                          currentVillages.some(v => vName.includes(v) || v.includes(vName)) || 
+                          !vName;
+
+            if (isMatch) {
+                data.push(r);
+            }
         });
 
-        // તારીખ મુજબ સોર્ટિંગ
         data.sort((a, b) => {
             let t1 = a.timestamp ? (a.timestamp.toMillis ? a.timestamp.toMillis() : 0) : 0;
             let t2 = b.timestamp ? (b.timestamp.toMillis ? b.timestamp.toMillis() : 0) : 0;
@@ -47,7 +43,6 @@ function loadPedhinamuList() {
         container.innerHTML = `<p style="color:red; text-align:center;">લાઈવ સિંક એરર: ${error.message}</p>`;
     });
 }
-
 function filterPedhinamuList(query) {
     pedhinamuSearchQuery = query.trim().toLowerCase();
     let clearBtn = document.getElementById('clear-pedhinamu-search');
