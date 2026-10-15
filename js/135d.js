@@ -308,7 +308,7 @@ function applyNoticeFilters() {
             diffDays = Math.floor((today - sDate) / (1000 * 60 * 60 * 24));
         }
 
-        if (currentNoticeTab === 'pending') {
+        if (currentNoticeTab === 'all') {
             if (isSubmitted || servedD) return false;
         } else if (currentNoticeTab === 'active') {
             if (isSubmitted || !servedD || (diffDays !== null && diffDays >= 30)) return false;
