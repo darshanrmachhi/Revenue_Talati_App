@@ -199,39 +199,109 @@
                 <div id="panchayats-list" class="panchayat-grid"></div>
             </div>
 
-            <div id="village-profile-modal" class="modal-backdrop" style="display: none;">
-                <div class="modal-card">
-                    <div class="modal-header">
-                        <div><h3 id="vp-village-name">ગામનું નામ</h3><p id="vp-hierarchy-path" style="font-size: 12px; color: var(--text-muted);"></p></div>
-                        <button class="modal-close-btn" onclick="closeVillageProfile()"><i class="fa-solid fa-xmark"></i></button>
+            <!-- ================= VILLAGE PROFILE MODAL (GLOBAL) ================= -->
+    <div id="village-profile-modal" class="modal-backdrop" style="display: none; z-index: 260;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div>
+                    <h3 id="vp-village-name">ગામનું નામ</h3>
+                    <p id="vp-hierarchy-path" style="font-size: 12px; color: var(--text-muted); margin:0;"></p>
+                </div>
+                <button class="modal-close-btn" onclick="closeVillageProfile()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body" style="max-height: 82vh; overflow-y: auto;">
+                <div class="profile-section">
+                    <div class="profile-section-title"><i class="fa-solid fa-map-location-dot"></i> જમીન મહેસૂલ વિગત</div>
+                    <div class="vp-stats-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
+                        <div class="vp-stat-box">
+                            <span class="vp-stat-val" id="vp-area-sqm">-</span>
+                            <span class="vp-stat-lbl">કુલ ક્ષેત્રફળ (ચો.મી.)</span>
+                        </div>
+                        <div class="vp-stat-box">
+                            <span class="vp-stat-val" id="vp-area-ha">-</span>
+                            <span class="vp-stat-lbl">હે.-આરે-ચો.મી.</span>
+                        </div>
+                        <div class="vp-stat-box">
+                            <span class="vp-stat-val" id="vp-total-khata">-</span>
+                            <span class="vp-stat-lbl">કુલ ખાતા નં. (૮-અ)</span>
+                        </div>
+                        <div class="vp-stat-box">
+                            <span class="vp-stat-val" id="vp-total-survey">-</span>
+                            <span class="vp-stat-lbl">કુલ સર્વે નં. (૭/૧૨)</span>
+                        </div>
                     </div>
-                    <div class="modal-body">
-                        <div class="profile-section">
-                            <div class="profile-section-title"><i class="fa-solid fa-map-location-dot"></i> જમીન મહેસૂલ વિગત</div>
-                            <div class="vp-stats-grid">
-                                <div class="vp-stat-box"><span class="vp-stat-val" id="vp-area-sqm">-</span><span class="vp-stat-lbl">કુલ ક્ષેત્રફળ (ચો.મી.)</span></div>
-                                <div class="vp-stat-box"><span class="vp-stat-val" id="vp-area-ha">-</span><span class="vp-stat-lbl">હે.-આરે-ચો.મી.</span></div>
-                            </div>
-                            <div style="margin-top: 10px;"><a href="https://anyror.gujarat.gov.in/" target="_blank" class="btn-external-link"><i class="fa-solid fa-arrow-up-right-from-square"></i> AnyRoR પર ૭/૧૨ અને ૮-અ જુઓ</a></div>
-                        </div>
-                        <div class="profile-section">
-                            <div class="profile-section-title"><i class="fa-solid fa-users"></i> વસ્તી વિષયક વિગત</div>
-                            <div class="vp-stats-grid">
-                                <div class="vp-stat-box"><span class="vp-stat-val" id="vp-population">-</span><span class="vp-stat-lbl">કુલ વસ્તી</span></div>
-                                <div class="vp-stat-box"><span class="vp-stat-val" id="vp-village-id">-</span><span class="vp-stat-lbl">વિલેજ કોડ (ID)</span></div>
-                            </div>
-                        </div>
-                        <div class="profile-section">
-                            <div class="profile-section-title"><i class="fa-solid fa-address-book"></i> સ્થાનિક પદાધિકારી / સ્ટાફ</div>
-                            <div id="vp-contacts-list"></div>
-                        </div>
-                        <div id="vp-edit-container" style="display: none; margin-top: 15px;">
-                            <button class="btn btn-primary" style="width: 100%;" onclick="openEditVillageForm()"><i class="fa-solid fa-pen-to-square"></i> ગામની માહિતીમાં સુધારો કરો</button>
-                        </div>
+                    <div style="margin-top: 10px;">
+                        <a href="https://anyror.gujarat.gov.in/" target="_blank" class="btn-external-link">
+                            <i class="fa-solid fa-arrow-up-right-from-square"></i> AnyRoR પર ૭/૧૨ અને ૮-અ જુઓ
+                        </a>
                     </div>
+                </div>
+
+                <div class="profile-section">
+                    <div class="profile-section-title"><i class="fa-solid fa-users"></i> વસ્તી વિષયક વિગત</div>
+                    <div class="vp-stats-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div class="vp-stat-box"><span class="vp-stat-val" id="vp-population">-</span><span class="vp-stat-lbl">કુલ વસ્તી</span></div>
+                        <div class="vp-stat-box"><span class="vp-stat-val" id="vp-village-id">-</span><span class="vp-stat-lbl">વિલેજ કોડ (ID)</span></div>
+                    </div>
+                </div>
+
+                <div class="profile-section">
+                    <div class="profile-section-title"><i class="fa-solid fa-address-book"></i> સ્થાનિક પદાધિકારી / સ્ટાફ</div>
+                    <div id="vp-contacts-list"></div>
+                </div>
+
+                <div id="vp-edit-container" style="display: none; margin-top: 15px;">
+                    <button class="btn btn-primary" style="width: 100%;" onclick="openEditVillageForm()">
+                        <i class="fa-solid fa-pen-to-square"></i> ગામની માહિતીમાં સુધારો કરો
+                    </button>
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- ================= EDIT VILLAGE DETAILS MODAL ================= -->
+    <div id="modal-edit-village" class="modal-backdrop" style="display: none; align-items: center; z-index: 270;">
+        <div class="modal-card" style="border-radius: 12px; padding: 20px; max-width: 420px; width: 92%; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header" style="padding: 0 0 12px 0; border-bottom: 1px solid var(--border-color);">
+                <div>
+                    <h3 style="color: var(--primary-blue); margin: 0; font-size: 16px;"><i class="fa-solid fa-pen-to-square"></i> ગામની માહિતી સુધારો</h3>
+                    <p id="edit-vil-subtitle" style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;"></p>
+                </div>
+                <button class="modal-close-btn" onclick="closeEditVillageModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div style="margin-top: 14px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="form-group">
+                        <label class="form-label">કુલ ખાતા નં. (૮-અ):</label>
+                        <input type="number" id="edit-vil-khata" class="form-control" placeholder="દા.ત. 415">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">કુલ સર્વે/બ્લોક નં. (૭/૧૨):</label>
+                        <input type="number" id="edit-vil-survey" class="form-control" placeholder="દા.ત. 612">
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                    <div class="form-group">
+                        <label class="form-label">કુલ વસ્તી:</label>
+                        <input type="number" id="edit-vil-pop" class="form-control" placeholder="વસ્તી">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">કુલ ક્ષેત્રફળ (ચો.મી.):</label>
+                        <input type="number" step="any" id="edit-vil-area" class="form-control" placeholder="ચો.મી.">
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 18px;">
+                    <button class="btn btn-secondary" style="flex: 1;" onclick="closeEditVillageModal()">રદ કરો</button>
+                    <button class="btn btn-primary" style="flex: 2;" id="btn-save-vil-edits" onclick="saveVillageEdits()">
+                        <i class="fa-solid fa-check"></i> સેવ કરો
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
         <!-- VIEW 3: PEDHINAMU LIST -->
         <div id="view-pedhinamu-list" class="app-view">

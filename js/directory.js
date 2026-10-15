@@ -128,6 +128,26 @@ function openVillageProfile(vid, pname) {
     let isAuthorized = false; if (userSejas && userSejas.length > 0) { isAuthorized = userSejas.some(s => s.sejaName === currentActiveSeja.sejaName); }
     document.getElementById('vp-edit-container').style.display = isAuthorized ? 'block' : 'none';
     document.getElementById('village-profile-modal').style.display = 'flex'; window.history.pushState({ view: 'modal' }, '', '#village');
+    // કુલ ખાતા અને સર્વે નંબર ડિફોલ્ટ બતાવો (અથવા લોડ કરો)
+    let elKhata = document.getElementById('vp-total-khata');
+    let elSurvey = document.getElementById('vp-total-survey');
+    if (elKhata) elKhata.innerText = vObj.totalKhata ? toGujaratiDigits(vObj.totalKhata) : '-';
+    if (elSurvey) elSurvey.innerText = vObj.totalSurvey ? toGujaratiDigits(vObj.totalSurvey) : '-';
+
+    // Firestore ના Village_Land_Records માંથી લેટેસ્ટ જમીન વિગત લાવો
+    let docId = vObj.villageId || vObj.id || vName.replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
+    db.collection("Village_Land_Records").doc(docId).get().then(doc => {
+        if (doc.exists) {
+            let lData = doc.data();
+            vObj.totalKhata = lData.totalKhata || vObj.totalKhata || "";
+            vObj.totalSurvey = lData.totalSurvey || vObj.totalSurvey || "";
+            vObj.landRecords = lData.landRecords || [];
+            vObj.bookmarks = lData.bookmarks || [];
+            
+            if (elKhata) elKhata.innerText = vObj.totalKhata ? toGujaratiDigits(vObj.totalKhata) : '-';
+            if (elSurvey) elSurvey.innerText = vObj.totalSurvey ? toGujaratiDigits(vObj.totalSurvey) : '-';
+        }
+    }).catch(err => console.log("Land record fetch info:", err));
 }
 
 function closeVillageProfile() { window.history.back(); }
@@ -138,5 +158,60 @@ function openEditVillageForm() {
     const newPop = prompt(`${currentActiveVillage.villageName} ની નવી વસ્તી દાખલ કરો:`, currentActiveVillage.population);
     if (newPop !== null && newPop.trim() !== "") {
         showToast("વસ્તી અપડેટ થઈ ગઈ (Local)!"); currentActiveVillage.population = Number(newPop); document.getElementById('vp-population').innerText = toGujaratiDigits(Number(newPop).toLocaleString('en-IN'));
+    }
+}
+
+// ડેશબોર્ડના Hero Card પરથી ગામ પર ક્લિક કરતા સીધું Village Profile ખોલવા માટે
+async function openVillageFromHero(villageName) {
+    // જો ડિરેક્ટરી ડેટા હજુ લોડ ન થયો હોય તો પહેલા લોડ કરો
+    if (!talukaDirectoryData) {
+        let cached = localStorage.getItem('taluka_directory_cache');
+        if (cached) {
+            talukaDirectoryData = JSON.parse(cached);
+        } else {
+            Swal.fire({ title: 'માહિતી લોડ થાય છે...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+            try {
+                let doc = await db.collection("Master_Data").doc("Taluka_Directory").get();
+                if (doc.exists) {
+                    talukaDirectoryData = doc.data();
+                    localStorage.setItem('taluka_directory_cache', JSON.stringify(talukaDirectoryData));
+                }
+                Swal.close();
+            } catch (e) {
+                Swal.fire('એરર', 'ડિરેક્ટરી લોડ કરવામાં સમસ્યા: ' + e.message, 'error');
+                return;
+            }
+        }
+    }
+
+    if (!talukaDirectoryData || !talukaDirectoryData.sejas) return;
+
+    let cleanTarget = villageName.trim();
+    let foundSejaIdx = -1, foundPanchIdx = -1, foundVilIdx = -1;
+
+    // સેજા -> પંચાયત -> ગામ શોધો
+    talukaDirectoryData.sejas.forEach((s, sIdx) => {
+        if (s.panchayats && Array.isArray(s.panchayats)) {
+            s.panchayats.forEach((p, pIdx) => {
+                if (p.villages && Array.isArray(p.villages)) {
+                    p.villages.forEach((v, vIdx) => {
+                        let vName = typeof v === 'string' ? v : (v.villageName || v.name || "");
+                        if (vName.trim() === cleanTarget || vName.includes(cleanTarget) || cleanTarget.includes(vName.trim())) {
+                            if (foundVilIdx === -1) {
+                                foundSejaIdx = sIdx;
+                                foundPanchIdx = pIdx;
+                                foundVilIdx = vIdx;
+                            }
+                        }
+                    });
+                }
+            });
+        }
+    });
+
+    if (foundSejaIdx !== -1) {
+        openVillageProfile(foundSejaIdx, foundPanchIdx, foundVilIdx);
+    } else {
+        Swal.fire('માહિતી', `"${villageName}" ગામની વિગત ડિરેક્ટરીમાં મળી નથી.`, 'info');
     }
 }
