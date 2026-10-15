@@ -240,13 +240,23 @@
             <!-- ૨. નોંધના પ્રકારના ફિલ્ટર બટન્સ (અહીં નવું ઉમેર્યું) -->
             <div id="notice-type-filters" class="village-filter-bar" style="margin-bottom: 14px;"></div>
 
-            <!-- ૩. સ્થિતિવાર ફિલ્ટર ટેબ્સ -->
-            <div class="notice-tabs">
-                <div class="tab-btn active" onclick="switchNoticeTab('all', this)">બધી (All)</div>
-                <div class="tab-btn" onclick="switchNoticeTab('pending', this)">બજાવવાની બાકી</div>
-                <div class="tab-btn" onclick="switchNoticeTab('active', this)">મુદતમાં</div>
-                <div class="tab-btn" onclick="switchNoticeTab('ready', this)">તૈયાર (૩૦ દિવસ પૂર્ણ)</div>
-                <div class="tab-btn" onclick="switchNoticeTab('completed', this)">કચેરીએ જમા</div>
+            <!-- ૩. સ્થિતિવાર ફિલ્ટર ટેબ્સ (ડાયનેમિક કાઉન્ટ સાથે) -->
+            <div class="notice-tabs" id="notice-status-tabs">
+                <div class="tab-btn active" id="tab-btn-all" onclick="switchNoticeTab('all', this)">
+                    બધી (All) <span class="badge-count" id="badge-tab-all">૦</span>
+                </div>
+                <div class="tab-btn" id="tab-btn-pending" onclick="switchNoticeTab('pending', this)">
+                    બજાવવાની બાકી <span class="badge-count" id="badge-tab-pending">૦</span>
+                </div>
+                <div class="tab-btn" id="tab-btn-active" onclick="switchNoticeTab('active', this)">
+                    મુદતમાં <span class="badge-count" id="badge-tab-active">૦</span>
+                </div>
+                <div class="tab-btn" id="tab-btn-ready" onclick="switchNoticeTab('ready', this)">
+                    તૈયાર (૩૦ દિવસ) <span class="badge-count" id="badge-tab-ready">૦</span>
+                </div>
+                <div class="tab-btn" id="tab-btn-completed" onclick="switchNoticeTab('completed', this)">
+                    કચેરીએ જમા <span class="badge-count" id="badge-tab-completed">૦</span>
+                </div>
             </div>
 
             <!-- નોટિસ કાર્ડ્સ લિસ્ટ કન્ટેનર -->
