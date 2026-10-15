@@ -73,3 +73,4 @@ function calculateShare() {
     safeSetText('share-res-detail', `${toGujaratiDigits(Math.round(shareSqM))} ચો.મી. | ${toGujaratiDigits(vigha)} વિઘા ${toGujaratiDigits(remGuntha)} ગુંઠા`);
 }
 function copyShareResult() { if (!lastShareFormatted) return; navigator.clipboard.writeText(lastShareFormatted).then(() => { showToast("હિસ્સા ક્ષેત્રફળ કોપી થયું: " + lastShareFormatted); }); }
+function copyMathResult() { if (!lastMathFormatted) return; navigator.clipboard.writeText(lastMathFormatted).then(() => { showToast("પરિણામ કોપી થયું: " + lastMathFormatted); }); }

@@ -203,7 +203,11 @@ function openVillageProfile(vid, pname) {
             if (elPop && lData.population) elPop.innerText = toGujaratiDigits(Number(tv.population).toLocaleString('en-IN'));
             if (elSqm && lData.areaSqMtr) elSqm.innerText = toGujaratiDigits(Number(tv.areaSqMtr).toLocaleString('en-IN'));
             if (elHa && lData.formattedArea) elHa.innerText = toGujaratiDigits(tv.formattedArea);
+        } else {
+            tv.landRecords = [];
+            tv.bookmarks = [];
         }
+        renderVillageViewExtra(tv); // <-- આ લાઈન ખાસ ઉમેરવી
     }).catch(err => console.log("Land record fetch info:", err));
 }
 

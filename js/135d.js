@@ -1,7 +1,7 @@
 // js/135d.js
 
 var noticesData = [];
-var currentNoticeTab = 'pending';
+currentNoticeTab = 'pending'; // config.js માં પહેલેથી ડિક્લેર છે
 var currentVillageFilter = 'all';
 var currentTypeFilter = 'all';
 var unsubscribeNotices = null;
@@ -16,6 +16,17 @@ var STANDARD_NOTICE_TYPES = [
     'બોજો કમી',
     'અન્ય'
 ];
+
+// ગામના નામ મેચ કરવા માટે સ્માર્ટ હેલ્પર (કૌંસ કે સ્પેસનો તફાવત હોય તો પણ મેચ કરશે)
+function isSameVillage(v1, v2) {
+    if (!v1 || !v2) return false;
+    var s1 = String(v1).trim();
+    var s2 = String(v2).trim();
+    if (s1 === s2 || s1.includes(s2) || s2.includes(s1)) return true;
+    var base1 = s1.split('(')[0].trim();
+    var base2 = s2.split('(')[0].trim();
+    return (base1 && base2 && base1 === base2);
+}
 
 function loadNoticesDesk() {
     renderNoticeVillageFilters();
@@ -40,7 +51,7 @@ function loadNoticesDesk() {
             
             var vName = String(data.Village_Name || '').trim();
             var isMatch = (currentVillages.length === 0) || 
-                          currentVillages.some(function(v) { return vName.includes(v) || v.includes(vName); }) || 
+                          currentVillages.some(function(v) { return isSameVillage(vName, v); }) || 
                           !vName;
 
             if (isMatch) {
@@ -86,8 +97,7 @@ function renderNoticeVillageFilters() {
     var counts = { all: noticesData.length };
     currentVillages.forEach(function(v) {
         counts[v] = noticesData.filter(function(n) {
-            var vn = String(n.Village_Name || '').trim();
-            return vn.includes(v) || v.includes(vn);
+            return isSameVillage(n.Village_Name, v);
         }).length;
     });
 
@@ -119,8 +129,7 @@ function renderNoticeTypeFilters() {
     var baseList = noticesData;
     if (currentVillageFilter !== 'all') {
         baseList = noticesData.filter(function(n) {
-            var vn = String(n.Village_Name || '').trim();
-            return vn.includes(currentVillageFilter) || currentVillageFilter.includes(vn);
+            return isSameVillage(n.Village_Name, currentVillageFilter);
         });
     }
 
@@ -182,9 +191,7 @@ function applyNoticeFilters() {
 
     var filtered = noticesData.filter(function(item) {
         if (currentVillageFilter !== 'all') {
-            var vName = String(item.Village_Name || '').trim();
-            var matchesVillage = vName.includes(currentVillageFilter) || currentVillageFilter.includes(vName);
-            if (!matchesVillage) return false;
+            if (!isSameVillage(item.Village_Name, currentVillageFilter)) return false;
         }
 
         if (currentTypeFilter !== 'all') {
@@ -212,15 +219,11 @@ function applyNoticeFilters() {
 
         if (query) {
             var mNo = String(item.Mutation_No || '');
-            var khatedar = String(item.Khatedar_Name || '').toLowerCase();
-            var vill = String(item.Village_Name || '').toLowerCase();
-            var type = String(item.Notice_Type || '').toLowerCase();
-
             var match = mNo.includes(query) || 
                         toGujaratiDigits(mNo).includes(query) ||
-                        khatedar.includes(query) || 
-                        vill.includes(query) || 
-                        type.includes(query);
+                        matchesSmartSearch(item.Khatedar_Name, query) || 
+                        matchesSmartSearch(item.Village_Name, query) || 
+                        matchesSmartSearch(item.Notice_Type, query);
             if (!match) return false;
         }
 
@@ -261,27 +264,27 @@ function renderNoticeList(list) {
             diffDays = Math.floor((today - sDate) / (1000 * 60 * 60 * 24));
         }
 
-        var borderClass = 'border-red';
+        var borderColor = '#dc2626';
         var statusBadge = '';
 
         if (isSubmitted) {
-            borderClass = 'border-emerald';
+            borderColor = '#059669';
             statusBadge = '<span style="color:#059669; font-weight:700;"><i class="bi bi-check-circle-fill"></i> કચેરીએ જમા (' + formatDisplayDateGujarati(item.Submitted_Date) + ')</span>';
         } else if (item.Served_Date) {
             if (diffDays !== null && diffDays >= 30) {
-                borderClass = 'border-indigo';
+                borderColor = '#4f46e5';
                 statusBadge = '<span style="color:#4f46e5; font-weight:700;"><i class="bi bi-bell-fill"></i> ૩૦ દિવસ પૂર્ણ (' + toGujaratiDigits(diffDays) + ' દિવસ થયા)</span>';
             } else {
-                borderClass = 'border-amber';
+                borderColor = '#d97706';
                 var remaining = 30 - (diffDays || 0);
                 statusBadge = '<span style="color:#d97706; font-weight:700;"><i class="bi bi-hourglass-split"></i> મુદતમાં (' + toGujaratiDigits(remaining) + ' દિવસ બાકી)</span>';
             }
         } else {
-            borderClass = 'border-red';
+            borderColor = '#dc2626';
             statusBadge = '<span style="color:#dc2626; font-weight:700;"><i class="bi bi-exclamation-triangle-fill"></i> બજવણી બાકી</span>';
         }
 
-        return '<div class="notice-card ' + borderClass + '" style="background:#fff; border-radius:10px; padding:14px 16px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.06); display:flex; justify-content:space-between; align-items:flex-start; border-left: 4px solid;">' +
+        return '<div class="notice-card" style="background:#fff; border-radius:10px; padding:14px 16px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.06); display:flex; justify-content:space-between; align-items:flex-start; border-left: 4px solid ' + borderColor + ';">' +
             '<div style="flex: 1;">' +
                 '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">' +
                     '<h4 style="margin:0; font-size:16px; font-weight:700; color:#0d47a1;">નોંધ નં: ' + toGujaratiDigits(item.Mutation_No) + '</h4>' +
@@ -388,7 +391,11 @@ function openEditNoticeModal(id) {
 
     var vSel = document.getElementById('edit-notice-village');
     if (vSel && typeof activeSeja !== 'undefined' && activeSeja && activeSeja.villages) {
-        vSel.innerHTML = activeSeja.villages.map(function(v) { return '<option value="' + v + '">' + v + '</option>'; }).join('');
+        var opts = activeSeja.villages.slice();
+        if (item.Village_Name && !opts.includes(item.Village_Name)) {
+            opts.push(item.Village_Name);
+        }
+        vSel.innerHTML = opts.map(function(v) { return '<option value="' + v + '">' + v + '</option>'; }).join('');
         vSel.value = item.Village_Name;
     }
 

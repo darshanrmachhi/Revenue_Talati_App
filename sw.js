@@ -1,6 +1,5 @@
 // sw.js
-const CACHE_NAME = 'talati-app-v2';
-
+const CACHE_NAME = 'talati-app-v3';
 // ઓફલાઇન માટે જરૂરી લોકલ ફાઇલો (Relative Paths)
 const assetsToCache = [
   './',
