@@ -31,23 +31,52 @@ function getVal(sId, cId) {
 // =========================================================================
 // GUJARATI NUMERAL & DATE UTILITIES
 // =========================================================================
+// js/ui-logic.js (Date Utilities Update)
+
 function toGujaratiDigits(val) {
     if (val === null || val === undefined || val === '') return '';
     const gujDigits = ['૦', '૧', '૨', '૩', '૪', '૫', '૬', '૭', '૮', '૯'];
-    return String(val).replace(/[0-9]/g, function(w) {
-        return gujDigits[+w];
-    });
+    return String(val).replace(/[0-9]/g, function(w) { return gujDigits[+w]; });
+}
+
+// ગુજરાતી અંકોને અંગ્રેજીમાં ફેરવવું (જેથી JavaScript તારીખ ઓળખી શકે)
+function toEnglishDigits(str) {
+    if (!str) return '';
+    const gujToEng = { '૦': '0', '૧': '1', '૨': '2', '૩': '3', '૪': '4', '૫': '5', '૬': '6', '૭': '7', '૮': '8', '૯': '9' };
+    return String(str).replace(/[૦-૯]/g, function(d) { return gujToEng[d] || d; });
 }
 
 function parseUniversalDate(dateStr) {
     if (!dateStr) return null;
-    let s = String(dateStr).trim();
+    if (typeof dateStr.toDate === 'function') return dateStr.toDate();
+    if (dateStr.seconds) return new Date(dateStr.seconds * 1000);
+    
+    let s = toEnglishDigits(String(dateStr).trim());
+    
+    // DD/MM/YYYY અથવા YYYY/MM/DD
     if (s.includes('/')) {
         let parts = s.split('/');
         if (parts.length === 3) {
-            return new Date(parts[2], parts[1] - 1, parts[0]);
+            if (parts[2].length === 4) {
+                return new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
+            } else if (parts[0].length === 4) {
+                return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+            }
         }
     }
+    
+    // YYYY-MM-DD અથવા DD-MM-YYYY
+    if (s.includes('-')) {
+        let parts = s.split('-');
+        if (parts.length === 3) {
+            if (parts[0].length === 4) {
+                return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+            } else if (parts[2].length === 4) {
+                return new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
+            }
+        }
+    }
+
     let d = new Date(s);
     return isNaN(d.getTime()) ? null : d;
 }
@@ -65,14 +94,15 @@ function formatForDateInput(dateVal) {
 }
 
 function formatDisplayDateGujarati(dStr) {
-    if (!dStr) return "___/___/૨૦___";
+    if (!dStr) return "-";
     let d = parseUniversalDate(dStr);
-    if (!d || isNaN(d.getTime())) return dStr;
+    if (!d || isNaN(d.getTime())) {
+        return toGujaratiDigits(String(dStr)); // જો parse ન થાય તો મૂળ સ્ટ્રિંગ ગુજરાતી અંકો સાથે બતાવો (ક્યારેય Reset ખાલી નહીં થાય)
+    }
     let day = ('0' + d.getDate()).slice(-2);
     let month = ('0' + (d.getMonth() + 1)).slice(-2);
     let year = d.getFullYear();
-    let enFormatted = `${day}/${month}/${year}`;
-    return toGujaratiDigits(enFormatted);
+    return toGujaratiDigits(`${day}/${month}/${year}`);
 }
 
 function formatAadharThreeRows(numStr) {
