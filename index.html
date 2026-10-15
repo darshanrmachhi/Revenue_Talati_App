@@ -2,9 +2,11 @@
 <html lang="gu">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>મહેસૂલી તલાટી દફતર</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0d47a1">
+    <title>મહેસૂલી તલાટી દફતર - લુણાવાડા</title>
     <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Gujarati:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -13,7 +15,7 @@
 </head>
 <body>
 
-    <!-- HEADER -->
+    <!-- ================= HEADER ================= -->
     <header class="header">
         <div style="display:flex; gap:10px; align-items:center;">
             <i class="fa-solid fa-arrow-left no-print" id="back-btn" style="display:none; cursor:pointer; font-size:18px;" onclick="window.history.back()"></i>
@@ -23,12 +25,12 @@
             </div>
         </div>
         <div style="display:flex; gap:15px; align-items:center;">
-            <!-- નવું Refresh બટન અહીં ઉમેર્યું છે -->
             <i class="fa-solid fa-rotate no-print" style="font-size: 18px; cursor: pointer;" title="માસ્ટર ડેટા રિફ્રેશ કરો" onclick="forceRefreshMasterData()"></i>
-            <i class="fa-regular fa-circle-user" style="font-size: 20px; cursor: pointer;" title="પ્રોફાઈલ / લોગઆઉટ" onclick="userLogout()"></i>
+            <i class="fa-regular fa-circle-user no-print" style="font-size: 20px; cursor: pointer;" title="પ્રોફાઈલ / લોગઆઉટ" onclick="userLogout()"></i>
         </div>
     </header>
 
+    <!-- ================= MAIN APP CONTAINER ================= -->
     <div class="container">
         
         <!-- VIEW 1: DASHBOARD -->
@@ -50,12 +52,12 @@
                         </div>
                     </div>
 
-                    <!-- સેજા હેઠળના ગામોની ચિપ્સ અહીં દેખાશે -->
+                    <!-- સેજા હેઠળના ગામોની ચિપ્સ (ક્લિક કરવાથી સીધી ગામની પ્રોફાઈલ ખુલશે) -->
                     <div id="hero-villages-chips" class="hero-villages-wrap"></div>
                 </div>
             </div>
 
-            <!-- ૩૦ દિવસ પૂર્ણ થયેલી નોંધો માટેનું એલર્ટ બેનર (જરૂર પડ્યે જ દેખાશે) -->
+            <!-- ૩૦ દિવસ પૂર્ણ થયેલી નોંધો માટેનું એલર્ટ બેનર -->
             <div id="ready-notices-alert" class="alert-banner-ready" style="display: none;" onclick="switchNoticeTabAndShow('ready')">
                 <div style="display: flex; align-items: center; gap: 12px;">
                     <div class="alert-icon-pulse"><i class="bi bi-bell-fill"></i></div>
@@ -67,17 +69,17 @@
                 <i class="bi bi-chevron-right" style="font-size: 16px;"></i>
             </div>
 
-<!-- PWA INSTALL BANNER (શરૂઆતમાં હાઈડ રહેશે) -->
-<div id="pwa-install-container" class="hero-seja-card" style="display:none; background: linear-gradient(135deg, #047857 0%, #10b981 100%); margin-bottom: 20px; cursor: pointer;" onclick="installPWAApp()">
-    <div class="hero-content">
-        <span class="hero-badge"><i class="bi bi-phone-fill"></i> નેટિવ એપ</span>
-        <h2>મોબાઈલમાં એપ ઇન્સ્ટોલ કરો</h2>
-        <p>તમારા ફોનમાં ઝડપી ઉપયોગ માટે ઇન્સ્ટોલ કરો.</p>
-    </div>
-    <div>
-        <button class="btn-switch-hero" style="color: #065f46;"><i class="bi bi-download"></i> ઇન્સ્ટોલ કરો</button>
-    </div>
-</div>
+            <!-- PWA INSTALL BANNER -->
+            <div id="pwa-install-container" class="hero-seja-card" style="display:none; background: linear-gradient(135deg, #047857 0%, #10b981 100%); margin-bottom: 20px; cursor: pointer;" onclick="installPWAApp()">
+                <div class="hero-content">
+                    <span class="hero-badge"><i class="bi bi-phone-fill"></i> નેટિવ એપ</span>
+                    <h2>મોબાઈલમાં એપ ઇન્સ્ટોલ કરો</h2>
+                    <p>તમારા ફોનમાં ઝડપી ઉપયોગ માટે ઇન્સ્ટોલ કરો.</p>
+                </div>
+                <div>
+                    <button class="btn-switch-hero" style="color: #065f46;"><i class="bi bi-download"></i> ઇન્સ્ટોલ કરો</button>
+                </div>
+            </div>
 
             <div class="section-title"><i class="bi bi-speedometer2"></i> આજની દફતર સ્થિતિ <span id="loading-status" style="font-size:11px; color:var(--primary); font-weight:normal;"></span></div>
             
@@ -116,7 +118,7 @@
             <!-- ગામવાર નોંધોની સંખ્યા બતાવતી સ્ટ્રિપ -->
             <div id="village-wise-stats-strip" class="village-stats-strip" style="display:none;"></div>
 
-            <!-- ઝડપી સેવાઓ ચાર્ટની ઉપર જેથી તરત હાથવગી રહે -->
+            <!-- QUICK ACTIONS -->
             <div class="section-title"><i class="bi bi-lightning-charge-fill"></i> ઝડપી સેવાઓ (QUICK ACTIONS)</div>
             <div class="quick-grid">
                 <div class="action-btn modern-action" onclick="showView('135d-desk')">
@@ -169,7 +171,7 @@
                     <i class="bi bi-bank" style="color:#b45309;"></i> ગરવી (જંત્રી/દસ્તાવેજ)
                 </a>
             </div>
-        </div>
+        </div> <!-- END VIEW 1: DASHBOARD -->
 
         <!-- VIEW 2: TALUKA DIRECTORY -->
         <div id="view-directory" class="app-view">
@@ -179,7 +181,7 @@
                 </div>
                 <div class="search-box">
                     <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                    <input type="text" id="dir-search-input" placeholder="સેજો, તલાટી કે ગામ શોધો..." oninput="filterDirectory(this.value)">
+                    <input type="text" id="dir-search-input" placeholder="સેજો, તલાટી કે ગામ શોધો (English/ગુજરાતી)..." oninput="filterDirectory(this.value)">
                     <i class="fa-solid fa-circle-xmark clear-icon" id="clear-search" onclick="clearSearchInput()" style="display:none;"></i>
                 </div>
                 <div class="dir-summary-strip">
@@ -198,8 +200,57 @@
                 <div class="section-title" style="margin-top: 15px;"><i class="fa-solid fa-building"></i> સમાવિષ્ટ ગ્રામ પંચાયતો અને ગામો</div>
                 <div id="panchayats-list" class="panchayat-grid"></div>
             </div>
+        </div> <!-- END VIEW 2: TALUKA DIRECTORY (Fixed closing tag!) -->
 
-            <!-- ================= VILLAGE PROFILE MODAL (GLOBAL) ================= -->
+        <!-- VIEW 3: PEDHINAMU LIST -->
+        <div id="view-pedhinamu-list" class="app-view">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <div class="section-title" style="margin:0; border:none;"><i class="bi bi-folder-fill"></i> પેઢીનામું દફતર</div>
+                <button class="btn-new" onclick="openPedhinamuModal()"><i class="bi bi-plus-lg"></i> નવું બનાવો</button>
+            </div>
+
+            <div class="search-box" style="margin-bottom: 15px;">
+                <i class="bi bi-search search-icon"></i>
+                <input type="text" id="pedhinamu-search-input" placeholder="ગુજરનાર, અરજદાર કે ગામ શોધો..." oninput="filterPedhinamuList(this.value)">
+                <i class="bi bi-x-circle-fill clear-icon" id="clear-pedhinamu-search" onclick="clearPedhinamuSearch()" style="display:none;"></i>
+            </div>
+
+            <div id="pedhinamu-history-container">
+                <p style="text-align:center; color:#777; margin-top:20px;"><i class="fa-solid fa-spinner fa-spin"></i> ડેટા લોડ થઈ રહ્યો છે...</p>
+            </div>
+        </div> <!-- END VIEW 3: PEDHINAMU LIST -->
+
+        <!-- VIEW 4: 135-D NOTICE DESK -->
+        <div id="view-135d-desk" class="app-view">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <div class="section-title" style="margin:0; border:none;">૧૩૫-ડી નોટિસ ડેસ્ક</div>
+                <button class="btn-new" onclick="openNewNoticeModal()"><i class="fa-solid fa-plus"></i> નવી નોંધ</button>
+            </div>
+
+            <div class="search-box" style="margin-bottom: 12px;">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input type="text" id="notice-search-input" placeholder="નોંધ નંબર, ખાતેદાર, ગામ કે પ્રકાર શોધો..." oninput="filterNotices(this.value)">
+                <i class="fa-solid fa-circle-xmark clear-icon" id="clear-notice-search" onclick="clearNoticeSearch()" style="display:none;"></i>
+            </div>
+
+            <div class="notice-tabs">
+                <div class="tab-btn active" onclick="switchNoticeTab('pending', this)">બજાવવાની બાકી</div>
+                <div class="tab-btn" onclick="switchNoticeTab('active', this)">મુદતમાં</div>
+                <div class="tab-btn" onclick="switchNoticeTab('ready', this)">તૈયાર (૩૦ દિવસ પૂર્ણ)</div>
+                <div class="tab-btn" onclick="switchNoticeTab('completed', this)">કચેરીએ જમા</div>
+            </div>
+
+            <div id="notice-list-container">
+                <p style="text-align:center; color:#777; margin-top:20px;"><i class="fa-solid fa-spinner fa-spin"></i> ડેટા લોડ થઈ રહ્યો છે...</p>
+            </div>
+        </div> <!-- END VIEW 4: 135-D NOTICE DESK -->
+
+    </div> <!-- ================= END MAIN CONTAINER ================= -->
+
+
+    <!-- ================= GLOBAL MODALS (ACCESSIBLE FROM ALL VIEWS) ================= -->
+
+    <!-- 1. VILLAGE PROFILE MODAL (GLOBAL) -->
     <div id="village-profile-modal" class="modal-backdrop" style="display: none; z-index: 260;">
         <div class="modal-card">
             <div class="modal-header">
@@ -210,6 +261,7 @@
                 <button class="modal-close-btn" onclick="closeVillageProfile()"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="modal-body" style="max-height: 82vh; overflow-y: auto;">
+                <!-- જમીન મહેસૂલ પ્રાથમિક વિગત -->
                 <div class="profile-section">
                     <div class="profile-section-title"><i class="fa-solid fa-map-location-dot"></i> જમીન મહેસૂલ વિગત</div>
                     <div class="vp-stats-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
@@ -230,6 +282,11 @@
                             <span class="vp-stat-lbl">કુલ સર્વે નં. (૭/૧૨)</span>
                         </div>
                     </div>
+
+                    <!-- Step 2 માટે સરકારી જમીન અને બુકમાર્ક સર્વે નંબર ડિસ્પ્લે કન્ટેનર -->
+                    <div id="vp-land-records-display" style="margin-top: 10px;"></div>
+                    <div id="vp-bookmarks-display" style="margin-top: 10px;"></div>
+
                     <div style="margin-top: 10px;">
                         <a href="https://anyror.gujarat.gov.in/" target="_blank" class="btn-external-link">
                             <i class="fa-solid fa-arrow-up-right-from-square"></i> AnyRoR પર ૭/૧૨ અને ૮-અ જુઓ
@@ -237,6 +294,7 @@
                     </div>
                 </div>
 
+                <!-- વસ્તી વિષયક વિગત -->
                 <div class="profile-section">
                     <div class="profile-section-title"><i class="fa-solid fa-users"></i> વસ્તી વિષયક વિગત</div>
                     <div class="vp-stats-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -245,11 +303,13 @@
                     </div>
                 </div>
 
+                <!-- સ્થાનિક પદાધિકારી / સ્ટાફ -->
                 <div class="profile-section">
                     <div class="profile-section-title"><i class="fa-solid fa-address-book"></i> સ્થાનિક પદાધિકારી / સ્ટાફ</div>
                     <div id="vp-contacts-list"></div>
                 </div>
 
+                <!-- સુધારા બટન (ફક્ત પોતાના સેજાના ગામો માટે જ દેખાશે) -->
                 <div id="vp-edit-container" style="display: none; margin-top: 15px;">
                     <button class="btn btn-primary" style="width: 100%;" onclick="openEditVillageForm()">
                         <i class="fa-solid fa-pen-to-square"></i> ગામની માહિતીમાં સુધારો કરો
@@ -259,9 +319,9 @@
         </div>
     </div>
 
-    <!-- ================= EDIT VILLAGE DETAILS MODAL ================= -->
+    <!-- 2. EDIT VILLAGE DETAILS MODAL (GLOBAL) -->
     <div id="modal-edit-village" class="modal-backdrop" style="display: none; align-items: center; z-index: 270;">
-        <div class="modal-card" style="border-radius: 12px; padding: 20px; max-width: 420px; width: 92%; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-card" style="border-radius: 12px; padding: 20px; max-width: 440px; width: 94%; max-height: 90vh; overflow-y: auto;">
             <div class="modal-header" style="padding: 0 0 12px 0; border-bottom: 1px solid var(--border-color);">
                 <div>
                     <h3 style="color: var(--primary-blue); margin: 0; font-size: 16px;"><i class="fa-solid fa-pen-to-square"></i> ગામની માહિતી સુધારો</h3>
@@ -293,6 +353,9 @@
                     </div>
                 </div>
 
+                <!-- Step 2 માટે અહીં જમીન સર્વે નંબર Add/Edit/Delete મેનેજર આવશે -->
+                <div id="edit-vil-land-manager-container"></div>
+
                 <div style="display: flex; gap: 10px; margin-top: 18px;">
                     <button class="btn btn-secondary" style="flex: 1;" onclick="closeEditVillageModal()">રદ કરો</button>
                     <button class="btn btn-primary" style="flex: 2;" id="btn-save-vil-edits" onclick="saveVillageEdits()">
@@ -303,52 +366,7 @@
         </div>
     </div>
 
-        <!-- VIEW 3: PEDHINAMU LIST -->
-        <div id="view-pedhinamu-list" class="app-view">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <div class="section-title" style="margin:0; border:none;"><i class="bi bi-folder-fill"></i> પેઢીનામું દફતર</div>
-                <button class="btn-new" onclick="openPedhinamuModal()"><i class="bi bi-plus-lg"></i> નવું બનાવો</button>
-            </div>
-
-            <div class="search-box" style="margin-bottom: 15px;">
-                <i class="bi bi-search search-icon"></i>
-                <input type="text" id="pedhinamu-search-input" placeholder="ગુજરનાર, અરજદાર કે ગામ શોધો..." oninput="filterPedhinamuList(this.value)">
-                <i class="bi bi-x-circle-fill clear-icon" id="clear-pedhinamu-search" onclick="clearPedhinamuSearch()" style="display:none;"></i>
-            </div>
-
-            <div id="pedhinamu-history-container">
-                <p style="text-align:center; color:#777; margin-top:20px;"><i class="fa-solid fa-spinner fa-spin"></i> ડેટા લોડ થઈ રહ્યો છે...</p>
-            </div>
-        </div>
-
-        <!-- VIEW 5: 135-D NOTICE DESK -->
-        <div id="view-135d-desk" class="app-view">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <div class="section-title" style="margin:0; border:none;">૧૩૫-ડી નોટિસ ડેસ્ક</div>
-                <button class="btn-new" onclick="openNewNoticeModal()"><i class="fa-solid fa-plus"></i> નવી નોંધ</button>
-            </div>
-
-            <div class="search-box" style="margin-bottom: 12px;">
-                <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                <input type="text" id="notice-search-input" placeholder="નોંધ નંબર, ગામ કે પ્રકાર શોધો..." oninput="filterNotices(this.value)">
-                <i class="fa-solid fa-circle-xmark clear-icon" id="clear-notice-search" onclick="clearNoticeSearch()" style="display:none;"></i>
-            </div>
-
-            <div class="notice-tabs">
-                <div class="tab-btn active" onclick="switchNoticeTab('pending', this)">બજાવવાની બાકી</div>
-                <div class="tab-btn" onclick="switchNoticeTab('active', this)">મુદતમાં</div>
-                <div class="tab-btn" onclick="switchNoticeTab('ready', this)">તૈયાર (૩૦ દિવસ પૂર્ણ)</div>
-                <div class="tab-btn" onclick="switchNoticeTab('completed', this)">કચેરીએ જમા</div>
-            </div>
-
-            <div id="notice-list-container">
-                <p style="text-align:center; color:#777; margin-top:20px;"><i class="fa-solid fa-spinner fa-spin"></i> ડેટા લોડ થઈ રહ્યો છે...</p>
-            </div>
-        </div>
-
-    </div> <!-- CONTAINER END -->
-
-    <!-- ================= 4. PEDHINAMU MODAL (SLIDE-UP SHEET) ================= -->
+    <!-- 3. PEDHINAMU MODAL (SLIDE-UP SHEET) -->
     <div id="modal-pedhinamu-form" class="modal-backdrop" style="display: none; align-items: flex-end; z-index: 250;">
         <div class="modal-card pedhinamu-modal-card">
             <div class="modal-header" style="padding: 14px 18px; border-bottom: 1px solid var(--border-color);">
@@ -468,9 +486,8 @@
         </div>
     </div>
 
-    <!-- ================= 5. ORIGINAL A4 PAGE FOR PDF ================= -->
+    <!-- 4. ORIGINAL A4 PAGE FOR PDF PRINT -->
     <div class="a4-page" id="pedhinamu-page">
-        
         <div style="display: flex; justify-content: flex-end; margin-bottom: 2px;">
             <span class="bold" style="font-size: 13px;" id="out-javak-no">જાવક નં. : ૨૦૨૬/૧૦/૧</span>
         </div>
@@ -565,7 +582,7 @@
         </div>
     </div>
 
-    <!-- MODALS: NEW NOTICE & EDIT NOTICE -->
+    <!-- 5. MODALS: NEW NOTICE & EDIT NOTICE -->
     <div id="modal-new-notice" class="modal-backdrop" style="display: none; align-items: center;">
         <div class="modal-card" style="border-radius: 12px; padding: 20px; max-height: 90vh; overflow-y: auto;">
             <div class="modal-header" style="padding: 0 0 15px 0;">
@@ -713,7 +730,7 @@
         </div>
     </div>
 
-    <!-- ================= AREA CALCULATOR MODAL ================= -->
+    <!-- 6. AREA CALCULATOR MODAL -->
     <div id="modal-area-calc" class="modal-backdrop" style="display: none; align-items: flex-end; z-index: 300;">
         <div class="modal-card area-modal-card">
             <div class="modal-header" style="padding: 14px 18px; border-bottom: 1px solid var(--border-color);">
@@ -868,24 +885,7 @@
         </div>
     </div>
 
-    <!-- Bottom Nav -->
-    <div class="bottom-nav">
-        <div class="nav-item active" id="nav-dashboard" onclick="showView('dashboard')">
-            <i class="fa-solid fa-house"></i>હોમ
-        </div>
-        <div class="nav-item" id="nav-135d-desk" onclick="showView('135d-desk')">
-            <i class="fa-solid fa-file-invoice"></i>૧૩૫-ડી
-        </div>
-        <div class="nav-item" id="nav-pedhinamu-list" onclick="showView('pedhinamu-list')">
-            <i class="fa-solid fa-sitemap"></i>પેઢીનામું
-        </div>
-        <div class="nav-item" id="nav-directory" onclick="showView('directory')">
-            <i class="fa-solid fa-address-book"></i>ડિરેક્ટરી
-        </div>
-    </div>
-    <div id="toast">નોટિફિકેશન</div>
-
-    <!-- LOGIN SCREEN MODAL -->
+    <!-- 7. LOGIN SCREEN MODAL -->
     <div id="modal-login" class="modal-backdrop" style="display: none; align-items: center; z-index: 999; background: #0f172a;">
         <div class="modal-card" style="border-radius: 16px; padding: 25px; max-width: 360px; margin: 0 auto;">
             <div style="text-align: center; margin-bottom: 20px;">
@@ -905,7 +905,7 @@
         </div>
     </div>
 
-    <!-- SEJA SWITCH MODAL -->
+    <!-- 8. SEJA SWITCH MODAL -->
     <div id="modal-seja-switch" class="modal-backdrop" style="display: none; align-items: center;">
         <div class="modal-card" style="border-radius: 12px; padding: 20px; max-width: 380px;">
             <div class="modal-header" style="padding: 0 0 10px 0;">
@@ -916,13 +916,32 @@
         </div>
     </div>
 
-    <!-- FIREBASE LIBRARIES -->
+    <!-- ================= BOTTOM NAVIGATION ================= -->
+    <div class="bottom-nav no-print">
+        <div class="nav-item active" id="nav-dashboard" onclick="showView('dashboard')">
+            <i class="fa-solid fa-house"></i>હોમ
+        </div>
+        <div class="nav-item" id="nav-135d-desk" onclick="showView('135d-desk')">
+            <i class="fa-solid fa-file-invoice"></i>૧૩૫-ડી
+        </div>
+        <div class="nav-item" id="nav-pedhinamu-list" onclick="showView('pedhinamu-list')">
+            <i class="fa-solid fa-sitemap"></i>પેઢીનામું
+        </div>
+        <div class="nav-item" id="nav-directory" onclick="showView('directory')">
+            <i class="fa-solid fa-address-book"></i>ડિરેક્ટરી
+        </div>
+    </div>
+
+    <div id="toast">નોટિફિકેશન</div>
+
+    <!-- ================= EXTERNAL & CUSTOM SCRIPTS ================= -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <!-- CUSTOM SCRIPTS -->
+    <!-- APP LOGIC SCRIPTS -->
     <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/ui-logic.js"></script>
@@ -931,5 +950,13 @@
     <script src="js/area-calc.js"></script>
     <script src="js/directory.js"></script>
 
+    <!-- SERVICE WORKER REGISTRATION -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW Reg Failed:', err));
+            });
+        }
+    </script>
 </body>
 </html>
