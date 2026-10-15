@@ -1,16 +1,29 @@
 // js/135d.js
 
 let noticesData = [];
-let currentNoticeTab = 'pending'; // ડિફોલ્ટ: 'pending' (અથવા 'all')
-let currentVillageFilter = 'all'; // ડિફોલ્ટ: બધા ગામો
+let currentNoticeTab = 'pending';  // ડિફોલ્ટ સ્થિતિ
+let currentVillageFilter = 'all';  // ડિફોલ્ટ ગામ
+let currentTypeFilter = 'all';     // ડિફોલ્ટ પ્રકાર (અહીં નવું ઉમેર્યું)
 let unsubscribeNotices = null;
 let currentEditingNoticeId = null;
 
+// પ્રમાણિત નોંધના પ્રકારો
+const STANDARD_NOTICE_TYPES = [
+    'વારસાઈ',
+    'વેચાણ',
+    'વહેંચણી',
+    'હયાતીમાં હક્ક દાખલ',
+    'બોજો દાખલ',
+    'બોજો કમી',
+    'અન્ય'
+];
+
 // =========================================================
-// ૧. લાઈવ નોટિસ ડેટા લોડ કરવો અને ગામના ફિલ્ટર્સ રેન્ડર કરવા
+// ૧. લાઈવ નોટિસ ડેટા લોડ કરવો
 // =========================================================
 function loadNoticesDesk() {
     renderNoticeVillageFilters();
+    renderNoticeTypeFilters();
 
     let container = document.getElementById('notice-list-container');
     if (container && noticesData.length === 0) {
@@ -41,7 +54,8 @@ function loadNoticesDesk() {
             });
 
             noticesData = list;
-            renderNoticeVillageFilters(); // ગામો પર નોંધોની સંખ્યા અપડેટ કરવા
+            renderNoticeVillageFilters(); // ગામવાર સંખ્યા અપડેટ
+            renderNoticeTypeFilters();    // પ્રકારવાર સંખ્યા અપડેટ
             applyNoticeFilters();
         }, (error) => {
             console.error("Firestore 135D Error:", error);
@@ -50,7 +64,7 @@ function loadNoticesDesk() {
 }
 
 // =========================================================
-// ૨. ગામના ફિલ્ટર બટન્સ (Chips) રેન્ડર કરવા
+// ૨. ગામના ફિલ્ટર બટન્સ (Chips)
 // =========================================================
 function renderNoticeVillageFilters() {
     let cont = document.getElementById('notice-village-filters');
@@ -62,7 +76,6 @@ function renderNoticeVillageFilters() {
         return;
     }
 
-    // દરેક ગામની નોંધોની કુલ સંખ્યા ગણવી
     let counts = { all: noticesData.length };
     currentVillages.forEach(v => {
         counts[v] = noticesData.filter(n => {
@@ -93,11 +106,62 @@ function switchNoticeVillage(vName, btnElem) {
     currentVillageFilter = vName;
     document.querySelectorAll('.village-filter-btn').forEach(b => b.classList.remove('active'));
     if (btnElem) btnElem.classList.add('active');
+    
+    // ગામ બદલાય ત્યારે તે ગામ પૂરતી પ્રકારવાર સંખ્યા પણ અપડેટ થઈ જાય
+    renderNoticeTypeFilters();
     applyNoticeFilters();
 }
 
 // =========================================================
-// ૩. સ્ટેટસ ટેબ બદલવું ('all', 'pending', 'active', 'ready', 'completed')
+// ૩. નોંધના પ્રકારના ફિલ્ટર બટન્સ (Type Filter Chips)
+// =========================================================
+function renderNoticeTypeFilters() {
+    let cont = document.getElementById('notice-type-filters');
+    if (!cont) return;
+
+    // જો કોઈ ચોક્કસ ગામ પસંદ હોય તો ફક્ત તે ગામની નોંધો મુજબ સંખ્યા ગણવી
+    let baseList = noticesData;
+    if (currentVillageFilter !== 'all') {
+        baseList = noticesData.filter(n => {
+            let vn = String(n.Village_Name || '').trim();
+            return vn.includes(currentVillageFilter) || currentVillageFilter.includes(vn);
+        });
+    }
+
+    let counts = { all: baseList.length };
+    STANDARD_NOTICE_TYPES.forEach(t => {
+        counts[t] = baseList.filter(n => String(n.Notice_Type || '').trim() === t).length;
+    });
+
+    let html = `
+        <button class="type-filter-btn ${currentTypeFilter === 'all' ? 'active' : ''}" onclick="switchNoticeType('all', this)">
+            બધા પ્રકાર <span class="badge-count">${toGujaratiDigits(counts.all)}</span>
+        </button>
+    `;
+
+    STANDARD_NOTICE_TYPES.forEach(t => {
+        let count = counts[t] || 0;
+        // જો તે પ્રકારની ૦ નોંધો હોય તો પણ બટન બતાવવું જેથી યુઝર જાણી શકે
+        let isAct = (currentTypeFilter === t);
+        html += `
+            <button class="type-filter-btn ${isAct ? 'active' : ''}" onclick="switchNoticeType('${t}', this)">
+                ${t} <span class="badge-count">${toGujaratiDigits(count)}</span>
+            </button>
+        `;
+    });
+
+    cont.innerHTML = html;
+}
+
+function switchNoticeType(tName, btnElem) {
+    currentTypeFilter = tName;
+    document.querySelectorAll('.type-filter-btn').forEach(b => b.classList.remove('active'));
+    if (btnElem) btnElem.classList.add('active');
+    applyNoticeFilters();
+}
+
+// =========================================================
+// ૪. સ્ટેટસ ટેબ બદલવું ('all', 'pending', 'active', 'ready', 'completed')
 // =========================================================
 function switchNoticeTab(tabKey, btnElem) {
     currentNoticeTab = tabKey;
@@ -106,12 +170,10 @@ function switchNoticeTab(tabKey, btnElem) {
     applyNoticeFilters();
 }
 
-// ડેશબોર્ડના સ્ટેટ કાર્ડ પર ક્લિક કરવાથી સ્વિચ થવા માટે
 function switchNoticeTabAndShow(tabKey) {
     showView('135d-desk');
     currentNoticeTab = tabKey;
     
-    // ટેબ્સમાંથી યોગ્ય ટેબ એક્ટિવ કરો
     const tabs = document.querySelectorAll('.notice-tabs .tab-btn');
     tabs.forEach(t => t.classList.remove('active'));
 
@@ -132,7 +194,7 @@ function switchNoticeTabAndShow(tabKey) {
 }
 
 // =========================================================
-// ૪. ફિલ્ટરિંગ અને કાર્ડ્સ રેન્ડરિંગ લોજિક
+// ૫. ફિલ્ટરિંગ અને કાર્ડ્સ રેન્ડરિંગ લોજિક (૪ સ્તરીય ફિલ્ટર)
 // =========================================================
 function applyNoticeFilters() {
     let query = document.getElementById('notice-search-input') ? document.getElementById('notice-search-input').value.trim().toLowerCase() : '';
@@ -150,7 +212,13 @@ function applyNoticeFilters() {
             if (!matchesVillage) return false;
         }
 
-        // ૨. સ્થિતિ (Status Tab) પ્રમાણે ફિલ્ટર
+        // ૨. નોંધના પ્રકાર પ્રમાણે ફિલ્ટર (વારસાઈ, વેચાણ વગેરે)
+        if (currentTypeFilter !== 'all') {
+            let nType = String(item.Notice_Type || '').trim();
+            if (nType !== currentTypeFilter) return false;
+        }
+
+        // ૩. સ્થિતિ (Status Tab) પ્રમાણે ફિલ્ટર
         let isSubmitted = (String(item.Current_Status || '').includes("જમા") || !!item.Submitted_Date);
         let sDate = item.Served_Date ? parseUniversalDate(item.Served_Date) : null;
         let diffDays = null;
@@ -168,9 +236,9 @@ function applyNoticeFilters() {
         } else if (currentNoticeTab === 'completed') {
             if (!isSubmitted) return false;
         }
-        // જો 'all' હોય તો બધી જ સ્થિતિઓ માન્ય ગણાશે
+        // જો 'all' હોય તો બધી સ્થિતિઓ માન્ય
 
-        // ૩. સર્ચ બોક્સ ફિલ્ટર
+        // ૪. સર્ચ બોક્સ ફિલ્ટર
         if (query) {
             let mNo = String(item.Mutation_No || '');
             let khatedar = String(item.Khatedar_Name || '').toLowerCase();
@@ -210,7 +278,7 @@ function renderNoticeList(list) {
         container.innerHTML = `
             <div style="text-align:center; padding: 40px 10px; color: #94a3b8;">
                 <i class="bi bi-inbox" style="font-size: 32px; display:block; margin-bottom: 8px;"></i>
-                <p style="font-size: 14px; margin: 0;">કોઈ ૧૩૫-ડી નોટિસ મળી નથી.</p>
+                <p style="font-size: 14px; margin: 0;">પસંદ કરેલ ફિલ્ટરમાં કોઈ ૧૩૫-ડી નોટિસ મળી નથી.</p>
             </div>
         `;
         return;
@@ -228,7 +296,6 @@ function renderNoticeList(list) {
             diffDays = Math.floor((today - sDate) / (1000 * 60 * 60 * 24));
         }
 
-        // કાર્ડની ડાબી બાજુની બોર્ડર અને સ્ટેટસ બેજ
         let borderClass = 'border-red';
         let statusBadge = '';
 
@@ -260,7 +327,9 @@ function renderNoticeList(list) {
                         ખાતેદાર: ${item.Khatedar_Name || '-'}
                     </div>
                     <div style="font-size:12px; color:#475569; margin-bottom:6px;">
-                        <span style="color:#0284c7; font-weight:600;">${item.Village_Name || '-'}</span> | ${item.Notice_Type || '-'} | નોટિસ તા: ${formatDisplayDateGujarati(item.Generated_Date)}
+                        <span style="color:#0284c7; font-weight:600;">${item.Village_Name || '-'}</span> | 
+                        <span style="background:#f1f5f9; padding:1px 6px; border-radius:4px; font-weight:600; color:#334155;">${item.Notice_Type || '-'}</span> | 
+                        નોટિસ તા: ${formatDisplayDateGujarati(item.Generated_Date)}
                     </div>
                     <div style="font-size:12px;">
                         ${statusBadge}
@@ -279,7 +348,7 @@ function renderNoticeList(list) {
 }
 
 // =========================================================
-// ૫. નવી નોટિસ ઉમેરવી & એડિટિંગ મોડલ્સ
+// ૬. મોડલ્સ (નવી નોટિસ & એડિટ)
 // =========================================================
 function openNewNoticeModal() {
     let todayStr = new Date().toISOString().split('T')[0];
@@ -293,7 +362,6 @@ function openNewNoticeModal() {
     safeSetValue('notice-submitted-date', '');
     safeSetValue('notice-remarks', '');
 
-    // ગામ સિલેક્ટ કરો
     let vSel = document.getElementById('notice-village');
     if (vSel && activeSeja && activeSeja.villages) {
         vSel.innerHTML = activeSeja.villages.map(v => `<option value="${v}">${v}</option>`).join('');
