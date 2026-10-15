@@ -1,9 +1,9 @@
 // js/135d.js
 
 let noticesData = [];
-let currentNoticeTab = 'pending';  // ડિફોલ્ટ સ્થિતિ
-let currentVillageFilter = 'all';  // ડિફોલ્ટ ગામ
-let currentTypeFilter = 'all';     // ડિફોલ્ટ પ્રકાર (અહીં નવું ઉમેર્યું)
+let currentNoticeTab = 'pending';  // ડિફોલ્ટ: બજાવવાની બાકી
+let currentVillageFilter = 'all';  // ડિફોલ્ટ: બધા ગામો
+let currentTypeFilter = 'all';     // ડિફોલ્ટ: બધા પ્રકાર
 let unsubscribeNotices = null;
 let currentEditingNoticeId = null;
 
@@ -19,7 +19,7 @@ const STANDARD_NOTICE_TYPES = [
 ];
 
 // =========================================================
-// ૧. લાઈવ નોટિસ ડેટા લોડ કરવો
+// ૧. લાઈવ નોટિસ ડેટા લોડ કરવો (Safe Snapshot without server orderBy)
 // =========================================================
 function loadNoticesDesk() {
     renderNoticeVillageFilters();
@@ -30,47 +30,64 @@ function loadNoticesDesk() {
         container.innerHTML = '<p style="text-align:center; color:#777; margin-top:20px;"><i class="fa-solid fa-spinner fa-spin"></i> નોટિસો લોડ થઈ રહી છે...</p>';
     }
 
-    if (unsubscribeNotices) unsubscribeNotices();
+    if (unsubscribeNotices) {
+        unsubscribeNotices();
+    }
 
-    let currentVillages = (activeSeja && activeSeja.villages) ? activeSeja.villages : [];
+    let currentVillages = (typeof activeSeja !== 'undefined' && activeSeja && activeSeja.villages) ? activeSeja.villages : [];
 
-    unsubscribeNotices = db.collection("Notices_135D")
-        .orderBy("createdAt", "desc")
-        .onSnapshot((querySnapshot) => {
-            let list = [];
-            querySnapshot.forEach((doc) => {
-                let data = doc.data();
-                data.id = doc.id;
-                
-                // સેજાના ગામો સાથે મેચિંગ
-                let vName = String(data.Village_Name || '').trim();
-                let isMatch = (currentVillages.length === 0) || 
-                              currentVillages.some(v => vName.includes(v) || v.includes(vName)) || 
-                              !vName;
+    // સીધું કલેક્શન લાવો (કોઈ સર્વર ઇન્ડેક્સની જરૂર નથી)
+    unsubscribeNotices = db.collection("Notices_135D").onSnapshot((querySnapshot) => {
+        let list = [];
+        querySnapshot.forEach((doc) => {
+            let data = doc.data();
+            data.id = doc.id;
+            
+            // સેજાના ગામો સાથે સુસંગતતા ચકાસો
+            let vName = String(data.Village_Name || '').trim();
+            let isMatch = (currentVillages.length === 0) || 
+                          currentVillages.some(v => vName.includes(v) || v.includes(vName)) || 
+                          !vName;
 
-                if (isMatch) {
-                    list.push(data);
-                }
-            });
-
-            noticesData = list;
-            renderNoticeVillageFilters(); // ગામવાર સંખ્યા અપડેટ
-            renderNoticeTypeFilters();    // પ્રકારવાર સંખ્યા અપડેટ
-            applyNoticeFilters();
-        }, (error) => {
-            console.error("Firestore 135D Error:", error);
-            if (container) container.innerHTML = `<p style="text-align:center; color:red;">એરર: ${error.message}</p>`;
+            if (isMatch) {
+                list.push(data);
+            }
         });
+
+        // જાવાસ્ક્રિપ્ટ મેમરીમાં નવી નોંધો ઉપર આવે તે રીતે સૉર્ટ કરો
+        list.sort((a, b) => {
+            let timeA = 0;
+            let timeB = 0;
+
+            if (a.createdAt && a.createdAt.toDate) timeA = a.createdAt.toDate().getTime();
+            else if (a.Received_Date) timeA = new Date(a.Received_Date).getTime() || 0;
+
+            if (b.createdAt && b.createdAt.toDate) timeB = b.createdAt.toDate().getTime();
+            else if (b.Received_Date) timeB = new Date(b.Received_Date).getTime() || 0;
+
+            return timeB - timeA;
+        });
+
+        noticesData = list;
+        renderNoticeVillageFilters();
+        renderNoticeTypeFilters();
+        applyNoticeFilters();
+    }, (error) => {
+        console.error("Firestore 135D Error:", error);
+        if (container) {
+            container.innerHTML = `<p style="text-align:center; color:#dc2626; padding: 20px;">ડેટા લાવવામાં એરર: ${error.message}</p>`;
+        }
+    });
 }
 
 // =========================================================
-// ૨. ગામના ફિલ્ટર બટન્સ (Chips)
+// ૨. ગામ ફિલ્ટર બટન્સ (Chips)
 // =========================================================
 function renderNoticeVillageFilters() {
     let cont = document.getElementById('notice-village-filters');
     if (!cont) return;
 
-    let currentVillages = (activeSeja && activeSeja.villages) ? activeSeja.villages : [];
+    let currentVillages = (typeof activeSeja !== 'undefined' && activeSeja && activeSeja.villages) ? activeSeja.villages : [];
     if (currentVillages.length === 0) {
         cont.innerHTML = '';
         return;
@@ -107,19 +124,17 @@ function switchNoticeVillage(vName, btnElem) {
     document.querySelectorAll('.village-filter-btn').forEach(b => b.classList.remove('active'));
     if (btnElem) btnElem.classList.add('active');
     
-    // ગામ બદલાય ત્યારે તે ગામ પૂરતી પ્રકારવાર સંખ્યા પણ અપડેટ થઈ જાય
     renderNoticeTypeFilters();
     applyNoticeFilters();
 }
 
 // =========================================================
-// ૩. નોંધના પ્રકારના ફિલ્ટર બટન્સ (Type Filter Chips)
+// ૩. પ્રકાર ફિલ્ટર બટન્સ (Type Filter Chips)
 // =========================================================
 function renderNoticeTypeFilters() {
     let cont = document.getElementById('notice-type-filters');
     if (!cont) return;
 
-    // જો કોઈ ચોક્કસ ગામ પસંદ હોય તો ફક્ત તે ગામની નોંધો મુજબ સંખ્યા ગણવી
     let baseList = noticesData;
     if (currentVillageFilter !== 'all') {
         baseList = noticesData.filter(n => {
@@ -141,7 +156,6 @@ function renderNoticeTypeFilters() {
 
     STANDARD_NOTICE_TYPES.forEach(t => {
         let count = counts[t] || 0;
-        // જો તે પ્રકારની ૦ નોંધો હોય તો પણ બટન બતાવવું જેથી યુઝર જાણી શકે
         let isAct = (currentTypeFilter === t);
         html += `
             <button class="type-filter-btn ${isAct ? 'active' : ''}" onclick="switchNoticeType('${t}', this)">
@@ -161,7 +175,7 @@ function switchNoticeType(tName, btnElem) {
 }
 
 // =========================================================
-// ૪. સ્ટેટસ ટેબ બદલવું ('all', 'pending', 'active', 'ready', 'completed')
+// ૪. સ્થિતિ ટેબ સ્વિચિંગ
 // =========================================================
 function switchNoticeTab(tabKey, btnElem) {
     currentNoticeTab = tabKey;
@@ -177,14 +191,7 @@ function switchNoticeTabAndShow(tabKey) {
     const tabs = document.querySelectorAll('.notice-tabs .tab-btn');
     tabs.forEach(t => t.classList.remove('active'));
 
-    const tabMap = {
-        'all': 0,
-        'pending': 1,
-        'active': 2,
-        'ready': 3,
-        'completed': 4
-    };
-
+    const tabMap = { 'all': 0, 'pending': 1, 'active': 2, 'ready': 3, 'completed': 4 };
     let idx = tabMap[tabKey];
     if (idx !== undefined && tabs[idx]) {
         tabs[idx].classList.add('active');
@@ -194,7 +201,7 @@ function switchNoticeTabAndShow(tabKey) {
 }
 
 // =========================================================
-// ૫. ફિલ્ટરિંગ અને કાર્ડ્સ રેન્ડરિંગ લોજિક (૪ સ્તરીય ફિલ્ટર)
+// ૫. ફિલ્ટરિંગ અને કાર્ડ્સ રેન્ડરિંગ લોજિક
 // =========================================================
 function applyNoticeFilters() {
     let query = document.getElementById('notice-search-input') ? document.getElementById('notice-search-input').value.trim().toLowerCase() : '';
@@ -205,20 +212,20 @@ function applyNoticeFilters() {
     today.setHours(0, 0, 0, 0);
 
     let filtered = noticesData.filter((item) => {
-        // ૧. ગામ પ્રમાણે ફિલ્ટર
+        // ૧. ગામ ફિલ્ટર
         if (currentVillageFilter !== 'all') {
             let vName = String(item.Village_Name || '').trim();
             let matchesVillage = vName.includes(currentVillageFilter) || currentVillageFilter.includes(vName);
             if (!matchesVillage) return false;
         }
 
-        // ૨. નોંધના પ્રકાર પ્રમાણે ફિલ્ટર (વારસાઈ, વેચાણ વગેરે)
+        // ૨. પ્રકાર ફિલ્ટર
         if (currentTypeFilter !== 'all') {
             let nType = String(item.Notice_Type || '').trim();
             if (nType !== currentTypeFilter) return false;
         }
 
-        // ૩. સ્થિતિ (Status Tab) પ્રમાણે ફિલ્ટર
+        // ૩. સ્થિતિ ફિલ્ટર
         let isSubmitted = (String(item.Current_Status || '').includes("જમા") || !!item.Submitted_Date);
         let sDate = item.Served_Date ? parseUniversalDate(item.Served_Date) : null;
         let diffDays = null;
@@ -236,9 +243,8 @@ function applyNoticeFilters() {
         } else if (currentNoticeTab === 'completed') {
             if (!isSubmitted) return false;
         }
-        // જો 'all' હોય તો બધી સ્થિતિઓ માન્ય
 
-        // ૪. સર્ચ બોક્સ ફિલ્ટર
+        // ૪. સર્ચ ટેક્સ્ટ ફિલ્ટર
         if (query) {
             let mNo = String(item.Mutation_No || '');
             let khatedar = String(item.Khatedar_Name || '').toLowerCase();
@@ -269,7 +275,6 @@ function clearNoticeSearch() {
     applyNoticeFilters();
 }
 
-// કાર્ડ્સ સ્ક્રીન પર રેન્ડર કરવા
 function renderNoticeList(list) {
     let container = document.getElementById('notice-list-container');
     if (!container) return;
@@ -348,7 +353,7 @@ function renderNoticeList(list) {
 }
 
 // =========================================================
-// ૬. મોડલ્સ (નવી નોટિસ & એડિટ)
+// ૬. મોડલ્સ (નવી નોટિસ & એડિટિંગ)
 // =========================================================
 function openNewNoticeModal() {
     let todayStr = new Date().toISOString().split('T')[0];
@@ -363,7 +368,7 @@ function openNewNoticeModal() {
     safeSetValue('notice-remarks', '');
 
     let vSel = document.getElementById('notice-village');
-    if (vSel && activeSeja && activeSeja.villages) {
+    if (vSel && typeof activeSeja !== 'undefined' && activeSeja && activeSeja.villages) {
         vSel.innerHTML = activeSeja.villages.map(v => `<option value="${v}">${v}</option>`).join('');
     }
 
@@ -403,7 +408,7 @@ function saveNewNotice() {
         Submitted_Date: subDate,
         Remarks: remarks,
         Current_Status: status,
-        Seja_Name: activeSeja ? activeSeja.sejaName : "",
+        Seja_Name: (typeof activeSeja !== 'undefined' && activeSeja) ? activeSeja.sejaName : "",
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then(() => {
         if (btn) { btn.disabled = false; btn.innerText = "સેવ કરો"; }
@@ -431,7 +436,7 @@ function openEditNoticeModal(id) {
     safeSetValue('edit-notice-remarks', item.Remarks || '');
 
     let vSel = document.getElementById('edit-notice-village');
-    if (vSel && activeSeja && activeSeja.villages) {
+    if (vSel && typeof activeSeja !== 'undefined' && activeSeja && activeSeja.villages) {
         vSel.innerHTML = activeSeja.villages.map(v => `<option value="${v}">${v}</option>`).join('');
         vSel.value = item.Village_Name;
     }
