@@ -36,9 +36,13 @@ function formatLandAreaDisplay(val) {
     if (!val) return '';
     let s = String(val).trim();
     
-    // જો યુઝરે પહેલેથી "1-05-19" કે "1/5/19" લખ્યું હોય
-    if (s.includes('-') || s.includes('/') || s.includes('.')) {
-        let parts = s.split(/[-/.]/);
+    // જો ગુજરાતી અંકો હોય તો ગણતરી માટે અંગ્રેજી અંકોમાં ફેરવો
+    const gujToEng = { '૦': '0', '૧': '1', '૨': '2', '૩': '3', '૪': '4', '૫': '5', '૬': '6', '૭': '7', '૮': '8', '૯': '9' };
+    let clean = s.replace(/[૦-૯]/g, d => gujToEng[d] || d);
+    
+    // ૧. જો સીધું "1-05-19" કે "1/5/19" લખ્યું હોય
+    if (clean.includes('-') || clean.includes('/') || clean.includes('.')) {
+        let parts = clean.split(/[-/.]/);
         if (parts.length >= 2) {
             let ha = parts[0] || '0';
             let are = ('0' + (parts[1] || '0')).slice(-2);
@@ -47,8 +51,8 @@ function formatLandAreaDisplay(val) {
         }
     }
     
-    // જો માત્ર ચોરસ મીટર (દા.ત. 10519) લખ્યું હોય તો હેક્ટર-આરે-ચો.મી. ગણો
-    let num = parseFloat(s);
+    // ૨. જો માત્ર ચોરસ મીટર (દા.ત. 10519) લખ્યું હોય તો હેક્ટર-આરે-ચો.મી. ગણો
+    let num = parseFloat(clean);
     if (!isNaN(num) && num > 0) {
         let ha = Math.floor(num / 10000);
         let remHa = num % 10000;
@@ -283,7 +287,10 @@ function openVillageProfile(vid, pname) {
     document.getElementById('village-profile-modal').style.display = 'flex'; 
     window.history.pushState({ view: 'modal' }, '', '#village');
 
-    // Firestore માંથી લેટેસ્ટ જમીન વિગત લાવવી
+    // ૧. પહેલાંથી મેમરીમાં રહેલો ડેટા તાત્કાલિક બતાવો (જેથી ક્ષેત્રફળ તરત દેખાય)
+    renderVillageViewExtra(tv);
+
+    // ૨. Firestore માંથી લેટેસ્ટ ડેટા લાવી ફરીથી અપડેટ કરો
     let docId = tv.villageId || tv.villageName.replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
     db.collection("Village_Land_Records").doc(docId).get().then(doc => {
         if (doc.exists) {
@@ -303,11 +310,9 @@ function openVillageProfile(vid, pname) {
             if (elPop && lData.population) elPop.innerText = toGujaratiDigits(Number(tv.population).toLocaleString('en-IN'));
             if (elSqm && lData.areaSqMtr) elSqm.innerText = toGujaratiDigits(Number(tv.areaSqMtr).toLocaleString('en-IN'));
             if (elHa && lData.formattedArea) elHa.innerText = toGujaratiDigits(tv.formattedArea);
-        } else {
-            tv.landRecords = [];
-            tv.bookmarks = [];
+            
+            renderVillageViewExtra(tv); // Firestore ડેટા સાથે ફરી તાજું કરો
         }
-        renderVillageViewExtra(tv);
     }).catch(err => console.log("Land record fetch info:", err));
 }
 
@@ -341,6 +346,7 @@ function renderVillageViewExtra(tv) {
         }
     }
 
+    // બુકમાર્ક્સ રેન્ડર (પ્રોફાઇલમાં ક્ષેત્રફળ બેજ સાથે)
     if (bmDisp) {
         if (tv.bookmarks && tv.bookmarks.length > 0) {
             let html = '<div style="font-size:13px; font-weight:700; color:#854d0e; margin-top:15px; border-top:1px dashed #cbd5e1; padding-top:12px; margin-bottom:8px;"><i class="fa-solid fa-thumbtack"></i> અગત્યના બુકમાર્કસ</div>';
@@ -350,11 +356,21 @@ function renderVillageViewExtra(tv) {
                 let tc = b.tag.includes('કોર્ટ') ? '#991b1b' : (b.tag.includes('દબાણ') ? '#9a3412' : '#854d0e');
                 let brc = b.tag.includes('કોર્ટ') ? '#f87171' : (b.tag.includes('દબાણ') ? '#fb923c' : '#fde047');
                 
-                return `<div style="background:${bg}; border-left:4px solid ${brc}; padding:10px; margin-bottom:8px; border-radius:4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                    <div style="font-size:10px; font-weight:bold; color:${tc}; margin-bottom:2px; text-transform:uppercase;">${b.tag}</div>
-                    <div style="font-size:13px; font-weight:bold; color:#1e293b;">સર્વે નં: ${toGujaratiDigits(b.surveyNo)}</div>
-                    ${b.note ? `<div style="font-size:11px; color:#475569; margin-top:3px;"><i class="bi bi-info-circle"></i> ${toGujaratiDigits(b.note)}</div>` : ''}
-                </div>`;
+                let areaVal = b.area || b.areaSqMtr || '';
+                let formattedArea = formatLandAreaDisplay(areaVal);
+
+                return `
+                    <div style="background:${bg}; border-left:4px solid ${brc}; padding:10px 12px; margin-bottom:8px; border-radius:6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                            <span style="font-size:10px; font-weight:bold; color:${tc}; text-transform:uppercase; letter-spacing:0.5px;">${b.tag}</span>
+                            ${formattedArea ? `<span style="font-size:12px; font-weight:700; color:#047857; background:rgba(255,255,255,0.85); padding:1px 7px; border-radius:4px; border:1px solid rgba(4,120,87,0.25);"><i class="fa-solid fa-vector-square" style="font-size:10px;"></i> ${formattedArea}</span>` : ''}
+                        </div>
+                        <div style="font-size:13px; font-weight:bold; color:#1e293b;">
+                            સર્વે નં: ${toGujaratiDigits(b.surveyNo)}
+                        </div>
+                        ${b.note ? `<div style="font-size:11px; color:#475569; margin-top:4px;"><i class="bi bi-info-circle"></i> ${toGujaratiDigits(b.note)}</div>` : ''}
+                    </div>
+                `;
             }).join('');
             bmDisp.innerHTML = html;
         } else {
