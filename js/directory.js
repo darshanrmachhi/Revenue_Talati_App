@@ -183,7 +183,7 @@ function openVillageProfile(vid, pname) {
     document.getElementById('village-profile-modal').style.display = 'flex'; 
     window.history.pushState({ view: 'modal' }, '', '#village');
 
-    // Firestore માંથી લેટેસ્ટ જમીન વિગત (Step 2)
+    // Firestore ના Village_Land_Records માંથી ડેટા લાવો
     let docId = tv.villageId || tv.villageName.replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
     db.collection("Village_Land_Records").doc(docId).get().then(doc => {
         if (doc.exists) {
@@ -191,9 +191,10 @@ function openVillageProfile(vid, pname) {
             tv.totalKhata = lData.totalKhata || tv.totalKhata || "";
             tv.totalSurvey = lData.totalSurvey || tv.totalSurvey || "";
             if (lData.population) tv.population = lData.population;
-            if (lData.areaSqMtr) { tv.areaSqMtr = lData.areaSqMtr; tv.formattedArea = lData.formattedArea || tv.formattedArea; }
-            
-            // Arrays લાવ્યા (Step 2)
+            if (lData.areaSqMtr) {
+                tv.areaSqMtr = lData.areaSqMtr;
+                tv.formattedArea = lData.formattedArea || tv.formattedArea;
+            }
             tv.landRecords = lData.landRecords || [];
             tv.bookmarks = lData.bookmarks || [];
             
@@ -202,12 +203,8 @@ function openVillageProfile(vid, pname) {
             if (elPop && lData.population) elPop.innerText = toGujaratiDigits(Number(tv.population).toLocaleString('en-IN'));
             if (elSqm && lData.areaSqMtr) elSqm.innerText = toGujaratiDigits(Number(tv.areaSqMtr).toLocaleString('en-IN'));
             if (elHa && lData.formattedArea) elHa.innerText = toGujaratiDigits(tv.formattedArea);
-        } else {
-            tv.landRecords = [];
-            tv.bookmarks = [];
         }
-        renderVillageViewExtra(tv); // સરકારી જમીન અને બુકમાર્ક UI અપડેટ કરો
-    }).catch(err => console.log("Fetch error:", err));
+    }).catch(err => console.log("Land record fetch info:", err));
 }
 
 function renderVillageViewExtra(tv) {

@@ -65,27 +65,9 @@ function forceRefreshMasterData() {
 // =========================================================================
 // MULTI-USER AUTHENTICATION & SESSION MANAGEMENT
 // =========================================================================
-function ensureFirebaseAuth() {
-    return new Promise((resolve) => {
-        if (!firebase.auth) { resolve(); return; }
-        let user = firebase.auth().currentUser;
-        if (user) {
-            resolve(user);
-        } else {
-            firebase.auth().signInAnonymously()
-                .then((cred) => resolve(cred.user))
-                .catch((err) => {
-                    console.warn("Firebase Auth Warning:", err);
-                    resolve(null);
-                });
-        }
-    });
-}
+// ensureFirebaseAuth deleted here
 
-async function checkLoginSession() {
-    // પહેલા બેકગ્રાઉન્ડમાં Firebase Security Auth પૂર્ણ કરો
-    await ensureFirebaseAuth();
-
+function checkLoginSession() {
     let savedSession = localStorage.getItem('revenue_talati_user');
     if (savedSession) {
         try {
@@ -94,7 +76,8 @@ async function checkLoginSession() {
             userSejas = parsed.sejas || [];
             activeSeja = parsed.activeSeja || (userSejas.length > 0 ? userSejas[0] : null);
             
-            document.getElementById('modal-login').style.display = 'none';
+            let loginModal = document.getElementById('modal-login');
+            if (loginModal) loginModal.style.display = 'none';
             
             let cachedMaster = getMasterDataCache();
             if (cachedMaster && (!activeSeja || !activeSeja.villages || activeSeja.villages.length <= 1)) {
@@ -104,10 +87,12 @@ async function checkLoginSession() {
             initUserEnvironment();
         } catch (e) {
             localStorage.removeItem('revenue_talati_user');
-            document.getElementById('modal-login').style.display = 'flex';
+            let loginModal = document.getElementById('modal-login');
+            if (loginModal) loginModal.style.display = 'flex';
         }
     } else {
-        document.getElementById('modal-login').style.display = 'flex';
+        let loginModal = document.getElementById('modal-login');
+        if (loginModal) loginModal.style.display = 'flex';
     }
 }
 
