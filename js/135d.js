@@ -31,9 +31,41 @@ function isSameVillage(v1, v2) {
 }
 
 // ડેટાબેઝના જુદા-જુદા ફિલ્ડ નેમ્સમાંથી સાચી વિગતો મેળવવા માટેના સેફ હેલ્પર્સ
+// js/135d.js
+
+// ડેટાબેઝમાંથી ગમે તે નામે સેવ થયેલો પ્રકાર શોધી લેતું સ્માર્ટ હેલ્પર
 function getNoticeType(item) {
-    if (!item) return '';
-    return String(item.Notice_Type || item.type || item.Type || item.NoticeType || '').trim();
+    if (!item || typeof item !== 'object') return '';
+    
+    // ૧. સંભવિત ડાયરેક્ટ ફીલ્ડ નામો
+    var directVal = item.Notice_Type || item.notice_type || item.NoticeType || 
+                    item.type || item.Type || item.Notice_type || 
+                    item.Prakar || item.prakar || item.Subject || item.Notice_Subject;
+    if (directVal && String(directVal).trim() !== '' && String(directVal).trim() !== '-') {
+        return String(directVal).trim();
+    }
+
+    // ૨. જો ફીલ્ડનું નામ કોઈ વિચિત્ર કેપિટલાઈઝેશન વાળું હોય તો લૂપ દ્વારા શોધો
+    var keys = Object.keys(item);
+    for (var i = 0; i < keys.length; i++) {
+        var k = keys[i].toLowerCase();
+        if (k.includes('type') || k.includes('prakar') || k.includes('subject')) {
+            var val = item[keys[i]];
+            if (val && String(val).trim() !== '' && String(val).trim() !== '-') {
+                return String(val).trim();
+            }
+        }
+    }
+
+    // ૩. જો હજુ પણ ખાલી હોય, તો શેરો (Remarks) માં સ્ટાન્ડર્ડ પ્રકારનો શબ્દ છે કે નહીં તે ચકાસો
+    var rem = String(item.Remarks || item.remarks || '').trim();
+    for (var j = 0; j < STANDARD_NOTICE_TYPES.length; j++) {
+        if (rem.includes(STANDARD_NOTICE_TYPES[j])) {
+            return STANDARD_NOTICE_TYPES[j];
+        }
+    }
+
+    return '';
 }
 
 function getNoticeGenDate(item) {
@@ -169,7 +201,7 @@ function renderNoticeTypeFilters() {
         });
     }
 
-    // ડેટાબેઝમાં હયાત હોય તેવા તમામ પ્રકારો આપોઆપ શોધો
+    // ડેટાબેઝમાં નોંધાયેલા તમામ વાસ્તવિક પ્રકારો ભેગા કરો
     var typesInDb = [];
     baseList.forEach(function(n) {
         var t = getNoticeType(n);
@@ -178,7 +210,6 @@ function renderNoticeTypeFilters() {
         }
     });
 
-    // સ્ટાન્ડર્ડ પ્રકારો અને ડેટાબેઝના પ્રકારો ભેગા કરો
     var displayTypes = STANDARD_NOTICE_TYPES.slice();
     typesInDb.forEach(function(t) {
         if (displayTypes.indexOf(t) === -1) {
@@ -190,7 +221,7 @@ function renderNoticeTypeFilters() {
     displayTypes.forEach(function(t) {
         counts[t] = baseList.filter(function(n) {
             var nt = getNoticeType(n);
-            return nt === t || nt.toLowerCase() === t.toLowerCase();
+            return nt.toLowerCase() === t.toLowerCase() || nt.includes(t) || t.includes(nt);
         }).length;
     });
 
@@ -199,10 +230,12 @@ function renderNoticeTypeFilters() {
 
     displayTypes.forEach(function(t) {
         var count = counts[t] || 0;
-        // જો તે પ્રકારની ૦ નોંધો હોય અને તે સ્ટાન્ડર્ડ ન હોય તો ન બતાવો, સ્ટાન્ડર્ડ હોય તો બતાવો
-        var isAct = (currentTypeFilter === t);
-        html += '<button class="type-filter-btn ' + (isAct ? 'active' : '') + '" onclick="switchNoticeType(\'' + t + '\', this)">' +
-                t + ' <span class="badge-count">' + toGujaratiDigits(count) + '</span></button>';
+        // જો ૦ થી વધુ નોંધો હોય તો જ બટન બતાવવું, જેથી નકામા બટન ન દેખાય
+        if (count > 0 || STANDARD_NOTICE_TYPES.indexOf(t) !== -1) {
+            var isAct = (currentTypeFilter === t);
+            html += '<button class="type-filter-btn ' + (isAct ? 'active' : '') + '" onclick="switchNoticeType(\'' + t + '\', this)">' +
+                    t + ' <span class="badge-count">' + toGujaratiDigits(count) + '</span></button>';
+        }
     });
 
     cont.innerHTML = html;
@@ -258,7 +291,10 @@ function applyNoticeFilters() {
         // ૨. પ્રકાર ફિલ્ટર
         if (currentTypeFilter !== 'all') {
             var nType = getNoticeType(item);
-            if (nType !== currentTypeFilter && !nType.includes(currentTypeFilter)) return false;
+            var matchType = nType.toLowerCase() === currentTypeFilter.toLowerCase() || 
+                            nType.includes(currentTypeFilter) || 
+                            currentTypeFilter.includes(nType);
+            if (!matchType) return false;
         }
 
         // ૩. સ્થિતિ ફિલ્ટર
