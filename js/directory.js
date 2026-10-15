@@ -316,37 +316,28 @@ function renderVillageViewExtra(tv) {
     let lrDisp = document.getElementById('vp-land-records-display');
     let bmDisp = document.getElementById('vp-bookmarks-display');
     
-    if (lrDisp) {
-        if (tv.landRecords && tv.landRecords.length > 0) {
-            let html = '<div style="font-size:13px; font-weight:700; color:#0d47a1; margin-top:15px; border-top:1px dashed #cbd5e1; padding-top:12px; margin-bottom:8px;"><i class="fa-solid fa-tree-city"></i> સરકારી જમીન / સર્વે નંબર બેંક</div>';
+    if (bmDisp) {
+        if (tv.bookmarks && tv.bookmarks.length > 0) {
+            let html = '<div style="font-size:13px; font-weight:700; color:#854d0e; margin-top:15px; border-top:1px dashed #cbd5e1; padding-top:12px; margin-bottom:8px;"><i class="fa-solid fa-thumbtack"></i> અગત્યના બુકમાર્કસ</div>';
             
-            let grouped = {};
-            tv.landRecords.forEach(r => {
-                if(!grouped[r.category]) grouped[r.category] = [];
-                grouped[r.category].push(r);
-            });
-
-            for(let cat in grouped) {
-                html += `<div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:10px; margin-bottom:10px;">
-                    <div style="font-weight:700; font-size:13px; color:#334155; margin-bottom:6px; border-bottom:1px solid #cbd5e1; padding-bottom:4px;">
-                        ${cat} <span style="float:right; font-size:10px; background:#e2e8f0; padding:2px 6px; border-radius:10px;">${toGujaratiDigits(grouped[cat].length)} એન્ટ્રી</span>
+            html += tv.bookmarks.map(b => {
+                let bg = b.tag.includes('કોર્ટ') ? '#fee2e2' : (b.tag.includes('દબાણ') ? '#ffedd5' : '#fefce8');
+                let tc = b.tag.includes('કોર્ટ') ? '#991b1b' : (b.tag.includes('દબાણ') ? '#9a3412' : '#854d0e');
+                let brc = b.tag.includes('કોર્ટ') ? '#f87171' : (b.tag.includes('દબાણ') ? '#fb923c' : '#fde047');
+                let formattedArea = formatLandAreaDisplay(b.area);
+                
+                return `<div style="background:${bg}; border-left:4px solid ${brc}; padding:10px; margin-bottom:8px; border-radius:4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                    <div style="font-size:10px; font-weight:bold; color:${tc}; margin-bottom:2px; text-transform:uppercase;">${b.tag}</div>
+                    <div style="font-size:13px; font-weight:bold; color:#1e293b;">
+                        સર્વે નં: ${toGujaratiDigits(b.surveyNo)}
+                        ${formattedArea ? `<span style="color:#047857; font-weight:600; font-size:12px; margin-left:5px;">(${formattedArea})</span>` : ''}
                     </div>
-                    ${grouped[cat].map(r => {
-                        let areaFormatted = formatLandAreaDisplay(r.area);
-                        return `
-                            <div style="font-size:12px; padding:5px 0; display:flex; justify-content:space-between; align-items:baseline; border-bottom:1px dashed #f1f5f9;">
-                                <span>
-                                    <b style="color:#2563eb;">સર્વે નં:</b> ${toGujaratiDigits(r.surveyNo)}${areaFormatted ? `<span style="color:#047857; font-weight:600; font-size:11px; margin-left:4px;">(${areaFormatted})</span>` : ''}
-                                </span>
-                                <span style="color:#475569; font-size:11px; text-align:right; max-width:45%;">${toGujaratiDigits(r.remarks || '-')}</span>
-                            </div>
-                        `;
-                    }).join('')}
+                    ${b.note ? `<div style="font-size:11px; color:#475569; margin-top:3px;"><i class="bi bi-info-circle"></i> ${toGujaratiDigits(b.note)}</div>` : ''}
                 </div>`;
-            }
-            lrDisp.innerHTML = html;
+            }).join('');
+            bmDisp.innerHTML = html;
         } else {
-            lrDisp.innerHTML = '';
+            bmDisp.innerHTML = '';
         }
     }
 
@@ -469,7 +460,7 @@ function renderEditManagers() {
             </div>
         </div>
 
-        <!-- બુકમાર્ક મેનેજર -->
+        <!-- બુકમાર્ક મેનેજર (ક્ષેત્રફળ ઇનપુટ સાથે) -->
         <div style="margin-top:20px; border-top:2px solid #e2e8f0; padding-top:15px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                 <h4 style="font-size:14px; color:#854d0e; margin:0;"><i class="fa-solid fa-thumbtack"></i> સર્વે નંબર બુકમાર્ક કરો</h4>
@@ -483,10 +474,13 @@ function renderEditManagers() {
                     <option value="બિનખેતી (NA)">બિનખેતી (NA)</option>
                     <option value="અન્ય અગત્યના">અન્ય અગત્યના</option>
                 </select>
-                <input type="text" id="new-bm-survey" class="form-control" placeholder="સર્વે નંબર" style="font-size:12px; padding:8px;">
+                <input type="text" id="new-bm-survey" class="form-control" placeholder="સર્વે નંબર (દા.ત. ૧૦૫)" style="font-size:12px; padding:8px;">
             </div>
             
-            <input type="text" id="new-bm-note" class="form-control" placeholder="ખાસ નોંધ (દા.ત. સ્ટે ઓર્ડર છે)" style="margin-bottom:8px; font-size:12px; padding:8px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+                <input type="text" id="new-bm-area" class="form-control" placeholder="ક્ષેત્રફળ (10519 કે 1-05-19)" style="font-size:12px; padding:8px;">
+                <input type="text" id="new-bm-note" class="form-control" placeholder="ખાસ નોંધ (દા.ત. સ્ટે ઓર્ડર છે)" style="font-size:12px; padding:8px;">
+            </div>
             
             <div style="display:flex; gap:8px;">
                 <button type="button" class="btn btn-secondary" style="flex:1; font-size:12px; padding:8px; background:${isEditingBM ? '#d97706' : '#fef3c7'}; color:${isEditingBM ? '#ffffff' : '#92400e'}; border:1px solid #fde68a; font-weight:600;" onclick="saveBookmarkEntry()">
@@ -497,21 +491,26 @@ function renderEditManagers() {
             
             <div id="edit-bm-list" style="margin-top:12px; max-height:160px; overflow-y:auto;">
                 ${currentActiveVillage.bookmarks.length === 0 ? '<div style="text-align:center; font-size:11px; color:#94a3b8; padding:8px;">કોઈ બુકમાર્ક નથી</div>' : ''}
-                ${currentActiveVillage.bookmarks.map((b, i) => `
-                    <div style="display:flex; justify-content:space-between; align-items:center; background:${editingBookmarkIdx === i ? '#fef9c3' : '#fefce8'}; padding:8px 10px; margin-bottom:6px; font-size:12px; border:1px solid ${editingBookmarkIdx === i ? '#fde047' : '#fef08a'}; border-radius:6px;">
-                        <div style="flex:1;">
-                            <b>${b.tag}:</b> ${toGujaratiDigits(b.surveyNo)}${b.note ? `<span style="font-size:11px; color:#64748b; display:block;">${toGujaratiDigits(b.note)}</span>` : ''}
+                ${currentActiveVillage.bookmarks.map((b, i) => {
+                    let formattedArea = formatLandAreaDisplay(b.area);
+                    return `
+                        <div style="display:flex; justify-content:space-between; align-items:center; background:${editingBookmarkIdx === i ? '#fef9c3' : '#fefce8'}; padding:8px 10px; margin-bottom:6px; font-size:12px; border:1px solid ${editingBookmarkIdx === i ? '#fde047' : '#fef08a'}; border-radius:6px;">
+                            <div style="flex:1;">
+                                <b>${b.tag}:</b> ${toGujaratiDigits(b.surveyNo)}
+                                ${formattedArea ? `<span style="color:#047857; font-weight:600;">(${formattedArea})</span>` : ''}
+                                ${b.note ? `<span style="font-size:11px; color:#64748b; display:block;">${toGujaratiDigits(b.note)}</span>` : ''}
+                            </div>
+                            <div style="display:flex; gap:8px; margin-left:8px;">
+                                <button type="button" onclick="editBookmark(${i})" style="color:#2563eb; background:none; border:none; cursor:pointer; font-size:14px;" title="સુધારો કરો">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                <button type="button" onclick="removeBookmark(${i})" style="color:#ef4444; background:none; border:none; cursor:pointer; font-size:14px;" title="રદ કરો">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
                         </div>
-                        <div style="display:flex; gap:8px; margin-left:8px;">
-                            <button type="button" onclick="editBookmark(${i})" style="color:#2563eb; background:none; border:none; cursor:pointer; font-size:14px;" title="સુધારો કરો">
-                                <i class="fa-solid fa-pen-to-square"></i>
-                            </button>
-                            <button type="button" onclick="removeBookmark(${i})" style="color:#ef4444; background:none; border:none; cursor:pointer; font-size:14px;" title="રદ કરો">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                `).join('')}
+                    `;
+                }).join('')}
             </div>
         </div>
     `;
@@ -581,6 +580,7 @@ window.removeLandRecord = function(idx) {
 window.saveBookmarkEntry = function() {
     let tag = document.getElementById('new-bm-tag').value;
     let sur = document.getElementById('new-bm-survey').value.trim();
+    let area = document.getElementById('new-bm-area').value.trim();
     let note = document.getElementById('new-bm-note').value.trim();
     
     if(!sur) { showToast("કૃપા કરી સર્વે નંબર દાખલ કરો", "warning"); return; }
@@ -589,6 +589,7 @@ window.saveBookmarkEntry = function() {
         id: (editingBookmarkIdx !== null && currentActiveVillage.bookmarks[editingBookmarkIdx].id) ? currentActiveVillage.bookmarks[editingBookmarkIdx].id : Date.now().toString(),
         tag: tag,
         surveyNo: sur,
+        area: area,
         note: note
     };
 
@@ -613,6 +614,7 @@ window.editBookmark = function(idx) {
 
     safeSetValue('new-bm-tag', b.tag || 'કોર્ટ કેસ / તકરારી');
     safeSetValue('new-bm-survey', b.surveyNo || '');
+    safeSetValue('new-bm-area', b.area || '');
     safeSetValue('new-bm-note', b.note || '');
 
     let el = document.getElementById('new-bm-survey');
