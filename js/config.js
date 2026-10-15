@@ -1,9 +1,9 @@
 // js/config.js
 
-// 1. GLOBAL STATE & VARIABLES
+// 1. GLOBAL STATE & VARIABLES (Multi-User Dynamic State)
 var currentUser = null;
 var userSejas = [];
-var activeSeja = { sejaName: "સાલાવાડા", chargeType: "કાયમી", villages: ["સાલાવાડા", "ચારણગામ (સા)", "કસલાલ"] };
+var activeSeja = null; // યુઝર લોગિન કરે ત્યારે auth.js માંથી ડાયનેમિક સેટ થશે
 var allNotices = [];
 var currentNoticeTab = 'pending';
 var noticeSearchQuery = "";
