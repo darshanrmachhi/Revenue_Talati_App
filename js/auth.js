@@ -65,7 +65,27 @@ function forceRefreshMasterData() {
 // =========================================================================
 // MULTI-USER AUTHENTICATION & SESSION MANAGEMENT
 // =========================================================================
-function checkLoginSession() {
+function ensureFirebaseAuth() {
+    return new Promise((resolve) => {
+        if (!firebase.auth) { resolve(); return; }
+        let user = firebase.auth().currentUser;
+        if (user) {
+            resolve(user);
+        } else {
+            firebase.auth().signInAnonymously()
+                .then((cred) => resolve(cred.user))
+                .catch((err) => {
+                    console.warn("Firebase Auth Warning:", err);
+                    resolve(null);
+                });
+        }
+    });
+}
+
+async function checkLoginSession() {
+    // પહેલા બેકગ્રાઉન્ડમાં Firebase Security Auth પૂર્ણ કરો
+    await ensureFirebaseAuth();
+
     let savedSession = localStorage.getItem('revenue_talati_user');
     if (savedSession) {
         try {
@@ -76,7 +96,6 @@ function checkLoginSession() {
             
             document.getElementById('modal-login').style.display = 'none';
             
-            // જો ગામોની યાદી અધૂરી હોય તો માસ્ટર કેશમાંથી સિંક કરો
             let cachedMaster = getMasterDataCache();
             if (cachedMaster && (!activeSeja || !activeSeja.villages || activeSeja.villages.length <= 1)) {
                 syncUserSejasFromMaster(cachedMaster);
