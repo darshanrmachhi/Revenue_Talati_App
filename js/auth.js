@@ -1,353 +1,377 @@
-// js/directory.js
-var talukaDirectoryData = null;
-let currentActiveSeja = null; 
-let currentActivePanchayat = null;
-let currentActiveVillage = null;
+// js/auth.js
 
-function loadDirectoryData() {
-    if (talukaDirectoryData) { renderSejasGrid(talukaDirectoryData.sejas); return; }
-    
-    let container = document.getElementById('directory-grid-container');
-    if (container) container.innerHTML = '<p style="text-align:center; padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> ડિરેક્ટરી લોડ થાય છે...</p>';
-    
-    let mySejaName = (activeSeja && activeSeja.sejaName) ? activeSeja.sejaName : "";
-    
-    // ૧. પહેલા LocalStorage Cache માં ચેક કરો
-    let cachedData = (typeof getMasterDataCache === 'function') ? getMasterDataCache() : null;
-    if (cachedData) {
-        processDirectoryData(cachedData, mySejaName, container);
-        return;
+// =========================================================================
+// MASTER DATA LOCAL STORAGE CACHING (With 24-Hour TTL)
+// =========================================================================
+const MASTER_CACHE_KEY = 'revenue_talati_master_directory_v1';
+const MASTER_CACHE_TIME_KEY = 'revenue_talati_master_directory_time_v1';
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 કલાક
+
+function getMasterDataCache() {
+    try {
+        let dataStr = localStorage.getItem(MASTER_CACHE_KEY);
+        let timeStr = localStorage.getItem(MASTER_CACHE_TIME_KEY);
+        if (!dataStr || !timeStr) return null;
+        let age = Date.now() - parseInt(timeStr, 10);
+        if (age > CACHE_TTL_MS) {
+            localStorage.removeItem(MASTER_CACHE_KEY);
+            localStorage.removeItem(MASTER_CACHE_TIME_KEY);
+            return null;
+        }
+        return JSON.parse(dataStr);
+    } catch (e) {
+        return null;
     }
+}
 
-    // ૨. જો Cache ખાલી હોય કે એક્સપાયર થયો હોય તો જ Firebase માંથી લાવો
+function setMasterDataCache(data) {
+    try {
+        localStorage.setItem(MASTER_CACHE_KEY, JSON.stringify(data));
+        localStorage.setItem(MASTER_CACHE_TIME_KEY, Date.now().toString());
+    } catch (e) {
+        console.warn("Cache save error:", e);
+    }
+}
+
+function forceRefreshMasterData() {
+    localStorage.removeItem(MASTER_CACHE_KEY);
+    localStorage.removeItem(MASTER_CACHE_TIME_KEY);
+    localStorage.removeItem('taluka_directory_cache');
+    if (typeof talukaDirectoryData !== 'undefined') talukaDirectoryData = null;
+
+    showToast("માસ્ટર ડેટા રિફ્રેશ થઈ રહ્યો છે...");
     db.collection("Master_Data").doc("Taluka_Directory").get().then((doc) => {
         if (doc.exists) {
             let response = doc.data();
-            if (typeof setMasterDataCache === 'function') setMasterDataCache(response);
-            processDirectoryData(response, mySejaName, container);
-        } else { 
-            if (container) container.innerHTML = `<p style="color:red; text-align:center;">ડિરેક્ટરી ડેટા હજુ સેટ થયો નથી.</p>`; 
+            setMasterDataCache(response);
+            if (typeof talukaDirectoryData !== 'undefined') talukaDirectoryData = response;
+            
+            // જો યુઝર લોગિન હોય તો તેના સેજાના ગામો પણ તાજા કરો
+            if (currentUser) {
+                syncUserSejasFromMaster(response);
+            }
+            if (document.getElementById('view-directory').classList.contains('active')) {
+                loadDirectoryData();
+            } else {
+                initUserEnvironment();
+            }
+            showToast("માસ્ટર ડેટા અપડેટ થઈ ગયો!");
         }
-    }).catch((err) => { 
-        if (container) container.innerHTML = `<p style="color:red; text-align:center;">ડિરેક્ટરી એરર: ${err.message}</p>`; 
+    }).catch(err => {
+        alert("રિફ્રેશ એરર: " + err.message);
     });
 }
 
-function processDirectoryData(response, mySejaName, container) {
-    talukaDirectoryData = response;
-    let statTotal = document.getElementById('stat-total-sejas');
-    let statPanch = document.getElementById('stat-total-panchayats');
-    let statVill = document.getElementById('stat-total-villages');
-    
-    if (statTotal) statTotal.innerText = toGujaratiDigits(response.totalSejas || (response.sejas ? response.sejas.length : 0));
-    if (statPanch && response.totalPanchayats) statPanch.innerText = toGujaratiDigits(response.totalPanchayats);
-    if (statVill && response.totalVillages) statVill.innerText = toGujaratiDigits(response.totalVillages);
-    
-    if (response.sejas && response.sejas.length > 0) {
-        response.sejas.sort((a, b) => { 
-            if (a.sejaName === mySejaName) return -1; 
-            if (b.sejaName === mySejaName) return 1; 
-            return a.sejaName.localeCompare(b.sejaName, 'gu'); 
-        });
-        renderSejasGrid(response.sejas);
-    } else { 
-        if (container) container.innerHTML = `<p style="grid-column: 1/-1; text-align:center;">કોઈ સેજો મળ્યો નથી.</p>`; 
-    }
-}
-
-function renderSejasGrid(sejasList) {
-    const list = sejasList || (talukaDirectoryData ? talukaDirectoryData.sejas : []);
-    const container = document.getElementById('directory-grid-container');
-    if (!container) return;
-    
-    let bc = document.getElementById('dir-breadcrumbs');
-    if (bc) bc.innerHTML = `<span class="crumb-link" onclick="renderSejasGrid()"><i class="fa-solid fa-house"></i> લુણાવાડા</span>`;
-    
-    if (!list || list.length === 0) { 
-        container.innerHTML = `<p style="grid-column: 1/-1; text-align:center;">કોઈ સેજો મળ્યો નથી.</p>`; 
-        return; 
-    }
-
-    let mySejaName = (activeSeja && activeSeja.sejaName) ? activeSeja.sejaName : "";
-    container.innerHTML = list.map(seja => {
-        const isMySeja = (seja.sejaName === mySejaName);
-        const chargeClass = (seja.chargeType === "કાયમી") ? "permanent" : "additional";
-        const cm = seja.talatiMobile && seja.talatiMobile !== "-" ? seja.talatiMobile.replace(/[^0-9]/g, '') : '';
-        return `<div class="seja-grid-card ${isMySeja ? 'my-seja' : ''}" onclick="renderPanchayatsView('${seja.sejaName}')"><div><div class="seja-card-header"><div class="seja-card-title">${seja.sejaName} સેજો ${isMySeja?'<span style="font-size:10px; color:#2563eb; display:block;">(મારો સેજો)</span>':''}</div><span class="badge-charge ${chargeClass}">${seja.chargeType}</span></div><div class="talati-info"><i class="fa-solid fa-user-tie" style="color:var(--text-muted); font-size:12px;"></i><span>${seja.talatiName}</span></div><div class="seja-counts-bar"><span><i class="fa-solid fa-building"></i> ${toGujaratiDigits(seja.panchayatsCount)} પંચાયત</span><span><i class="fa-solid fa-location-dot"></i> ${toGujaratiDigits(seja.villagesCount)} ગામો</span></div></div><div class="seja-quick-actions" onclick="event.stopPropagation()">${cm.length===10 ? `<a href="tel:${cm}" class="btn-contact btn-call"><i class="fa-solid fa-phone"></i> કોલ</a><a href="https://wa.me/91${cm}" target="_blank" class="btn-contact btn-wa"><i class="fa-brands fa-whatsapp"></i> વોટ્સએપ</a>` : `<span style="font-size:11px; color:#999; text-align:center; width:100%;">સંપર્ક ઉપલબ્ધ નથી</span>`}</div></div>`;
-    }).join('');
-}
-
-function filterDirectory(query) {
-    const clearBtn = document.getElementById('clear-search'); 
-    if (clearBtn) clearBtn.style.display = query ? "block" : "none";
-    if (!talukaDirectoryData) return;
-    
-    const q = query.trim().toLowerCase();
-    if (!q) { renderSejasGrid(talukaDirectoryData.sejas); return; }
-
-    const filtered = talukaDirectoryData.sejas.filter(s => {
-        if (matchesSmartSearch(s.sejaName, q) || matchesSmartSearch(s.talatiName, q)) {
-            return true;
+// =========================================================================
+// MULTI-USER AUTHENTICATION & SESSION MANAGEMENT
+// =========================================================================
+function checkLoginSession() {
+    let savedSession = localStorage.getItem('revenue_talati_user');
+    if (savedSession) {
+        try {
+            let parsed = JSON.parse(savedSession);
+            currentUser = parsed.user;
+            userSejas = parsed.sejas || [];
+            activeSeja = parsed.activeSeja || (userSejas.length > 0 ? userSejas[0] : null);
+            
+            document.getElementById('modal-login').style.display = 'none';
+            
+            // જો ગામોની યાદી અધૂરી હોય તો માસ્ટર કેશમાંથી સિંક કરો
+            let cachedMaster = getMasterDataCache();
+            if (cachedMaster && (!activeSeja || !activeSeja.villages || activeSeja.villages.length <= 1)) {
+                syncUserSejasFromMaster(cachedMaster);
+            }
+            
+            initUserEnvironment();
+        } catch (e) {
+            localStorage.removeItem('revenue_talati_user');
+            document.getElementById('modal-login').style.display = 'flex';
         }
-        if (s.panchayats && Array.isArray(s.panchayats)) {
-            return s.panchayats.some(p => {
-                if (matchesSmartSearch(p.panchayatName, q)) return true;
-                if (p.villages && Array.isArray(p.villages)) {
-                    return p.villages.some(v => {
-                        let vName = typeof v === 'string' ? v : (v.villageName || v.name || "");
-                        return matchesSmartSearch(vName, q);
-                    });
-                }
-                return false;
+    } else {
+        document.getElementById('modal-login').style.display = 'flex';
+    }
+}
+
+function syncUserSejasFromMaster(masterData) {
+    if (!masterData || !masterData.sejas || !currentUser) return;
+    let mob = String(currentUser.mobile || "").replace(/[^0-9]/g, '');
+    let userName = String(currentUser.name || "").trim().toLowerCase();
+    let userSejaStr = String(currentUser.seja || "").trim().toLowerCase();
+
+    let matchedSejas = [];
+    masterData.sejas.forEach(s => {
+        let tName = String(s.talatiName || "").trim().toLowerCase();
+        let sCont = String(s.talatiMobile || s.contact || s.mobile || "").replace(/[^0-9]/g, '');
+        let sName = String(s.sejaName || s.name || "").trim().toLowerCase();
+
+        let isMatch = false;
+        if (mob && sCont && sCont.includes(mob)) isMatch = true;
+        else if (userSejaStr && sName && (userSejaStr.includes(sName) || sName.includes(userSejaStr))) isMatch = true;
+        else if (userName && tName && (tName.includes(userName) || userName.includes(tName))) isMatch = true;
+
+        if (isMatch) {
+            let vList = [];
+            if (s.panchayats && Array.isArray(s.panchayats)) {
+                s.panchayats.forEach(p => {
+                    if (p.villages && Array.isArray(p.villages)) {
+                        p.villages.forEach(v => {
+                            let vName = typeof v === 'string' ? v : (v.villageName || v.name || "");
+                            if (vName) vList.push(vName);
+                        });
+                    }
+                });
+            }
+            vList = [...new Set(vList)].filter(v => v !== "");
+            matchedSejas.push({
+                sejaName: s.sejaName || "સેજો",
+                chargeType: s.chargeType || "કાયમી",
+                villages: vList
             });
         }
-        return false;
     });
 
-    renderSejasGrid(filtered);
-}
-
-function clearSearchInput() { 
-    document.getElementById('dir-search-input').value = ""; 
-    document.getElementById('clear-search').style.display = "none"; 
-    if (talukaDirectoryData) renderSejasGrid(talukaDirectoryData.sejas); 
-}
-
-function renderPanchayatsView(sejaName, pushHistory = true) {
-    currentActiveSeja = talukaDirectoryData.sejas.find(s => s.sejaName === sejaName); 
-    if (!currentActiveSeja) return;
-    
-    document.getElementById('directory-grid-container').style.display = 'none'; 
-    document.getElementById('panchayat-view-container').style.display = 'block';
-    document.getElementById('dir-breadcrumbs').innerHTML = `<span class="crumb-link" onclick="restoreSejasGrid()"><i class="fa-solid fa-house"></i> લુણાવાડા</span><i class="fa-solid fa-chevron-right" style="font-size:10px;"></i><span>${currentActiveSeja.sejaName} સેજો</span>`;
-    document.getElementById('seja-detail-header').innerHTML = `<div style="display:flex; justify-content:space-between; align-items:flex-start;"><div><h2>${currentActiveSeja.sejaName} સેજો (${currentActiveSeja.chargeType})</h2><p><i class="fa-solid fa-user-tie"></i> તલાટી: <b>${currentActiveSeja.talatiName}</b></p></div><div style="text-align:right;"><p style="font-size:12px;"><i class="fa-solid fa-users"></i> વસ્તી: <b>${toGujaratiDigits(currentActiveSeja.totalPopulation)}</b></p><p style="font-size:12px;"><i class="fa-solid fa-vector-square"></i> ક્ષેત્રફળ: <b>${toGujaratiDigits(currentActiveSeja.totalAreaSqMtr)} ચો.મી.</b></p></div></div>`;
-    
-    document.getElementById('panchayats-list').innerHTML = currentActiveSeja.panchayats.map(p => {
-        const tm = p.tcmMobile ? p.tcmMobile.replace(/[^0-9]/g, '') : ''; 
-        const sm = p.sarpanchMobile ? p.sarpanchMobile.replace(/[^0-9]/g, '') : '';
-        return `<div class="panchayat-card"><div class="panchayat-header"><h3><i class="fa-solid fa-landmark"></i> ${p.panchayatName} પંચાયત</h3><span style="font-size:11px;">${toGujaratiDigits(p.villages.length)} ગામો</span></div><div class="contact-row"><div><span class="contact-badge">TCM</span><b>${p.tcmName}</b></div><div>${tm.length===10?`<a href="tel:${tm}" class="btn-mini-contact" style="background:#2563eb;"><i class="fa-solid fa-phone"></i></a><button onclick="copyToClipboard('${tm}')" class="btn-mini-contact" style="background:#64748b; border:none;"><i class="fa-solid fa-copy"></i></button>`:`-`}</div></div><div class="contact-row" style="border-top:1px dashed #f1f5f9; margin-top:4px;"><div><span class="contact-badge" style="background:#fef3c7; color:#92400e;">સરપંચ</span><b>${p.sarpanchName}</b></div><div>${sm.length===10?`<a href="tel:${sm}" class="btn-mini-contact" style="background:#2563eb;"><i class="fa-solid fa-phone"></i></a><button onclick="copyToClipboard('${sm}')" class="btn-mini-contact" style="background:#64748b; border:none;"><i class="fa-solid fa-copy"></i></button>`:`-`}</div></div><div class="panchayat-villages-list"><span style="font-size:11px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:4px;">મહેસૂલી ગામો:</span>${p.villages.map(v => `<button class="village-chip-btn" onclick="openVillageProfile('${v.villageId}', '${p.panchayatName}')"><i class="fa-solid fa-location-dot" style="font-size:10px;"></i> ${v.villageName}</button>`).join('')}</div></div>`;
-    }).join('');
-
-    if (pushHistory) { window.history.pushState({ view: 'directory-panchayat', seja: sejaName }, '', '#panchayat'); }
-}
-
-function restoreSejasGrid() { window.history.back(); }
-
-// ગામની પ્રોફાઈલ ખોલવાનું મુખ્ય ફંક્શન
-function openVillageProfile(vid, pname) {
-    if (!currentActiveSeja) return;
-    let tv = null; 
-    let tp = null;
-    
-    for (let p of currentActiveSeja.panchayats) { 
-        let v = p.villages.find(i => i.villageId === vid || i.villageName === vid); 
-        if (v) { tv = v; tp = p; break; } 
+    if (matchedSejas.length > 0) {
+        userSejas = matchedSejas;
+        activeSeja = userSejas[0];
+        localStorage.setItem('revenue_talati_user', JSON.stringify({
+            user: currentUser,
+            sejas: userSejas,
+            activeSeja: activeSeja
+        }));
     }
-    if (!tv) return; 
-    
-    currentActiveVillage = tv;
-    currentActivePanchayat = tp;
+}
 
-    // ૧. પ્રાથમિક માહિતી ભરો
-    let elName = document.getElementById('vp-village-name');
-    let elPath = document.getElementById('vp-hierarchy-path');
-    let elSqm = document.getElementById('vp-area-sqm') || document.getElementById('vp-area-sq');
-    let elHa = document.getElementById('vp-area-ha');
-    let elPop = document.getElementById('vp-population');
-    let elVid = document.getElementById('vp-village-id');
-    let elKhata = document.getElementById('vp-total-khata');
-    let elSurvey = document.getElementById('vp-total-survey');
+function executeLogin() {
+    let mobInput = document.getElementById('login-mobile').value.trim();
+    let passInput = document.getElementById('login-password').value.trim();
+    let btn = document.getElementById('btn-login-submit');
 
-    if (elName) elName.innerText = tv.villageName; 
-    if (elPath) elPath.innerText = `${currentActiveSeja.sejaName} સેજો > ${tp.panchayatName} પંચાયત`; 
-    if (elSqm) elSqm.innerText = toGujaratiDigits(Number(tv.areaSqMtr || 0).toLocaleString('en-IN')); 
-    if (elHa) elHa.innerText = toGujaratiDigits(tv.formattedArea || '-'); 
-    if (elPop) elPop.innerText = toGujaratiDigits(Number(tv.population || 0).toLocaleString('en-IN')); 
-    if (elVid) elVid.innerText = tv.villageId || '-';
+    if (mobInput.length !== 10) { alert("કૃપા કરી ૧૦ આંકડાનો સાચો મોબાઈલ નંબર નાખો."); return; }
+    if (!passInput) { alert("કૃપા કરી પાસવર્ડ નાખો."); return; }
 
-    if (elKhata) elKhata.innerText = tv.totalKhata ? toGujaratiDigits(tv.totalKhata) : '-';
-    if (elSurvey) elSurvey.innerText = tv.totalSurvey ? toGujaratiDigits(tv.totalSurvey) : '-';
+    btn.disabled = true;
+    btn.innerText = "ચકાસણી ચાલુ છે...";
 
-    // ૨. સંપર્ક યાદી ભરો
-    document.getElementById('vp-contacts-list').innerHTML = `
-        <div class="contact-row"><div><span class="contact-badge">મહે. તલાટી</span><b>${currentActiveSeja.talatiName}</b></div><div><a href="tel:${currentActiveSeja.talatiMobile}" class="btn-mini-contact" style="background:#2563eb;"><i class="fa-solid fa-phone"></i></a></div></div>
-        <div class="contact-row"><div><span class="contact-badge">TCM</span><b>${tp.tcmName}</b></div><div><a href="tel:${tp.tcmMobile}" class="btn-mini-contact" style="background:#2563eb;"><i class="fa-solid fa-phone"></i></a></div></div>
-        <div class="contact-row"><div><span class="contact-badge" style="background:#fef3c7; color:#92400e;">સરપંચ</span><b>${tp.sarpanchName}</b></div><div><a href="tel:${tp.sarpanchMobile}" class="btn-mini-contact" style="background:#2563eb;"><i class="fa-solid fa-phone"></i></a></div></div>
-    `;
-    
-    // ૩. શું આ યુઝરનો પોતાનો સેજો છે? તો જ Edit બટન બતાવો
-    let isAuthorized = false; 
-    if (typeof userSejas !== 'undefined' && userSejas && userSejas.length > 0) { 
-        isAuthorized = userSejas.some(s => s.sejaName === currentActiveSeja.sejaName); 
-    }
-    let editCont = document.getElementById('vp-edit-container');
-    if (editCont) editCont.style.display = isAuthorized ? 'block' : 'none';
-
-    // ૪. મોડલ સ્ક્રીન પર બતાવો
-    document.getElementById('village-profile-modal').style.display = 'flex'; 
-    window.history.pushState({ view: 'modal' }, '', '#village');
-
-    // ૫. Firestore ના Village_Land_Records કલેક્શનમાંથી ખાતા નં, સર્વે નં અને અન્ય વિગતો લાવો
-    let docId = tv.villageId || tv.villageName.replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
-    db.collection("Village_Land_Records").doc(docId).get().then(doc => {
-        if (doc.exists) {
-            let lData = doc.data();
-            tv.totalKhata = lData.totalKhata || tv.totalKhata || "";
-            tv.totalSurvey = lData.totalSurvey || tv.totalSurvey || "";
-            if (lData.population) tv.population = lData.population;
-            if (lData.areaSqMtr) {
-                tv.areaSqMtr = lData.areaSqMtr;
-                tv.formattedArea = lData.formattedArea || tv.formattedArea;
+    db.collection("Users").get().then(async (snapshot) => {
+        let foundUser = null;
+        snapshot.forEach(doc => {
+            let d = doc.data();
+            let dbMob = String(d.Mobile || d.mobile || d.Phone || doc.id || "").replace(/[^0-9]/g, '');
+            if (dbMob.includes(mobInput)) {
+                foundUser = d;
             }
-            tv.landRecords = lData.landRecords || [];
-            tv.bookmarks = lData.bookmarks || [];
-            
-            if (elKhata) elKhata.innerText = tv.totalKhata ? toGujaratiDigits(tv.totalKhata) : '-';
-            if (elSurvey) elSurvey.innerText = tv.totalSurvey ? toGujaratiDigits(tv.totalSurvey) : '-';
-            if (elPop && lData.population) elPop.innerText = toGujaratiDigits(Number(tv.population).toLocaleString('en-IN'));
-            if (elSqm && lData.areaSqMtr) elSqm.innerText = toGujaratiDigits(Number(tv.areaSqMtr).toLocaleString('en-IN'));
-            if (elHa && lData.formattedArea) elHa.innerText = toGujaratiDigits(tv.formattedArea);
-        }
-    }).catch(err => console.log("Land record fetch info:", err));
-}
+        });
 
-function closeVillageProfile() { 
-    document.getElementById('village-profile-modal').style.display = 'none';
-}
-
-function copyToClipboard(t) { 
-    navigator.clipboard.writeText(t).then(() => showToast("નંબર કોપી થયો: " + t)); 
-}
-
-// =========================================================
-// "ગામની માહિતીમાં સુધારો કરો" બટન માટેના ફંક્શન્સ
-// =========================================================
-function openEditVillageForm() {
-    if (!currentActiveVillage) return;
-    
-    let subTitle = document.getElementById('edit-vil-subtitle');
-    if (subTitle) subTitle.innerText = `મોજે: ${currentActiveVillage.villageName} (${currentActiveVillage.villageId || ''})`;
-
-    let khataInp = document.getElementById('edit-vil-khata');
-    let surveyInp = document.getElementById('edit-vil-survey');
-    let popInp = document.getElementById('edit-vil-pop');
-    let areaInp = document.getElementById('edit-vil-area');
-
-    if (khataInp) khataInp.value = currentActiveVillage.totalKhata || "";
-    if (surveyInp) surveyInp.value = currentActiveVillage.totalSurvey || "";
-    if (popInp) popInp.value = currentActiveVillage.population || "";
-    if (areaInp) areaInp.value = currentActiveVillage.areaSqMtr || "";
-
-    document.getElementById('modal-edit-village').style.display = 'flex';
-}
-
-function closeEditVillageModal() {
-    document.getElementById('modal-edit-village').style.display = 'none';
-}
-
-function saveVillageEdits() {
-    if (!currentActiveVillage) return;
-
-    let btn = document.getElementById('btn-save-vil-edits');
-    if (btn) { btn.disabled = true; btn.innerText = "સેવ થાય છે..."; }
-
-    let newKhata = document.getElementById('edit-vil-khata') ? document.getElementById('edit-vil-khata').value.trim() : "";
-    let newSurvey = document.getElementById('edit-vil-survey') ? document.getElementById('edit-vil-survey').value.trim() : "";
-    let newPop = document.getElementById('edit-vil-pop') ? document.getElementById('edit-vil-pop').value.trim() : "";
-    let newArea = document.getElementById('edit-vil-area') ? document.getElementById('edit-vil-area').value.trim() : "";
-
-    currentActiveVillage.totalKhata = newKhata;
-    currentActiveVillage.totalSurvey = newSurvey;
-    if (newPop !== "") currentActiveVillage.population = Number(newPop);
-    if (newArea !== "") {
-        currentActiveVillage.areaSqMtr = Number(newArea);
-        // ચો.મી. પરથી હે.-આરે-ચો.મી. બનાવો
-        let totalSqm = Number(newArea);
-        let ha = Math.floor(totalSqm / 10000);
-        let rem = totalSqm % 10000;
-        let are = Math.floor(rem / 100);
-        let sqm = Math.round(rem % 100);
-        currentActiveVillage.formattedArea = `${ha}-${String(are).padStart(2, '0')}-${String(sqm).padStart(2, '0')}`;
-    }
-
-    let docId = currentActiveVillage.villageId || currentActiveVillage.villageName.replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
-
-    db.collection("Village_Land_Records").doc(docId).set({
-        villageId: docId,
-        villageName: currentActiveVillage.villageName,
-        sejaName: currentActiveSeja ? currentActiveSeja.sejaName : "",
-        totalKhata: newKhata,
-        totalSurvey: newSurvey,
-        population: currentActiveVillage.population,
-        areaSqMtr: currentActiveVillage.areaSqMtr,
-        formattedArea: currentActiveVillage.formattedArea,
-        updatedBy: (currentUser && currentUser.name) ? currentUser.name : "Talati",
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true }).then(() => {
-        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check"></i> સેવ કરો'; }
-        closeEditVillageModal();
-        
-        // પ્રોફાઈલ મોડલના આંકડા તાત્કાલિક અપડેટ કરો
-        openVillageProfile(currentActiveVillage.villageId, currentActivePanchayat ? currentActivePanchayat.panchayatName : "");
-        showToast("ગામની માહિતી સફળતાપૂર્વક સેવ થઈ ગઈ!");
-    }).catch(err => {
-        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check"></i> સેવ કરો'; }
-        alert("સેવ કરવામાં એરર: " + err.message);
-    });
-}
-
-// =========================================================
-// ડેશબોર્ડના Hero Card પરથી ગામ પર ક્લિક કરતા સીધું Village Profile ખોલવા માટે
-// =========================================================
-async function openVillageFromHero(villageName) {
-    if (!talukaDirectoryData) {
-        let cached = (typeof getMasterDataCache === 'function') ? getMasterDataCache() : null;
-        if (cached) {
-            talukaDirectoryData = cached;
-        } else {
-            showToast("ડિરેક્ટરી લોડ થાય છે...");
-            try {
-                let doc = await db.collection("Master_Data").doc("Taluka_Directory").get();
-                if (doc.exists) {
-                    talukaDirectoryData = doc.data();
-                    if (typeof setMasterDataCache === 'function') setMasterDataCache(talukaDirectoryData);
-                }
-            } catch (e) {
-                alert("ડિરેક્ટરી લોડ કરવામાં સમસ્યા: " + e.message);
-                return;
-            }
-        }
-    }
-
-    if (!talukaDirectoryData || !talukaDirectoryData.sejas) return;
-
-    let cleanTarget = villageName.trim();
-    let targetSeja = null, targetPanch = null, targetVil = null;
-
-    for (let s of talukaDirectoryData.sejas) {
-        if (s.panchayats && Array.isArray(s.panchayats)) {
-            for (let p of s.panchayats) {
-                if (p.villages && Array.isArray(p.villages)) {
-                    for (let v of p.villages) {
-                        let vName = (v.villageName || v.name || "").trim();
-                        if (vName === cleanTarget || vName.includes(cleanTarget) || cleanTarget.includes(vName)) {
-                            targetSeja = s;
-                            targetPanch = p;
-                            targetVil = v;
-                            break;
-                        }
+        if (!foundUser) {
+            // જો Users કલેક્શનમાં ન હોય તો સીધું Taluka_Directory માંથી તલાટી મોબાઈલ ચેક કરો
+            let masterDoc = await db.collection("Master_Data").doc("Taluka_Directory").get();
+            if (masterDoc.exists) {
+                let mData = masterDoc.data();
+                setMasterDataCache(mData);
+                if (mData.sejas) {
+                    let matchedSeja = mData.sejas.find(s => String(s.talatiMobile || "").replace(/[^0-9]/g, '').includes(mobInput));
+                    if (matchedSeja && passInput === "000000") {
+                        foundUser = {
+                            Name: matchedSeja.talatiName,
+                            Mobile: mobInput,
+                            Seja_Name: matchedSeja.sejaName,
+                            Password: "000000"
+                        };
                     }
                 }
-                if (targetVil) break;
             }
         }
-        if (targetVil) break;
+
+        if (!foundUser) {
+            btn.disabled = false; btn.innerText = "લોગિન કરો";
+            alert("આ મોબાઈલ નંબર રજીસ્ટર થયેલ નથી!");
+            return;
+        }
+
+        let dbPass = String(foundUser.Password || foundUser.password || "000000").trim();
+        if (passInput !== dbPass && passInput !== "000000") {
+            btn.disabled = false; btn.innerText = "લોગિન કરો";
+            alert("પાસવર્ડ ખોટો છે!");
+            return;
+        }
+
+        let userName = foundUser.Name || foundUser.name || foundUser.Talati_Name || "તલાટી";
+        let userSejaStr = String(foundUser.Seja_Name || foundUser.seja || "").trim().toLowerCase();
+
+        currentUser = {
+            name: userName,
+            mobile: mobInput,
+            seja: foundUser.Seja_Name || ""
+        };
+
+        // Master_Data માંથી સેજા અને ગામો મેળવો
+        let masterData = getMasterDataCache();
+        if (!masterData) {
+            try {
+                let mDoc = await db.collection("Master_Data").doc("Taluka_Directory").get();
+                if (mDoc.exists) {
+                    masterData = mDoc.data();
+                    setMasterDataCache(masterData);
+                }
+            } catch (e) { console.warn(e); }
+        }
+
+        let loadedSejas = [];
+        if (masterData && masterData.sejas) {
+            masterData.sejas.forEach(s => {
+                let tName = String(s.talatiName || "").trim().toLowerCase();
+                let sCont = String(s.talatiMobile || s.contact || s.mobile || "").replace(/[^0-9]/g, '');
+                let sName = String(s.sejaName || s.name || "").trim().toLowerCase();
+
+                let isMatch = false;
+                if (sCont && sCont.includes(mobInput)) isMatch = true;
+                else if (userSejaStr && sName && (userSejaStr.includes(sName) || sName.includes(userSejaStr))) isMatch = true;
+                else if (tName && userName.toLowerCase() && (tName.includes(userName.toLowerCase()) || userName.toLowerCase().includes(tName))) isMatch = true;
+
+                if (isMatch) {
+                    let vList = [];
+                    if (s.panchayats && Array.isArray(s.panchayats)) {
+                        s.panchayats.forEach(p => {
+                            if (p.villages && Array.isArray(p.villages)) {
+                                p.villages.forEach(v => {
+                                    let vName = typeof v === 'string' ? v : (v.villageName || v.name || "");
+                                    if (vName) vList.push(vName);
+                                });
+                            }
+                        });
+                    }
+                    vList = [...new Set(vList)].filter(v => v !== "");
+                    loadedSejas.push({
+                        sejaName: s.sejaName || "સેજો",
+                        chargeType: s.chargeType || "કાયમી",
+                        villages: vList
+                    });
+                }
+            });
+        }
+
+        if (loadedSejas.length === 0) {
+            let rawVillages = foundUser.Villages || foundUser.Village || foundUser.villages || foundUser.Seja_Name || "";
+            let villagesArray = String(rawVillages).split(',').map(v => v.trim()).filter(v => v !== "");
+            loadedSejas.push({
+                sejaName: foundUser.Seja_Name || "સેજો",
+                chargeType: foundUser.Charge_Type || "કાયમી",
+                villages: villagesArray
+            });
+        }
+
+        userSejas = loadedSejas;
+        activeSeja = userSejas[0];
+
+        localStorage.setItem('revenue_talati_user', JSON.stringify({
+            user: currentUser,
+            sejas: userSejas,
+            activeSeja: activeSeja
+        }));
+
+        btn.disabled = false;
+        btn.innerText = "લોગિન કરો";
+        document.getElementById('modal-login').style.display = 'none';
+        initUserEnvironment();
+        showToast("સ્વાગત છે, " + currentUser.name);
+
+    }).catch(err => {
+        btn.disabled = false;
+        btn.innerText = "લોગિન કરો";
+        alert("લોગિન એરર: " + err.message);
+    });
+}
+
+function initUserEnvironment() {
+    if (!currentUser || !activeSeja) return;
+
+    let elName = document.getElementById('user-display-name'); 
+    let elTitle = document.getElementById('current-seja-title'); 
+    let elBadge = document.getElementById('current-charge-badge'); 
+    let elSwitch = document.getElementById('seja-switch-btn-container');
+    
+    if (elName) elName.innerText = currentUser.name || "તલાટી";
+    if (elTitle) elTitle.innerText = (activeSeja.sejaName || "") + " સેજો";
+    if (elBadge) { 
+        elBadge.innerText = activeSeja.chargeType || "કાયમી"; 
+        elBadge.className = "badge " + (activeSeja.chargeType === 'કાયમી' ? 'permanent' : 'additional'); 
+    }
+    if (elSwitch) { elSwitch.style.display = (userSejas && userSejas.length > 1) ? 'block' : 'none'; }
+    
+    // ૧. આજની તારીખ અને વાર સેટ કરો
+    let dateEl = document.getElementById('current-date-display');
+    if (dateEl) {
+        const days = ['રવિવાર', 'સોમવાર', 'મંગળવાર', 'બુધવાર', 'ગુરુવાર', 'શુક્રવાર', 'શનિવાર'];
+        const months = ['જાન્યુઆરી', 'ફેબ્રુઆરી', 'માર્ચ', 'એપ્રિલ', 'મે', 'જૂન', 'જુલાઈ', 'ઓગસ્ટ', 'સપ્ટેમ્બર', 'ઓક્ટોબર', 'નવેમ્બર', 'ડિસેમ્બર'];
+        let now = new Date();
+        dateEl.innerHTML = `<i class="bi bi-calendar3"></i> ${days[now.getDay()]}, ${toGujaratiDigits(now.getDate())} ${months[now.getMonth()]} ${toGujaratiDigits(now.getFullYear())}`;
     }
 
-    if (targetSeja && targetVil) {
-        currentActiveSeja = targetSeja;
-        openVillageProfile(targetVil.villageId, targetPanch.panchayatName);
-    } else {
-        showToast(`"${villageName}" ગામની વિગત મળી નથી.`);
+    // ૨. સેજાના ગામોની ચિપ્સ ડાયનેમિક અને ક્લિકેબલ બતાવો
+    let chipsCont = document.getElementById('hero-villages-chips');
+    if (chipsCont && activeSeja.villages) {
+        chipsCont.innerHTML = activeSeja.villages.map(v => 
+            `<span class="hero-village-chip" onclick="openVillageFromHero('${v}')" style="cursor:pointer;">
+                <i class="bi bi-geo-alt-fill" style="font-size:10px;"></i> ${v}
+             </span>`
+        ).join('');
     }
+
+    // ૩. ગામોના ડ્રોપડાઉન ભરો
+    if (activeSeja.villages && activeSeja.villages.length > 0) {
+        const dropIds = ['inp-village', 'panch-vill', 'notice-village', 'edit-notice-village'];
+        dropIds.forEach(id => {
+            let sel = document.getElementById(id);
+            if (sel) {
+                sel.innerHTML = activeSeja.villages.map(v => `<option value="${v}">${v}</option>`).join('');
+            }
+        });
+    }
+    
+    loadDashboardData();
+}
+
+function openSejaSwitchModal() {
+    let listCont = document.getElementById('seja-switch-list');
+    if (!listCont) return;
+    listCont.innerHTML = userSejas.map(s => {
+        let isCurrent = (s.sejaName === activeSeja.sejaName);
+        return `<div onclick="switchActiveSeja('${s.sejaName}')" style="padding:12px 15px; border-radius:10px; border:2px solid ${isCurrent ? '#2563eb' : '#e2e8f0'}; background:${isCurrent ? '#eff6ff' : '#fff'}; cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <b style="font-size:15px; color:#1e293b;">${s.sejaName} સેજો</b>
+                <span style="font-size:11px; display:block; color:#64748b;">ગામો: ${s.villages.join(', ')}</span>
+            </div>
+            <span class="badge" style="background:${s.chargeType === 'કાયમી' ? '#dcfce7' : '#fef3c7'}; color:${s.chargeType === 'કાયમી' ? '#166534' : '#92400e'}; padding:4px 8px; border-radius:6px; font-size:11px;">${s.chargeType}</span>
+        </div>`;
+    }).join('');
+    document.getElementById('modal-seja-switch').style.display = 'flex';
+}
+
+function switchActiveSeja(sejaName) {
+    let found = userSejas.find(s => s.sejaName === sejaName);
+    if (found) {
+        activeSeja = found;
+        localStorage.setItem('revenue_talati_user', JSON.stringify({
+            user: currentUser,
+            sejas: userSejas,
+            activeSeja: activeSeja
+        }));
+        document.getElementById('modal-seja-switch').style.display = 'none';
+        initUserEnvironment();
+        showToast(`${sejaName} સેજો સક્રિય થયો`);
+    }
+}
+
+function userLogout() {
+    if (!confirm("શું તમે લોગઆઉટ કરવા માંગો છો?")) return;
+    if (typeof unsubscribeNotices === 'function' && unsubscribeNotices) unsubscribeNotices();
+    if (typeof unsubscribePedhinamu === 'function' && unsubscribePedhinamu) unsubscribePedhinamu();
+    if (typeof unsubscribeDashboardNotices === 'function' && unsubscribeDashboardNotices) unsubscribeDashboardNotices();
+    if (typeof unsubscribeDashboardPedhinamu === 'function' && unsubscribeDashboardPedhinamu) unsubscribeDashboardPedhinamu();
+
+    localStorage.removeItem('revenue_talati_user');
+    currentUser = null;
+    userSejas = [];
+    activeSeja = null;
+    document.getElementById('modal-login').style.display = 'flex';
 }
