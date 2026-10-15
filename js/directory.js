@@ -311,16 +311,58 @@ function openVillageProfile(vid, pname) {
             if (elSqm && lData.areaSqMtr) elSqm.innerText = toGujaratiDigits(Number(tv.areaSqMtr).toLocaleString('en-IN'));
             if (elHa && lData.formattedArea) elHa.innerText = toGujaratiDigits(tv.formattedArea);
             
-            renderVillageViewExtra(tv); // Firestore ડેટા સાથે ફરી તાજું કરો
+            // બંને વિભાગો (સરકારી જમીન + બુકમાર્ક્સ) ફરીથી લાઈવ અપડેટ કરો
+            renderVillageViewExtra(tv);
         }
     }).catch(err => console.log("Land record fetch info:", err));
 }
 
 // સરકારી જમીન & બુકમાર્ક્સ કાર્ડ્સ દર્શાવવા
+// સરકારી જમીન & બુકમાર્ક્સ બંનેને ક્ષેત્રફળ સાથે પ્રોફાઇલમાં રેન્ડર કરતું સંપૂર્ણ ફંક્શન
 function renderVillageViewExtra(tv) {
     let lrDisp = document.getElementById('vp-land-records-display');
     let bmDisp = document.getElementById('vp-bookmarks-display');
     
+    // =========================================================
+    // ૧. સરકારી જમીન / સર્વે નંબર બેંક રેન્ડર
+    // =========================================================
+    if (lrDisp) {
+        if (tv.landRecords && tv.landRecords.length > 0) {
+            let html = '<div style="font-size:13px; font-weight:700; color:#0d47a1; margin-top:15px; border-top:1px dashed #cbd5e1; padding-top:12px; margin-bottom:8px;"><i class="fa-solid fa-tree-city"></i> સરકારી જમીન / સર્વે નંબર બેંક</div>';
+            
+            let grouped = {};
+            tv.landRecords.forEach(r => {
+                if (!grouped[r.category]) grouped[r.category] = [];
+                grouped[r.category].push(r);
+            });
+
+            for (let cat in grouped) {
+                html += `<div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:10px; margin-bottom:10px;">
+                    <div style="font-weight:700; font-size:13px; color:#334155; margin-bottom:6px; border-bottom:1px solid #cbd5e1; padding-bottom:4px;">
+                        ${cat} <span style="float:right; font-size:10px; background:#e2e8f0; padding:2px 6px; border-radius:10px;">${toGujaratiDigits(grouped[cat].length)} એન્ટ્રી</span>
+                    </div>
+                    ${grouped[cat].map(r => {
+                        let areaFormatted = formatLandAreaDisplay(r.area);
+                        return `
+                            <div style="font-size:12px; padding:5px 0; display:flex; justify-content:space-between; align-items:baseline; border-bottom:1px dashed #f1f5f9;">
+                                <span>
+                                    <b style="color:#2563eb;">સર્વે નં:</b> ${toGujaratiDigits(r.surveyNo)}${areaFormatted ? `<span style="color:#047857; font-weight:600; font-size:11px; margin-left:4px;">(${areaFormatted})</span>` : ''}
+                                </span>
+                                <span style="color:#475569; font-size:11px; text-align:right; max-width:45%;">${toGujaratiDigits(r.remarks || '-')}</span>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>`;
+            }
+            lrDisp.innerHTML = html;
+        } else {
+            lrDisp.innerHTML = '';
+        }
+    }
+
+    // =========================================================
+    // ૨. અગત્યના બુકમાર્ક્સ રેન્ડર (ક્ષેત્રફળ બેજ સાથે)
+    // =========================================================
     if (bmDisp) {
         if (tv.bookmarks && tv.bookmarks.length > 0) {
             let html = '<div style="font-size:13px; font-weight:700; color:#854d0e; margin-top:15px; border-top:1px dashed #cbd5e1; padding-top:12px; margin-bottom:8px;"><i class="fa-solid fa-thumbtack"></i> અગત્યના બુકમાર્કસ</div>';
@@ -330,34 +372,6 @@ function renderVillageViewExtra(tv) {
                 let tc = b.tag.includes('કોર્ટ') ? '#991b1b' : (b.tag.includes('દબાણ') ? '#9a3412' : '#854d0e');
                 let brc = b.tag.includes('કોર્ટ') ? '#f87171' : (b.tag.includes('દબાણ') ? '#fb923c' : '#fde047');
                 let formattedArea = formatLandAreaDisplay(b.area);
-                
-                return `<div style="background:${bg}; border-left:4px solid ${brc}; padding:10px; margin-bottom:8px; border-radius:4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                    <div style="font-size:10px; font-weight:bold; color:${tc}; margin-bottom:2px; text-transform:uppercase;">${b.tag}</div>
-                    <div style="font-size:13px; font-weight:bold; color:#1e293b;">
-                        સર્વે નં: ${toGujaratiDigits(b.surveyNo)}
-                        ${formattedArea ? `<span style="color:#047857; font-weight:600; font-size:12px; margin-left:5px;">(${formattedArea})</span>` : ''}
-                    </div>
-                    ${b.note ? `<div style="font-size:11px; color:#475569; margin-top:3px;"><i class="bi bi-info-circle"></i> ${toGujaratiDigits(b.note)}</div>` : ''}
-                </div>`;
-            }).join('');
-            bmDisp.innerHTML = html;
-        } else {
-            bmDisp.innerHTML = '';
-        }
-    }
-
-    // બુકમાર્ક્સ રેન્ડર (પ્રોફાઇલમાં ક્ષેત્રફળ બેજ સાથે)
-    if (bmDisp) {
-        if (tv.bookmarks && tv.bookmarks.length > 0) {
-            let html = '<div style="font-size:13px; font-weight:700; color:#854d0e; margin-top:15px; border-top:1px dashed #cbd5e1; padding-top:12px; margin-bottom:8px;"><i class="fa-solid fa-thumbtack"></i> અગત્યના બુકમાર્કસ</div>';
-            
-            html += tv.bookmarks.map(b => {
-                let bg = b.tag.includes('કોર્ટ') ? '#fee2e2' : (b.tag.includes('દબાણ') ? '#ffedd5' : '#fefce8');
-                let tc = b.tag.includes('કોર્ટ') ? '#991b1b' : (b.tag.includes('દબાણ') ? '#9a3412' : '#854d0e');
-                let brc = b.tag.includes('કોર્ટ') ? '#f87171' : (b.tag.includes('દબાણ') ? '#fb923c' : '#fde047');
-                
-                let areaVal = b.area || b.areaSqMtr || '';
-                let formattedArea = formatLandAreaDisplay(areaVal);
 
                 return `
                     <div style="background:${bg}; border-left:4px solid ${brc}; padding:10px 12px; margin-bottom:8px; border-radius:6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
