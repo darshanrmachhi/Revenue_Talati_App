@@ -119,15 +119,70 @@ function renderPanchayatsView(sejaName, pushHistory = true) {
     document.getElementById('seja-detail-header').innerHTML = `<div style="display:flex; justify-content:space-between; align-items:flex-start;"><div><h2>${currentActiveSeja.sejaName} સેજો (${currentActiveSeja.chargeType})</h2><p><i class="fa-solid fa-user-tie"></i> તલાટી: <b>${currentActiveSeja.talatiName}</b></p></div><div style="text-align:right;"><p style="font-size:12px;"><i class="fa-solid fa-users"></i> વસ્તી: <b>${toGujaratiDigits(currentActiveSeja.totalPopulation)}</b></p><p style="font-size:12px;"><i class="fa-solid fa-vector-square"></i> ક્ષેત્રફળ: <b>${toGujaratiDigits(currentActiveSeja.totalAreaSqMtr)} ચો.મી.</b></p></div></div>`;
     
     document.getElementById('panchayats-list').innerHTML = currentActiveSeja.panchayats.map(p => {
-        const tm = p.tcmMobile ? p.tcmMobile.replace(/[^0-9]/g, '') : ''; 
-        const sm = p.sarpanchMobile ? p.sarpanchMobile.replace(/[^0-9]/g, '') : '';
-        return `<div class="panchayat-card"><div class="panchayat-header"><h3><i class="fa-solid fa-landmark"></i> ${p.panchayatName} પંચાયત</h3><span style="font-size:11px;">${toGujaratiDigits(p.villages.length)} ગામો</span></div><div class="contact-row"><div><span class="contact-badge">TCM</span><b>${p.tcmName}</b></div><div>${tm.length===10?`<a href="tel:${tm}" class="btn-mini-contact" style="background:#2563eb;"><i class="fa-solid fa-phone"></i></a><button onclick="copyToClipboard('${tm}')" class="btn-mini-contact" style="background:#64748b; border:none;"><i class="fa-solid fa-copy"></i></button>`:`-`}</div></div><div class="contact-row" style="border-top:1px dashed #f1f5f9; margin-top:4px;"><div><span class="contact-badge" style="background:#fef3c7; color:#92400e;">સરપંચ</span><b>${p.sarpanchName}</b></div><div>${sm.length===10?`<a href="tel:${sm}" class="btn-mini-contact" style="background:#2563eb;"><i class="fa-solid fa-phone"></i></a><button onclick="copyToClipboard('${sm}')" class="btn-mini-contact" style="background:#64748b; border:none;"><i class="fa-solid fa-copy"></i></button>`:`-`}</div></div><div class="panchayat-villages-list"><span style="font-size:11px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:4px;">મહેસૂલી ગામો:</span>${p.villages.map(v => `<button class="village-chip-btn" onclick="openVillageProfile('${v.villageId}', '${p.panchayatName}')"><i class="fa-solid fa-location-dot" style="font-size:10px;"></i> ${v.villageName}</button>`).join('')}</div></div>`;
+        return `
+            <div class="panchayat-card">
+                <div class="panchayat-header">
+                    <h3><i class="fa-solid fa-landmark"></i> ${p.panchayatName} પંચાયત</h3>
+                    <span style="font-size:11px;">${toGujaratiDigits(p.villages.length)} ગામો</span>
+                </div>
+                
+                <!-- TCM Row -->
+                <div class="contact-row">
+                    <div>
+                        <span class="contact-badge">TCM</span>
+                        <b>${p.tcmName || '-'}</b>
+                    </div>
+                    <div>${buildContactActionButtons(p.tcmMobile)}</div>
+                </div>
+
+                <!-- સરપંચ Row -->
+                <div class="contact-row" style="border-top:1px dashed #f1f5f9; margin-top:4px; padding-top:4px;">
+                    <div>
+                        <span class="contact-badge" style="background:#fef3c7; color:#92400e;">સરપંચ</span>
+                        <b>${p.sarpanchName || '-'}</b>
+                    </div>
+                    <div>${buildContactActionButtons(p.sarpanchMobile)}</div>
+                </div>
+
+                <!-- મહેસૂલી ગામો યાદી -->
+                <div class="panchayat-villages-list">
+                    <span style="font-size:11px; font-weight:bold; color:var(--text-muted); display:block; margin-bottom:4px;">મહેસૂલી ગામો:</span>
+                    ${p.villages.map(v => `<button class="village-chip-btn" onclick="openVillageProfile('${v.villageId}', '${p.panchayatName}')"><i class="fa-solid fa-location-dot" style="font-size:10px;"></i> ${v.villageName}</button>`).join('')}
+                </div>
+            </div>
+        `;
     }).join('');
 
     if (pushHistory) { window.history.pushState({ view: 'directory-panchayat', seja: sejaName }, '', '#panchayat'); }
 }
 
 function restoreSejasGrid() { window.history.back(); }
+
+
+// Call, WhatsApp અને Copy નું ૩-બટન ગ્રુપ બનાવતું હેલ્પર ફંક્શન
+function buildContactActionButtons(rawMobile) {
+    if (!rawMobile || rawMobile === "-") {
+        return '<span style="font-size:11px; color:#94a3b8;">સંપર્ક ઉપલબ્ધ નથી</span>';
+    }
+    const clean = String(rawMobile).replace(/[^0-9]/g, '');
+    if (clean.length < 10) {
+        return '<span style="font-size:11px; color:#94a3b8;">અમાન્ય નંબર</span>';
+    }
+    const num10 = clean.slice(-10);
+    return `
+        <div class="contact-actions-wrap">
+            <a href="tel:${num10}" class="btn-mini-contact btn-mini-call" title="કોલ કરો">
+                <i class="fa-solid fa-phone"></i>
+            </a>
+            <a href="https://wa.me/91${num10}" target="_blank" class="btn-mini-contact btn-mini-wa" title="WhatsApp મેસેજ કરો">
+                <i class="fa-brands fa-whatsapp"></i>
+            </a>
+            <button type="button" class="btn-mini-contact btn-mini-copy" onclick="copyToClipboard('${num10}')" title="નંબર કોપી કરો">
+                <i class="fa-solid fa-copy"></i>
+            </button>
+        </div>
+    `;
+}
 
 // =========================================================
 // ગામની પ્રોફાઈલ ખોલવાનું મુખ્ય ફંક્શન (VIEW MODE)
@@ -165,12 +220,33 @@ function openVillageProfile(vid, pname) {
     if (elKhata) elKhata.innerText = tv.totalKhata ? toGujaratiDigits(tv.totalKhata) : '-';
     if (elSurvey) elSurvey.innerText = tv.totalSurvey ? toGujaratiDigits(tv.totalSurvey) : '-';
 
-    // સંપર્ક યાદી
-    document.getElementById('vp-contacts-list').innerHTML = `
-        <div class="contact-row"><div><span class="contact-badge">મહે. તલાટી</span><b>${currentActiveSeja.talatiName}</b></div><div><a href="tel:${currentActiveSeja.talatiMobile}" class="btn-mini-contact" style="background:#2563eb;"><i class="fa-solid fa-phone"></i></a></div></div>
-        <div class="contact-row"><div><span class="contact-badge">TCM</span><b>${tp.tcmName}</b></div><div><a href="tel:${tp.tcmMobile}" class="btn-mini-contact" style="background:#2563eb;"><i class="fa-solid fa-phone"></i></a></div></div>
-        <div class="contact-row"><div><span class="contact-badge" style="background:#fef3c7; color:#92400e;">સરપંચ</span><b>${tp.sarpanchName}</b></div><div><a href="tel:${tp.sarpanchMobile}" class="btn-mini-contact" style="background:#2563eb;"><i class="fa-solid fa-phone"></i></a></div></div>
-    `;
+    // ગામ પ્રોફાઇલ: સ્થાનિક પદાધિકારી / સ્ટાફ સંપર્ક યાદી (Call, WhatsApp, Copy સાથે)
+    let contactsContainer = document.getElementById('vp-contacts-list');
+    if (contactsContainer) {
+        contactsContainer.innerHTML = `
+            <div class="contact-row">
+                <div>
+                    <span class="contact-badge">મહે. તલાટી</span>
+                    <b>${currentActiveSeja.talatiName || '-'}</b>
+                </div>
+                <div>${buildContactActionButtons(currentActiveSeja.talatiMobile)}</div>
+            </div>
+            <div class="contact-row" style="border-top:1px dashed #f1f5f9; margin-top:6px; padding-top:6px;">
+                <div>
+                    <span class="contact-badge">TCM</span>
+                    <b>${tp.tcmName || '-'}</b>
+                </div>
+                <div>${buildContactActionButtons(tp.tcmMobile)}</div>
+            </div>
+            <div class="contact-row" style="border-top:1px dashed #f1f5f9; margin-top:6px; padding-top:6px;">
+                <div>
+                    <span class="contact-badge" style="background:#fef3c7; color:#92400e;">સરપંચ</span>
+                    <b>${tp.sarpanchName || '-'}</b>
+                </div>
+                <div>${buildContactActionButtons(tp.sarpanchMobile)}</div>
+            </div>
+        `;
+    }
     
     // પાવર ચેક (શું આ યુઝરનો પોતાનો સેજો છે?)
     let isAuthorized = false; 

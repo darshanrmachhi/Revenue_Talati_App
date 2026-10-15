@@ -695,3 +695,37 @@ body { background-color: var(--bg-color); color: var(--text-main); padding-botto
     background: rgba(255, 255, 255, 0.25);
     color: #ffffff;
 }
+
+/* પદાધિકારી / સ્ટાફ એક્શન બટન્સ ગ્રુપ */
+.contact-actions-wrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.btn-mini-contact {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    font-size: 13px;
+    color: #ffffff !important;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.btn-mini-contact:hover {
+    transform: scale(1.08);
+    opacity: 0.9;
+}
+.btn-mini-call {
+    background-color: #2563eb; /* Blue */
+}
+.btn-mini-wa {
+    background-color: #16a34a; /* WhatsApp Green */
+}
+.btn-mini-copy {
+    background-color: #64748b; /* Slate Gray */
+}
