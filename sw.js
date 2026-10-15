@@ -1,26 +1,28 @@
 // sw.js
-const CACHE_NAME = 'talati-app-v1';
+const CACHE_NAME = 'talati-app-v2';
 
-// ઓફલાઇન માટે જરૂરી લોકલ ફાઇલો
+// ઓફલાઇન માટે જરૂરી લોકલ ફાઇલો (Relative Paths)
 const assetsToCache = [
-  '/',
-  '/index.html',
-  '/css/styles.css',
-  '/js/config.js',
-  '/js/auth.js',
-  '/js/ui-logic.js',
-  '/js/135d.js',
-  '/js/pedhinamu.js',
-  '/js/area-calc.js',
-  '/js/directory.js',
-  '/manifest.json'
+  './',
+  './index.html',
+  './css/styles.css',
+  './js/config.js',
+  './js/auth.js',
+  './js/ui-logic.js',
+  './js/135d.js',
+  './js/pedhinamu.js',
+  './js/area-calc.js',
+  './js/directory.js',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
 // ૧. Install Service Worker & Cache Assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('Static assets cached successfully.');
+      console.log('Static assets cached successfully for GitHub Pages.');
       return cache.addAll(assetsToCache);
     })
   );

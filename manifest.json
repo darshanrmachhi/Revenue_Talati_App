@@ -1,7 +1,8 @@
 {
   "name": "મહેસૂલી તલાટી દફતર - લુણાવાડા",
   "short_name": "તલાટી દફતર",
-  "start_url": "/",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#f4f7f6",
   "theme_color": "#0d47a1",
