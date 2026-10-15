@@ -1,9 +1,8 @@
 // js/config.js
 
-// 1. GLOBAL STATE & VARIABLES (Multi-User Dynamic State)
 var currentUser = null;
 var userSejas = [];
-var activeSeja = null; // યુઝર લોગિન કરે ત્યારે auth.js માંથી ડાયનેમિક સેટ થશે
+var activeSeja = null;
 var allNotices = [];
 var currentNoticeTab = 'pending';
 var noticeSearchQuery = "";
@@ -16,7 +15,6 @@ var panchArray = [];
 var editModeId = null;
 var currentEditingPedhinamuId = null;
 
-// 2. FIREBASE DATABASE SETUP
 const firebaseConfig = {
   apiKey: "AIzaSyDkBT0NWpZMZO2LWUECxSXdP9kWIrsSnSQ",
   authDomain: "revenue-talati-app.firebaseapp.com",

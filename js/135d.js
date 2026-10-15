@@ -1,7 +1,6 @@
 // js/135d.js
 
 var noticesData = [];
-currentNoticeTab = 'pending'; // config.js માં પહેલેથી ડિક્લેર છે
 var currentVillageFilter = 'all';
 var currentTypeFilter = 'all';
 var unsubscribeNotices = null;
@@ -17,7 +16,6 @@ var STANDARD_NOTICE_TYPES = [
     'અન્ય'
 ];
 
-// ગામના નામ મેચ કરવા માટે સ્માર્ટ હેલ્પર (કૌંસ કે સ્પેસનો તફાવત હોય તો પણ મેચ કરશે)
 function isSameVillage(v1, v2) {
     if (!v1 || !v2) return false;
     var s1 = String(v1).trim();
@@ -51,8 +49,7 @@ function loadNoticesDesk() {
             
             var vName = String(data.Village_Name || '').trim();
             var isMatch = (currentVillages.length === 0) || 
-                          currentVillages.some(function(v) { return isSameVillage(vName, v); }) || 
-                          !vName;
+                          currentVillages.some(function(v) { return isSameVillage(vName, v); });
 
             if (isMatch) {
                 list.push(data);
@@ -62,7 +59,6 @@ function loadNoticesDesk() {
         list.sort(function(a, b) {
             var timeA = 0;
             var timeB = 0;
-
             if (a.createdAt && a.createdAt.toDate) timeA = a.createdAt.toDate().getTime();
             else if (a.Received_Date) timeA = new Date(a.Received_Date).getTime() || 0;
 
@@ -117,7 +113,6 @@ function switchNoticeVillage(vName, btnElem) {
     currentVillageFilter = vName;
     document.querySelectorAll('.village-filter-btn').forEach(function(b) { b.classList.remove('active'); });
     if (btnElem) btnElem.classList.add('active');
-    
     renderNoticeTypeFilters();
     applyNoticeFilters();
 }

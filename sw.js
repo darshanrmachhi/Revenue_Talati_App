@@ -1,6 +1,6 @@
 // sw.js
-const CACHE_NAME = 'talati-app-v3';
-// ઓફલાઇન માટે જરૂરી લોકલ ફાઇલો (Relative Paths)
+const CACHE_NAME = 'talati-app-v5';
+
 const assetsToCache = [
   './',
   './index.html',
@@ -12,30 +12,24 @@ const assetsToCache = [
   './js/pedhinamu.js',
   './js/area-calc.js',
   './js/directory.js',
-  './manifest.json',
-  './icon-192.png',
-  './icon-512.png'
+  './manifest.json'
 ];
 
-// ૧. Install Service Worker & Cache Assets
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('Static assets cached successfully for GitHub Pages.');
       return cache.addAll(assetsToCache);
     })
   );
-  self.skipWaiting();
 });
 
-// ૨. Activate & Clean Old Caches (વર્ઝન અપડેટ થાય ત્યારે જૂનો કેશ ક્લિયર કરશે)
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cache) => {
           if (cache !== CACHE_NAME) {
-            console.log('Old cache cleared:', cache);
             return caches.delete(cache);
           }
         })
@@ -45,11 +39,9 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// ૩. Fetch Handler (Firebase/External API ને બાયપાસ કરીને બાકીની ફાઈલો કેશમાંથી આપશે)
+// Network-First Strategy (હંમેશા નવો સુધારેલો કોડ જ લાવશે)
 self.addEventListener('fetch', (event) => {
   const requestUrl = event.request.url;
-
-  // Firebase Firestore, Auth કે Google APIs ને સર્વિસ વર્કર અટકાવશે નહીં
   if (
     requestUrl.includes('firestore.googleapis.com') ||
     requestUrl.includes('firebase') ||
@@ -58,10 +50,16 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // કેશમાં ફાઇલ હોય તો ત્યાંથી આપો, નહિતર નેટવર્ક પરથી લાવો
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      return cachedResponse || fetch(event.request);
-    })
+    fetch(event.request)
+      .then((networkResponse) => {
+        return caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, networkResponse.clone());
+          return networkResponse;
+        });
+      })
+      .catch(() => {
+        return caches.match(event.request);
+      })
   );
 });
