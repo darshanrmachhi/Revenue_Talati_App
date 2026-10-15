@@ -227,23 +227,30 @@
                 <button class="btn-new" onclick="openNewNoticeModal()"><i class="fa-solid fa-plus"></i> નવી નોંધ</button>
             </div>
 
+            <!-- શોધ બોક્સ -->
             <div class="search-box" style="margin-bottom: 12px;">
                 <i class="fa-solid fa-magnifying-glass search-icon"></i>
                 <input type="text" id="notice-search-input" placeholder="નોંધ નંબર, ખાતેદાર, ગામ કે પ્રકાર શોધો..." oninput="filterNotices(this.value)">
                 <i class="fa-solid fa-circle-xmark clear-icon" id="clear-notice-search" onclick="clearNoticeSearch()" style="display:none;"></i>
             </div>
 
+            <!-- સેજાના ગામોના ફિલ્ટર બટન્સ (ગામવાર નોટિસો જોવા માટે) -->
+            <div id="notice-village-filters" class="village-filter-bar"></div>
+
+            <!-- સ્થિતિવાર ફિલ્ટર ટેબ્સ ("બધી" ટેબ સાથે) -->
             <div class="notice-tabs">
+                <div class="tab-btn" onclick="switchNoticeTab('all', this)">બધી (All)</div>
                 <div class="tab-btn active" onclick="switchNoticeTab('pending', this)">બજાવવાની બાકી</div>
                 <div class="tab-btn" onclick="switchNoticeTab('active', this)">મુદતમાં</div>
                 <div class="tab-btn" onclick="switchNoticeTab('ready', this)">તૈયાર (૩૦ દિવસ પૂર્ણ)</div>
                 <div class="tab-btn" onclick="switchNoticeTab('completed', this)">કચેરીએ જમા</div>
             </div>
 
+            <!-- નોટિસ કાર્ડ્સ લિસ્ટ કન્ટેનર -->
             <div id="notice-list-container">
                 <p style="text-align:center; color:#777; margin-top:20px;"><i class="fa-solid fa-spinner fa-spin"></i> ડેટા લોડ થઈ રહ્યો છે...</p>
             </div>
-        </div> <!-- END VIEW 4: 135-D NOTICE DESK -->
+        </div> <!-- END VIEW 4 -->
 
     </div> <!-- ================= END MAIN CONTAINER ================= -->
 

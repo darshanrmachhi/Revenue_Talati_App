@@ -610,3 +610,51 @@ body { background-color: var(--bg-color); color: var(--text-main); padding-botto
     background: #f8fafc;
     transform: scale(0.96);
 }
+
+/* ૧૩૫-ડી ગામ ફિલ્ટર ચિપ્સ બાર */
+.village-filter-bar {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+    scrollbar-width: none; /* Firefox */
+}
+.village-filter-bar::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+}
+.village-filter-btn {
+    white-space: nowrap;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 20px;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.village-filter-btn:hover {
+    border-color: #94a3b8;
+    background: #f8fafc;
+}
+.village-filter-btn.active {
+    background: #0d47a1;
+    color: #ffffff;
+    border-color: #0d47a1;
+    box-shadow: 0 2px 6px rgba(13, 71, 161, 0.25);
+}
+.village-filter-btn .badge-count {
+    background: rgba(0, 0, 0, 0.08);
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-size: 11px;
+}
+.village-filter-btn.active .badge-count {
+    background: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+}
