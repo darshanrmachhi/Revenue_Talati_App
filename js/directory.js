@@ -1,4 +1,5 @@
 // js/directory.js
+
 var talukaDirectoryData = null;
 let currentActiveSeja = null; 
 let currentActivePanchayat = null;
@@ -11,57 +12,24 @@ function buildContactActionButtons(rawMobile) {
     if (!rawMobile || rawMobile === "-") {
         return '<span style="font-size:11px; color:#94a3b8;">સંપર્ક ઉપલબ્ધ નથી</span>';
     }
-    const clean = String(rawMobile).replace(/[^0-9]/g, '');
+    const clean = toEnglishDigits(String(rawMobile)).replace(/[^0-9]/g, '');
     if (clean.length < 10) {
         return '<span style="font-size:11px; color:#94a3b8;">અમાન્ય નંબર</span>';
     }
     const num10 = clean.slice(-10);
     return `
-        <div class="contact-actions-wrap" style="display:flex; align-items:center; gap:6px;">
-            <a href="tel:${num10}" class="btn-mini-contact btn-mini-call" style="background:#2563eb; width:30px; height:30px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; color:#fff; text-decoration:none; font-size:12px;" title="કોલ કરો">
+        <div class="contact-actions-wrap">
+            <a href="tel:${num10}" class="btn-mini-contact btn-mini-call" title="કોલ કરો">
                 <i class="fa-solid fa-phone"></i>
             </a>
-            <a href="https://wa.me/91${num10}" target="_blank" class="btn-mini-contact btn-mini-wa" style="background:#16a34a; width:30px; height:30px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; color:#fff; text-decoration:none; font-size:13px;" title="WhatsApp મેસેજ કરો">
+            <a href="https://wa.me/91${num10}" target="_blank" class="btn-mini-contact btn-mini-wa" title="WhatsApp મેસેજ કરો">
                 <i class="fa-brands fa-whatsapp"></i>
             </a>
-            <button type="button" class="btn-mini-contact btn-mini-copy" onclick="copyToClipboard('${num10}')" style="background:#64748b; width:30px; height:30px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; color:#fff; border:none; cursor:pointer; font-size:12px;" title="નંબર કોપી કરો">
+            <button type="button" class="btn-mini-contact btn-mini-copy" onclick="copyToClipboard('${num10}')" title="નંબર કોપી કરો">
                 <i class="fa-solid fa-copy"></i>
             </button>
         </div>
     `;
-}
-
-// ક્ષેત્રફળને "હે.-આરે-ચો.મી." ફોર્મેટમાં ફેરવતું સ્માર્ટ હેલ્પર ફંક્શન
-function formatLandAreaDisplay(val) {
-    if (!val) return '';
-    let s = String(val).trim();
-    
-    // જો ગુજરાતી અંકો હોય તો ગણતરી માટે અંગ્રેજી અંકોમાં ફેરવો
-    const gujToEng = { '૦': '0', '૧': '1', '૨': '2', '૩': '3', '૪': '4', '૫': '5', '૬': '6', '૭': '7', '૮': '8', '૯': '9' };
-    let clean = s.replace(/[૦-૯]/g, d => gujToEng[d] || d);
-    
-    // ૧. જો સીધું "1-05-19" કે "1/5/19" લખ્યું હોય
-    if (clean.includes('-') || clean.includes('/') || clean.includes('.')) {
-        let parts = clean.split(/[-/.]/);
-        if (parts.length >= 2) {
-            let ha = parts[0] || '0';
-            let are = ('0' + (parts[1] || '0')).slice(-2);
-            let sqm = parts[2] ? ('0' + parts[2]).slice(-2) : '00';
-            return toGujaratiDigits(`${ha}-${are}-${sqm}`);
-        }
-    }
-    
-    // ૨. જો માત્ર ચોરસ મીટર (દા.ત. 10519) લખ્યું હોય તો હેક્ટર-આરે-ચો.મી. ગણો
-    let num = parseFloat(clean);
-    if (!isNaN(num) && num > 0) {
-        let ha = Math.floor(num / 10000);
-        let remHa = num % 10000;
-        let are = Math.floor(remHa / 100);
-        let sqm = Math.round(remHa % 100);
-        return toGujaratiDigits(`${ha}-${('0' + are).slice(-2)}-${('0' + sqm).slice(-2)}`);
-    }
-    
-    return toGujaratiDigits(s);
 }
 
 function loadDirectoryData() {
@@ -129,28 +97,40 @@ function renderSejasGrid(sejasList) {
     container.innerHTML = list.map(seja => {
         const isMySeja = (seja.sejaName === mySejaName);
         const chargeClass = (seja.chargeType === "કાયમી") ? "permanent" : "additional";
-        const cm = seja.talatiMobile && seja.talatiMobile !== "-" ? seja.talatiMobile.replace(/[^0-9]/g, '') : '';
-        return `<div class="seja-grid-card ${isMySeja ? 'my-seja' : ''}" onclick="renderPanchayatsView('${seja.sejaName}')"><div><div class="seja-card-header"><div class="seja-card-title">${seja.sejaName} સેજો ${isMySeja?'<span style="font-size:10px; color:#2563eb; display:block;">(મારો સેજો)</span>':''}</div><span class="badge-charge ${chargeClass}">${seja.chargeType}</span></div><div class="talati-info"><i class="fa-solid fa-user-tie" style="color:var(--text-muted); font-size:12px;"></i><span>${seja.talatiName}</span></div><div class="seja-counts-bar"><span><i class="fa-solid fa-building"></i> ${toGujaratiDigits(seja.panchayatsCount)} પંચાયત</span><span><i class="fa-solid fa-location-dot"></i> ${toGujaratiDigits(seja.villagesCount)} ગામો</span></div></div><div class="seja-quick-actions" onclick="event.stopPropagation()">${cm.length===10 ? `<a href="tel:${cm}" class="btn-contact btn-call"><i class="fa-solid fa-phone"></i> કોલ</a><a href="https://wa.me/91${cm}" target="_blank" class="btn-contact btn-wa"><i class="fa-brands fa-whatsapp"></i> વોટ્સએપ</a>` : `<span style="font-size:11px; color:#999; text-align:center; width:100%;">સંપર્ક ઉપલબ્ધ નથી</span>`}</div></div>`;
+        const cm = seja.talatiMobile && seja.talatiMobile !== "-" ? toEnglishDigits(seja.talatiMobile).replace(/[^0-9]/g, '') : '';
+        return `<div class="seja-grid-card ${isMySeja ? 'my-seja' : ''}" onclick="renderPanchayatsView('${seja.sejaName}')">
+            <div>
+                <div class="seja-card-header">
+                    <div class="seja-card-title">${seja.sejaName} સેજો ${isMySeja?'<span style="font-size:10px; color:#2563eb; display:block;">(મારો સેજો)</span>':''}</div>
+                    <span class="badge-charge ${chargeClass}">${seja.chargeType}</span>
+                </div>
+                <div class="talati-info"><i class="fa-solid fa-user-tie" style="color:var(--text-muted); font-size:12px;"></i><span>${seja.talatiName}</span></div>
+                <div class="seja-counts-bar"><span><i class="fa-solid fa-building"></i> ${toGujaratiDigits(seja.panchayatsCount)} પંચાયત</span><span><i class="fa-solid fa-location-dot"></i> ${toGujaratiDigits(seja.villagesCount)} ગામો</span></div>
+            </div>
+            <div class="seja-quick-actions" onclick="event.stopPropagation()">
+                ${cm.length === 10 ? `<a href="tel:${cm}" class="btn-contact btn-call"><i class="fa-solid fa-phone"></i> કોલ</a><a href="https://wa.me/91${cm}" target="_blank" class="btn-contact btn-wa"><i class="fa-brands fa-whatsapp"></i> વોટ્સએપ</a>` : `<span style="font-size:11px; color:#999; text-align:center; width:100%;">સંપર્ક ઉપલબ્ધ નથી</span>`}
+            </div>
+        </div>`;
     }).join('');
 }
 
 function filterDirectory(query) {
+    let qStr = String(query || '').trim();
     const clearBtn = document.getElementById('clear-search'); 
-    if (clearBtn) clearBtn.style.display = query ? "block" : "none";
+    if (clearBtn) clearBtn.style.display = qStr ? "block" : "none";
     if (!talukaDirectoryData) return;
     
-    const q = query.trim().toLowerCase();
-    if (!q) { renderSejasGrid(talukaDirectoryData.sejas); return; }
+    if (!qStr) { renderSejasGrid(talukaDirectoryData.sejas); return; }
 
     const filtered = talukaDirectoryData.sejas.filter(s => {
-        if (matchesSmartSearch(s.sejaName, q) || matchesSmartSearch(s.talatiName, q)) return true;
+        if (matchesSmartSearch(s.sejaName, qStr) || matchesSmartSearch(s.talatiName, qStr)) return true;
         if (s.panchayats && Array.isArray(s.panchayats)) {
             return s.panchayats.some(p => {
-                if (matchesSmartSearch(p.panchayatName, q)) return true;
+                if (matchesSmartSearch(p.panchayatName, qStr)) return true;
                 if (p.villages && Array.isArray(p.villages)) {
                     return p.villages.some(v => {
                         let vName = typeof v === 'string' ? v : (v.villageName || v.name || "");
-                        return matchesSmartSearch(vName, q);
+                        return matchesSmartSearch(vName, qStr);
                     });
                 }
                 return false;
@@ -163,8 +143,9 @@ function filterDirectory(query) {
 }
 
 function clearSearchInput() { 
-    document.getElementById('dir-search-input').value = ""; 
-    document.getElementById('clear-search').style.display = "none"; 
+    safeSetValue('dir-search-input', "");
+    let clearBtn = document.getElementById('clear-search');
+    if (clearBtn) clearBtn.style.display = "none";
     if (talukaDirectoryData) renderSejasGrid(talukaDirectoryData.sejas); 
 }
 
@@ -231,25 +212,15 @@ function openVillageProfile(vid, pname) {
     currentActiveVillage = tv;
     currentActivePanchayat = tp;
 
-    let elName = document.getElementById('vp-village-name');
-    let elPath = document.getElementById('vp-hierarchy-path');
-    let elSqm = document.getElementById('vp-area-sqm');
-    let elHa = document.getElementById('vp-area-ha');
-    let elPop = document.getElementById('vp-population');
-    let elVid = document.getElementById('vp-village-id');
-    let elKhata = document.getElementById('vp-total-khata');
-    let elSurvey = document.getElementById('vp-total-survey');
+    safeSetText('vp-village-name', tv.villageName);
+    safeSetText('vp-hierarchy-path', `${currentActiveSeja.sejaName} સેજો > ${tp.panchayatName} પંચાયત`);
+    safeSetText('vp-area-sqm', toGujaratiDigits(Number(tv.areaSqMtr || 0).toLocaleString('en-IN')));
+    safeSetText('vp-area-ha', toGujaratiDigits(tv.formattedArea || '-'));
+    safeSetText('vp-population', toGujaratiDigits(Number(tv.population || 0).toLocaleString('en-IN')));
+    safeSetText('vp-village-id', tv.villageId || '-');
+    safeSetText('vp-total-khata', tv.totalKhata ? toGujaratiDigits(tv.totalKhata) : '-');
+    safeSetText('vp-total-survey', tv.totalSurvey ? toGujaratiDigits(tv.totalSurvey) : '-');
 
-    if (elName) elName.innerText = tv.villageName; 
-    if (elPath) elPath.innerText = `${currentActiveSeja.sejaName} સેજો > ${tp.panchayatName} પંચાયત`; 
-    if (elSqm) elSqm.innerText = toGujaratiDigits(Number(tv.areaSqMtr || 0).toLocaleString('en-IN')); 
-    if (elHa) elHa.innerText = toGujaratiDigits(tv.formattedArea || '-'); 
-    if (elPop) elPop.innerText = toGujaratiDigits(Number(tv.population || 0).toLocaleString('en-IN')); 
-    if (elVid) elVid.innerText = tv.villageId || '-';
-    if (elKhata) elKhata.innerText = tv.totalKhata ? toGujaratiDigits(tv.totalKhata) : '-';
-    if (elSurvey) elSurvey.innerText = tv.totalSurvey ? toGujaratiDigits(tv.totalSurvey) : '-';
-
-    // સ્થાનિક પદાધિકારી / સ્ટાફ (Call, WhatsApp, Copy સાથે)
     let contactsContainer = document.getElementById('vp-contacts-list');
     if (contactsContainer) {
         contactsContainer.innerHTML = `
@@ -287,10 +258,8 @@ function openVillageProfile(vid, pname) {
     document.getElementById('village-profile-modal').style.display = 'flex'; 
     window.history.pushState({ view: 'modal' }, '', '#village');
 
-    // ૧. પહેલાંથી મેમરીમાં રહેલો ડેટા તાત્કાલિક બતાવો (જેથી ક્ષેત્રફળ તરત દેખાય)
     renderVillageViewExtra(tv);
 
-    // ૨. Firestore માંથી લેટેસ્ટ ડેટા લાવી ફરીથી અપડેટ કરો
     let docId = tv.villageId || tv.villageName.replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
     db.collection("Village_Land_Records").doc(docId).get().then(doc => {
         if (doc.exists) {
@@ -305,27 +274,21 @@ function openVillageProfile(vid, pname) {
             tv.landRecords = lData.landRecords || [];
             tv.bookmarks = lData.bookmarks || [];
             
-            if (elKhata) elKhata.innerText = tv.totalKhata ? toGujaratiDigits(tv.totalKhata) : '-';
-            if (elSurvey) elSurvey.innerText = tv.totalSurvey ? toGujaratiDigits(tv.totalSurvey) : '-';
-            if (elPop && lData.population) elPop.innerText = toGujaratiDigits(Number(tv.population).toLocaleString('en-IN'));
-            if (elSqm && lData.areaSqMtr) elSqm.innerText = toGujaratiDigits(Number(tv.areaSqMtr).toLocaleString('en-IN'));
-            if (elHa && lData.formattedArea) elHa.innerText = toGujaratiDigits(tv.formattedArea);
+            safeSetText('vp-total-khata', tv.totalKhata ? toGujaratiDigits(tv.totalKhata) : '-');
+            safeSetText('vp-total-survey', tv.totalSurvey ? toGujaratiDigits(tv.totalSurvey) : '-');
+            if (lData.population) safeSetText('vp-population', toGujaratiDigits(Number(tv.population).toLocaleString('en-IN')));
+            if (lData.areaSqMtr) safeSetText('vp-area-sqm', toGujaratiDigits(Number(tv.areaSqMtr).toLocaleString('en-IN')));
+            if (lData.formattedArea) safeSetText('vp-area-ha', toGujaratiDigits(tv.formattedArea));
             
-            // બંને વિભાગો (સરકારી જમીન + બુકમાર્ક્સ) ફરીથી લાઈવ અપડેટ કરો
             renderVillageViewExtra(tv);
         }
     }).catch(err => console.log("Land record fetch info:", err));
 }
 
-// સરકારી જમીન & બુકમાર્ક્સ કાર્ડ્સ દર્શાવવા
-// સરકારી જમીન & બુકમાર્ક્સ બંનેને ક્ષેત્રફળ સાથે પ્રોફાઇલમાં રેન્ડર કરતું સંપૂર્ણ ફંક્શન
 function renderVillageViewExtra(tv) {
     let lrDisp = document.getElementById('vp-land-records-display');
     let bmDisp = document.getElementById('vp-bookmarks-display');
     
-    // =========================================================
-    // ૧. સરકારી જમીન / સર્વે નંબર બેંક રેન્ડર
-    // =========================================================
     if (lrDisp) {
         if (tv.landRecords && tv.landRecords.length > 0) {
             let html = '<div style="font-size:13px; font-weight:700; color:#0d47a1; margin-top:15px; border-top:1px dashed #cbd5e1; padding-top:12px; margin-bottom:8px;"><i class="fa-solid fa-tree-city"></i> સરકારી જમીન / સર્વે નંબર બેંક</div>';
@@ -360,9 +323,6 @@ function renderVillageViewExtra(tv) {
         }
     }
 
-    // =========================================================
-    // ૨. અગત્યના બુકમાર્ક્સ રેન્ડર (ક્ષેત્રફળ બેજ સાથે)
-    // =========================================================
     if (bmDisp) {
         if (tv.bookmarks && tv.bookmarks.length > 0) {
             let html = '<div style="font-size:13px; font-weight:700; color:#854d0e; margin-top:15px; border-top:1px dashed #cbd5e1; padding-top:12px; margin-bottom:8px;"><i class="fa-solid fa-thumbtack"></i> અગત્યના બુકમાર્કસ</div>';
@@ -397,7 +357,7 @@ function closeVillageProfile() { document.getElementById('village-profile-modal'
 function copyToClipboard(t) { navigator.clipboard.writeText(t).then(() => showToast("નંબર કોપી થયો: " + toGujaratiDigits(t))); }
 
 // =========================================================
-// ગામની માહિતીમાં સુધારો કરો (EDIT MODE - EDIT & DELETE SUPPORT)
+// ગામની માહિતીમાં સુધારો કરો (EDIT MODE)
 // =========================================================
 function openEditVillageForm() {
     if (!currentActiveVillage) return;
@@ -408,15 +368,10 @@ function openEditVillageForm() {
     let subTitle = document.getElementById('edit-vil-subtitle');
     if (subTitle) subTitle.innerText = `મોજે: ${currentActiveVillage.villageName} (${currentActiveVillage.villageId || ''})`;
 
-    let khataInp = document.getElementById('edit-vil-khata');
-    let surveyInp = document.getElementById('edit-vil-survey');
-    let popInp = document.getElementById('edit-vil-pop');
-    let areaInp = document.getElementById('edit-vil-area');
-
-    if (khataInp) khataInp.value = currentActiveVillage.totalKhata || "";
-    if (surveyInp) surveyInp.value = currentActiveVillage.totalSurvey || "";
-    if (popInp) popInp.value = currentActiveVillage.population || "";
-    if (areaInp) areaInp.value = currentActiveVillage.areaSqMtr || "";
+    safeSetValue('edit-vil-khata', currentActiveVillage.totalKhata || "");
+    safeSetValue('edit-vil-survey', currentActiveVillage.totalSurvey || "");
+    safeSetValue('edit-vil-pop', currentActiveVillage.population || "");
+    safeSetValue('edit-vil-area', currentActiveVillage.areaSqMtr || "");
 
     if (!currentActiveVillage.landRecords) currentActiveVillage.landRecords = [];
     if (!currentActiveVillage.bookmarks) currentActiveVillage.bookmarks = [];
@@ -427,13 +382,12 @@ function openEditVillageForm() {
 
 function renderEditManagers() {
     let cont = document.getElementById('edit-vil-land-manager-container');
-    if(!cont) return;
+    if (!cont) return;
 
     let isEditingLR = (editingLandRecordIdx !== null);
     let isEditingBM = (editingBookmarkIdx !== null);
 
     let html = `
-        <!-- સરકારી જમીન રજીસ્ટર મેનેજર -->
         <div style="margin-top:20px; border-top:2px solid #e2e8f0; padding-top:15px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                 <h4 style="font-size:14px; color:#0d47a1; margin:0;"><i class="fa-solid fa-tree-city"></i> સરકારી જમીન / સર્વે નંબર ઉમેરો</h4>
@@ -477,12 +431,8 @@ function renderEditManagers() {
                                 ${r.remarks ? `<span style="font-size:11px; color:#64748b; display:block;">${toGujaratiDigits(r.remarks)}</span>` : ''}
                             </div>
                             <div style="display:flex; gap:8px; margin-left:8px;">
-                                <button type="button" onclick="editLandRecord(${i})" style="color:#2563eb; background:none; border:none; cursor:pointer; font-size:14px;" title="સુધારો કરો">
-                                    <i class="fa-solid fa-pen-to-square"></i>
-                                </button>
-                                <button type="button" onclick="removeLandRecord(${i})" style="color:#ef4444; background:none; border:none; cursor:pointer; font-size:14px;" title="રદ કરો">
-                                    <i class="fa-solid fa-trash"></i>
-                                </button>
+                                <button type="button" onclick="editLandRecord(${i})" style="color:#2563eb; background:none; border:none; cursor:pointer; font-size:14px;" title="સુધારો કરો"><i class="fa-solid fa-pen-to-square"></i></button>
+                                <button type="button" onclick="removeLandRecord(${i})" style="color:#ef4444; background:none; border:none; cursor:pointer; font-size:14px;" title="રદ કરો"><i class="fa-solid fa-trash"></i></button>
                             </div>
                         </div>
                     `;
@@ -490,7 +440,6 @@ function renderEditManagers() {
             </div>
         </div>
 
-        <!-- બુકમાર્ક મેનેજર (ક્ષેત્રફળ ઇનપુટ સાથે) -->
         <div style="margin-top:20px; border-top:2px solid #e2e8f0; padding-top:15px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                 <h4 style="font-size:14px; color:#854d0e; margin:0;"><i class="fa-solid fa-thumbtack"></i> સર્વે નંબર બુકમાર્ક કરો</h4>
@@ -526,17 +475,12 @@ function renderEditManagers() {
                     return `
                         <div style="display:flex; justify-content:space-between; align-items:center; background:${editingBookmarkIdx === i ? '#fef9c3' : '#fefce8'}; padding:8px 10px; margin-bottom:6px; font-size:12px; border:1px solid ${editingBookmarkIdx === i ? '#fde047' : '#fef08a'}; border-radius:6px;">
                             <div style="flex:1;">
-                                <b>${b.tag}:</b> ${toGujaratiDigits(b.surveyNo)}
-                                ${formattedArea ? `<span style="color:#047857; font-weight:600;">(${formattedArea})</span>` : ''}
+                                <b>${b.tag}:</b> ${toGujaratiDigits(b.surveyNo)}${formattedArea ? `<span style="color:#047857; font-weight:600;">(${formattedArea})</span>` : ''}
                                 ${b.note ? `<span style="font-size:11px; color:#64748b; display:block;">${toGujaratiDigits(b.note)}</span>` : ''}
                             </div>
                             <div style="display:flex; gap:8px; margin-left:8px;">
-                                <button type="button" onclick="editBookmark(${i})" style="color:#2563eb; background:none; border:none; cursor:pointer; font-size:14px;" title="સુધારો કરો">
-                                    <i class="fa-solid fa-pen-to-square"></i>
-                                </button>
-                                <button type="button" onclick="removeBookmark(${i})" style="color:#ef4444; background:none; border:none; cursor:pointer; font-size:14px;" title="રદ કરો">
-                                    <i class="fa-solid fa-trash"></i>
-                                </button>
+                                <button type="button" onclick="editBookmark(${i})" style="color:#2563eb; background:none; border:none; cursor:pointer; font-size:14px;" title="સુધારો કરો"><i class="fa-solid fa-pen-to-square"></i></button>
+                                <button type="button" onclick="removeBookmark(${i})" style="color:#ef4444; background:none; border:none; cursor:pointer; font-size:14px;" title="રદ કરો"><i class="fa-solid fa-trash"></i></button>
                             </div>
                         </div>
                     `;
@@ -547,12 +491,11 @@ function renderEditManagers() {
     cont.innerHTML = html;
 }
 
-// સરકારી જમીન: Save / Add Handler
 window.saveLandRecordEntry = function() {
-    let cat = document.getElementById('new-lr-cat').value;
-    let sur = document.getElementById('new-lr-survey').value.trim();
-    let area = document.getElementById('new-lr-area').value.trim();
-    let rem = document.getElementById('new-lr-rem').value.trim();
+    let cat = safeGetValue('new-lr-cat');
+    let sur = safeGetValue('new-lr-survey');
+    let area = safeGetValue('new-lr-area');
+    let rem = safeGetValue('new-lr-rem');
     
     if(!sur) { showToast("કૃપા કરી સર્વે નંબર દાખલ કરો", "warning"); return; }
     
@@ -572,23 +515,18 @@ window.saveLandRecordEntry = function() {
         currentActiveVillage.landRecords.push(recordObj);
         showToast("નવી એન્ટ્રી ઉમેરાઈ ગઈ!");
     }
-
     renderEditManagers();
 };
 
 window.editLandRecord = function(idx) {
     let r = currentActiveVillage.landRecords[idx];
     if (!r) return;
-    
     editingLandRecordIdx = idx;
     renderEditManagers();
-
-    // ફોર્મમાં જૂની વેલ્યુ ભરી આપો
     safeSetValue('new-lr-cat', r.category || 'ગૌચર');
     safeSetValue('new-lr-survey', r.surveyNo || '');
     safeSetValue('new-lr-area', r.area || '');
     safeSetValue('new-lr-rem', r.remarks || '');
-    
     let el = document.getElementById('new-lr-survey');
     if (el) el.focus();
 };
@@ -606,12 +544,11 @@ window.removeLandRecord = function(idx) {
     }
 };
 
-// બુકમાર્ક: Save / Add Handler
 window.saveBookmarkEntry = function() {
-    let tag = document.getElementById('new-bm-tag').value;
-    let sur = document.getElementById('new-bm-survey').value.trim();
-    let area = document.getElementById('new-bm-area').value.trim();
-    let note = document.getElementById('new-bm-note').value.trim();
+    let tag = safeGetValue('new-bm-tag');
+    let sur = safeGetValue('new-bm-survey');
+    let area = safeGetValue('new-bm-area');
+    let note = safeGetValue('new-bm-note');
     
     if(!sur) { showToast("કૃપા કરી સર્વે નંબર દાખલ કરો", "warning"); return; }
     
@@ -631,22 +568,18 @@ window.saveBookmarkEntry = function() {
         currentActiveVillage.bookmarks.push(bmObj);
         showToast("બુકમાર્ક ઉમેરાઈ ગયો!");
     }
-
     renderEditManagers();
 };
 
 window.editBookmark = function(idx) {
     let b = currentActiveVillage.bookmarks[idx];
     if (!b) return;
-
     editingBookmarkIdx = idx;
     renderEditManagers();
-
     safeSetValue('new-bm-tag', b.tag || 'કોર્ટ કેસ / તકરારી');
     safeSetValue('new-bm-survey', b.surveyNo || '');
     safeSetValue('new-bm-area', b.area || '');
     safeSetValue('new-bm-note', b.note || '');
-
     let el = document.getElementById('new-bm-survey');
     if (el) el.focus();
 };
@@ -676,22 +609,19 @@ function saveVillageEdits() {
     let btn = document.getElementById('btn-save-vil-edits');
     if (btn) { btn.disabled = true; btn.innerText = "સેવ થાય છે..."; }
 
-    let newKhata = document.getElementById('edit-vil-khata') ? document.getElementById('edit-vil-khata').value.trim() : "";
-    let newSurvey = document.getElementById('edit-vil-survey') ? document.getElementById('edit-vil-survey').value.trim() : "";
-    let newPop = document.getElementById('edit-vil-pop') ? document.getElementById('edit-vil-pop').value.trim() : "";
-    let newArea = document.getElementById('edit-vil-area') ? document.getElementById('edit-vil-area').value.trim() : "";
+    let newKhata = safeGetValue('edit-vil-khata');
+    let newSurvey = safeGetValue('edit-vil-survey');
+    let newPop = safeGetValue('edit-vil-pop');
+    let newArea = safeGetValue('edit-vil-area');
 
     currentActiveVillage.totalKhata = newKhata;
     currentActiveVillage.totalSurvey = newSurvey;
     if (newPop !== "") currentActiveVillage.population = Number(newPop);
     if (newArea !== "") {
-        currentActiveVillage.areaSqMtr = Number(newArea);
         let totalSqm = Number(newArea);
-        let ha = Math.floor(totalSqm / 10000);
-        let rem = totalSqm % 10000;
-        let are = Math.floor(rem / 100);
-        let sqm = Math.round(rem % 100);
-        currentActiveVillage.formattedArea = `${ha}-${String(are).padStart(2, '0')}-${String(sqm).padStart(2, '0')}`;
+        currentActiveVillage.areaSqMtr = totalSqm;
+        let converted = sqmToHaAreSqm(totalSqm);
+        currentActiveVillage.formattedArea = converted.formattedEng;
     }
 
     let docId = currentActiveVillage.villageId || currentActiveVillage.villageName.replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
@@ -726,7 +656,7 @@ async function openVillageFromHero(villageName) {
         if (cached) {
             talukaDirectoryData = cached;
         } else {
-            showToast("ડિરેક્ટરી લોડ થાય છે...");
+            showToast("ડિરેક્ટરી લોડ થાય છે...", "info");
             try {
                 let doc = await db.collection("Master_Data").doc("Taluka_Directory").get();
                 if (doc.exists) {
@@ -769,6 +699,6 @@ async function openVillageFromHero(villageName) {
         currentActiveSeja = targetSeja;
         openVillageProfile(targetVil.villageId, targetPanch.panchayatName);
     } else {
-        showToast(`"${villageName}" ગામની વિગત મળી નથી.`);
+        showToast(`"${villageName}" ગામની વિગત મળી નથી.`, "warning");
     }
 }
