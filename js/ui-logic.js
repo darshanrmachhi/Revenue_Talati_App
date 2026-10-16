@@ -1,7 +1,7 @@
 // js/ui-logic.js
 
 // =========================================================================
-// SAFE GETTERS & HELPERS
+// 1. SAFE DOM GETTERS & SETTERS
 // =========================================================================
 function safeGetValue(id) {
     let el = document.getElementById(id);
@@ -25,25 +25,74 @@ function safeSetValue(id, val) {
 
 function getVal(sId, cId) { 
     let s = document.getElementById(sId); 
-    return (s && s.value === 'custom') ? (document.getElementById(cId) ? document.getElementById(cId).value : '') : (s ? s.value : ''); 
+    return (s && s.value === 'custom') ? safeGetValue(cId) : (s ? s.value : ''); 
 }
 
 // =========================================================================
-// GUJARATI NUMERAL & DATE UTILITIES
+// 2. GUJARATI NUMERAL, DATE & AREA UTILITIES (CENTRALIZED)
 // =========================================================================
-// js/ui-logic.js (Date Utilities Update)
-
 function toGujaratiDigits(val) {
     if (val === null || val === undefined || val === '') return '';
     const gujDigits = ['૦', '૧', '૨', '૩', '૪', '૫', '૬', '૭', '૮', '૯'];
-    return String(val).replace(/[0-9]/g, function(w) { return gujDigits[+w]; });
+    return String(val).replace(/[0-9]/g, w => gujDigits[+w]);
 }
 
-// ગુજરાતી અંકોને અંગ્રેજીમાં ફેરવવું (જેથી JavaScript તારીખ ઓળખી શકે)
 function toEnglishDigits(str) {
     if (!str) return '';
     const gujToEng = { '૦': '0', '૧': '1', '૨': '2', '૩': '3', '૪': '4', '૫': '5', '૬': '6', '૭': '7', '૮': '8', '૯': '9' };
-    return String(str).replace(/[૦-૯]/g, function(d) { return gujToEng[d] || d; });
+    return String(str).replace(/[૦-૯]/g, d => gujToEng[d] || d);
+}
+
+// ગામનું મૂળ નામ કાઢવું (દા.ત. 'ચારણગામ(સાલાવાડા)' -> 'ચારણગામ')
+function getVillageBase(name) {
+    if (!name) return '';
+    return String(name).split('(')[0].replace(/[\s\-_]/g, '').trim().toLowerCase();
+}
+
+// બે ગામના નામ સરખા છે કે નહીં તે ચકાસતું સેન્ટ્રલ ફંક્શન
+function isSameVillage(v1, v2) {
+    if (!v1 || !v2) return false;
+    let b1 = getVillageBase(v1);
+    let b2 = getVillageBase(v2);
+    return !!(b1 && b2 && b1 === b2);
+}
+
+// ચોરસ મીટરમાંથી હેક્ટર-આરે-ચો.મી. નો ઓબ્જેક્ટ આપતું કોમન ફંક્શન
+function sqmToHaAreSqm(totalSqM) {
+    let abs = Math.abs(parseFloat(totalSqM) || 0);
+    let ha = Math.floor(abs / 10000);
+    let remHa = abs % 10000;
+    let are = Math.floor(remHa / 100);
+    let sqm = Math.round(remHa % 100);
+    return {
+        ha: ha,
+        are: are,
+        sqm: sqm,
+        formattedEng: `${ha}-${('0' + are).slice(-2)}-${('0' + sqm).slice(-2)}`,
+        formattedGuj: toGujaratiDigits(`${ha}-${('0' + are).slice(-2)}-${('0' + sqm).slice(-2)}`)
+    };
+}
+
+// ક્ષેત્રફળને "હે.-આરે-ચો.મી." ફોર્મેટમાં ફેરવતું સ્માર્ટ હેલ્પર ફંક્શન
+function formatLandAreaDisplay(val) {
+    if (!val) return '';
+    let clean = toEnglishDigits(String(val).trim());
+    
+    if (clean.includes('-') || clean.includes('/') || clean.includes('.')) {
+        let parts = clean.split(/[-/.]/);
+        if (parts.length >= 2) {
+            let ha = parts[0] || '0';
+            let are = ('0' + (parts[1] || '0')).slice(-2);
+            let sqm = parts[2] ? ('0' + parts[2]).slice(-2) : '00';
+            return toGujaratiDigits(`${ha}-${are}-${sqm}`);
+        }
+    }
+    
+    let num = parseFloat(clean);
+    if (!isNaN(num) && num > 0) {
+        return sqmToHaAreSqm(num).formattedGuj;
+    }
+    return toGujaratiDigits(val);
 }
 
 function parseUniversalDate(dateStr) {
@@ -53,27 +102,19 @@ function parseUniversalDate(dateStr) {
     
     let s = toEnglishDigits(String(dateStr).trim());
     
-    // DD/MM/YYYY અથવા YYYY/MM/DD
     if (s.includes('/')) {
         let parts = s.split('/');
         if (parts.length === 3) {
-            if (parts[2].length === 4) {
-                return new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
-            } else if (parts[0].length === 4) {
-                return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-            }
+            if (parts[2].length === 4) return new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
+            if (parts[0].length === 4) return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
         }
     }
     
-    // YYYY-MM-DD અથવા DD-MM-YYYY
     if (s.includes('-')) {
         let parts = s.split('-');
         if (parts.length === 3) {
-            if (parts[0].length === 4) {
-                return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-            } else if (parts[2].length === 4) {
-                return new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
-            }
+            if (parts[0].length === 4) return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+            if (parts[2].length === 4) return new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
         }
     }
 
@@ -85,48 +126,38 @@ function formatForDateInput(dateVal) {
     if (!dateVal) return "";
     let d = parseUniversalDate(dateVal);
     if (!d || isNaN(d.getTime())) return "";
-    let month = '' + (d.getMonth() + 1);
-    let day = '' + d.getDate();
-    let year = d.getFullYear();
-    if (month.length < 2) month = '0' + month;
-    if (day.length < 2) day = '0' + day;
-    return [year, month, day].join('-');
+    let month = ('0' + (d.getMonth() + 1)).slice(-2);
+    let day = ('0' + d.getDate()).slice(-2);
+    return `${d.getFullYear()}-${month}-${day}`;
 }
 
 function formatDisplayDateGujarati(dStr) {
     if (!dStr) return "-";
     let d = parseUniversalDate(dStr);
-    if (!d || isNaN(d.getTime())) {
-        return toGujaratiDigits(String(dStr)); // જો parse ન થાય તો મૂળ સ્ટ્રિંગ ગુજરાતી અંકો સાથે બતાવો (ક્યારેય Reset ખાલી નહીં થાય)
-    }
+    if (!d || isNaN(d.getTime())) return toGujaratiDigits(String(dStr));
     let day = ('0' + d.getDate()).slice(-2);
     let month = ('0' + (d.getMonth() + 1)).slice(-2);
-    let year = d.getFullYear();
-    return toGujaratiDigits(`${day}/${month}/${year}`);
+    return toGujaratiDigits(`${day}/${month}/${d.getFullYear()}`);
 }
 
 function formatAadharThreeRows(numStr) {
     if (!numStr) return '-';
-    let clean = String(numStr).replace(/[^0-9]/g, '');
+    let clean = toEnglishDigits(String(numStr)).replace(/[^0-9]/g, '');
     if (clean.length === 12) {
-        let p1 = toGujaratiDigits(clean.substring(0, 4));
-        let p2 = toGujaratiDigits(clean.substring(4, 8));
-        let p3 = toGujaratiDigits(clean.substring(8, 12));
-        return `${p1}<br>${p2}<br>${p3}`;
+        return `${toGujaratiDigits(clean.substring(0, 4))}<br>${toGujaratiDigits(clean.substring(4, 8))}<br>${toGujaratiDigits(clean.substring(8, 12))}`;
     }
     return toGujaratiDigits(clean);
 }
 
 function showToast(msg, icon = 'success') {
     if (typeof Swal !== 'undefined') {
-        const Toast = Swal.mixin({
+        Swal.mixin({
             toast: true,
             position: 'top-end',
             showConfirmButton: false,
             timer: 2500,
             timerProgressBar: true
-        });
-        Toast.fire({ icon: icon, title: msg });
+        }).fire({ icon: icon, title: msg });
     } else {
         let t = document.getElementById("toast");
         if (t) {
@@ -138,7 +169,7 @@ function showToast(msg, icon = 'success') {
 }
 
 // =========================================================================
-// VIEWS ROUTING WITH HISTORY API
+// 3. VIEWS ROUTING WITH HISTORY API
 // =========================================================================
 function showView(viewId, pushHistory = true) {
     document.querySelectorAll('.app-view').forEach(v => v.classList.remove('active'));
@@ -158,7 +189,7 @@ function showView(viewId, pushHistory = true) {
     if (viewId === 'dashboard') { 
         if (backBtn) backBtn.style.display = 'none';
         if (title) title.innerText = 'મહેસૂલી તલાટી દફતર'; 
-        loadDashboardData(); 
+        updateDashboardStatsUI(); 
     }
     else if (viewId === 'directory') {
         if (backBtn) backBtn.style.display = 'block';
@@ -167,17 +198,17 @@ function showView(viewId, pushHistory = true) {
         let dCont = document.getElementById('directory-grid-container');
         if (pCont) pCont.style.display = 'none';
         if (dCont) dCont.style.display = 'grid';
-        loadDirectoryData();
+        if (typeof loadDirectoryData === 'function') loadDirectoryData();
     }
     else if (viewId === 'pedhinamu-list') { 
         if (backBtn) backBtn.style.display = 'block';
         if (title) title.innerText = 'પેઢીનામું રજીસ્ટર'; 
-        if(typeof loadPedhinamuList === 'function') loadPedhinamuList(); 
+        if (typeof loadPedhinamuList === 'function') loadPedhinamuList(); 
     }
     else if (viewId === '135d-desk') { 
         if (backBtn) backBtn.style.display = 'block'; 
         if (title) title.innerText = '૧૩૫-ડી ડેસ્ક'; 
-        if(typeof loadNoticesDesk === 'function') loadNoticesDesk(); 
+        if (typeof loadNoticesDesk === 'function') loadNoticesDesk(); 
     }
 
     if (pushHistory) { window.history.pushState({ view: viewId }, '', '#' + viewId); }
@@ -195,7 +226,7 @@ window.addEventListener('popstate', function(event) {
             document.querySelectorAll('.app-view').forEach(v => v.classList.remove('active'));
             let dView = document.getElementById('view-directory');
             if (dView) dView.classList.add('active');
-            if(typeof renderPanchayatsView === 'function') renderPanchayatsView(event.state.seja, false);
+            if (typeof renderPanchayatsView === 'function') renderPanchayatsView(event.state.seja, false);
         } else {
             showView(event.state.view, false);
         }
@@ -204,98 +235,140 @@ window.addEventListener('popstate', function(event) {
     }
 });
 
-let unsubscribeDashboardNotices = null;
-let unsubscribeDashboardPedhinamu = null;
-
+// =========================================================================
+// 4. CENTRAL REAL-TIME SYNC ENGINE (SINGLE LISTENER FOR ENTIRE APP)
+// =========================================================================
 function loadDashboardData() {
     let currentVillages = (activeSeja && activeSeja.villages) ? activeSeja.villages : [];
     let loadStatus = document.getElementById('loading-status');
     if (loadStatus) loadStatus.innerText = "(લાઈવ સિંક...)";
 
-    if (unsubscribeDashboardNotices) { unsubscribeDashboardNotices(); }
-    if (unsubscribeDashboardPedhinamu) { unsubscribeDashboardPedhinamu(); }
+    if (unsubscribeNotices) { unsubscribeNotices(); unsubscribeNotices = null; }
+    if (unsubscribePedhinamu) { unsubscribePedhinamu(); unsubscribePedhinamu = null; }
 
-    unsubscribeDashboardNotices = db.collection("Notices_135D").onSnapshot((querySnapshot) => {
-        let p = 0, d = 0, rCount = 0, c = 0;
-        let today = new Date();
-        today.setHours(0,0,0,0);
-
-        // ગામવાર નોંધોની ગણતરી માટે ઓબ્જેક્ટ તૈયાર કરો
-        let villageCounts = {};
-        currentVillages.forEach(v => villageCounts[v] = 0);
-
+    // ૧. ૧૩૫-ડી નોટિસનું સેન્ટ્રલ લિસનર
+    unsubscribeNotices = db.collection("Notices_135D").onSnapshot((querySnapshot) => {
+        let list = [];
         querySnapshot.forEach((doc) => {
-            let r = doc.data();
-            let vName = String(r.Village_Name || '').trim();
-            let matchedVill = currentVillages.find(v => vName.includes(v) || v.includes(vName));
-            let isMatch = (currentVillages.length === 0) || !!matchedVill || !vName;
-
-            if (isMatch) {
-                if (matchedVill) {
-                    villageCounts[matchedVill] = (villageCounts[matchedVill] || 0) + 1;
-                }
-
-                let isSubmitted = (String(r.Current_Status || '').includes("જમા") || !!r.Submitted_Date);
-                if (isSubmitted) {
-                    c++;
-                } else if (r.Served_Date) {
-                    let sDate = parseUniversalDate(r.Served_Date);
-                    if (sDate) {
-                        sDate.setHours(0,0,0,0);
-                        let diffDays = Math.floor((today - sDate) / (1000 * 60 * 60 * 24));
-                        if (diffDays < 30) d++;
-                        else rCount++;
-                    } else { p++; }
-                } else { p++; }
-            }
+            let data = doc.data();
+            data.id = doc.id;
+            let vName = String(data.Village_Name || data.village || '').trim();
+            
+            // ખાલી ગામ હોય તો બધાને ન દેખાય; માત્ર સેજાના ગામો સાથે જ મેચ થાય
+            let isMatch = (currentVillages.length === 0) || 
+                          (vName !== '' && currentVillages.some(v => isSameVillage(vName, v)));
+            if (isMatch) list.push(data);
         });
 
-        let elP = document.getElementById('pending-notices');
-        let elD = document.getElementById('due-notices');
-        let elC = document.getElementById('completed-notices');
-        if (elP) elP.innerText = toGujaratiDigits(p); 
-        if (elD) elD.innerText = toGujaratiDigits(d); 
-        if (elC) elC.innerText = toGujaratiDigits(c); 
+        list.sort((a, b) => {
+            let timeA = (a.createdAt && a.createdAt.toDate) ? a.createdAt.toDate().getTime() : 0;
+            let timeB = (b.createdAt && b.createdAt.toDate) ? b.createdAt.toDate().getTime() : 0;
+            if (!timeA && a.Received_Date) { let d = parseUniversalDate(a.Received_Date); if (d) timeA = d.getTime(); }
+            if (!timeB && b.Received_Date) { let d = parseUniversalDate(b.Received_Date); if (d) timeB = d.getTime(); }
+            return timeB - timeA;
+        });
 
-        // ૧. ૩૦ દિવસ પૂર્ણ એલર્ટ બેનર
-        let alertBanner = document.getElementById('ready-notices-alert');
-        let alertTitle = document.getElementById('ready-alert-title');
-        if (alertBanner && alertTitle) {
-            if (rCount > 0) {
-                alertTitle.innerText = `${toGujaratiDigits(rCount)} નોંધોની મુદત પૂર્ણ (૩૦ દિવસ) - જમા કરવા પાત્ર`;
-                alertBanner.style.display = 'flex';
-            } else {
-                alertBanner.style.display = 'none';
-            }
-        }
+        noticesData = list;
+        updateDashboardStatsUI();
 
-        // ૨. ગામવાર નોંધોની સ્ટ્રિપ રેન્ડર કરો
-        let vStrip = document.getElementById('village-wise-stats-strip');
-        if (vStrip && currentVillages.length > 0) {
-            vStrip.innerHTML = currentVillages.map(v => {
-                let shortVName = v.split('(')[0]; // 'ચારણગામ(સાલાવાડા)' ને નાનું બતાવવા
-                return `<div class="v-stat-item"><span>${shortVName}:</span> <span class="v-stat-badge">${toGujaratiDigits(villageCounts[v] || 0)}</span></div>`;
-            }).join('<span style="color:#e2e8f0;">|</span>');
-            vStrip.style.display = 'flex';
-        }
+        // જો યુઝર અત્યારે ૧૩૫-ડી ટેબમાં જ હોય તો તેનું UI પણ લાઈવ અપડેટ કરો
+        if (typeof renderNoticeVillageFilters === 'function') renderNoticeVillageFilters();
+        if (typeof renderNoticeTypeFilters === 'function') renderNoticeTypeFilters();
+        if (typeof updateStatusTabsUIAndCounts === 'function') updateStatusTabsUIAndCounts();
+        if (typeof applyNoticeFilters === 'function') applyNoticeFilters();
 
-        renderNoticeChart(p, d + rCount, c);
         if (loadStatus) loadStatus.innerText = "";
+    }, (error) => {
+        console.error("Notices Sync Error:", error);
+        if (loadStatus) loadStatus.innerText = "(સિંક એરર)";
     });
 
-    unsubscribeDashboardPedhinamu = db.collection("Pedhinamu_Register").onSnapshot((querySnapshot) => {
-        let count = 0;
+    // ૨. પેઢીનામા રજીસ્ટરનું સેન્ટ્રલ લિસનર
+    unsubscribePedhinamu = db.collection("Pedhinamu_Register").onSnapshot((querySnapshot) => {
+        let data = [];
         querySnapshot.forEach((doc) => {
             let r = doc.data();
+            r.Pedhinamu_ID = doc.id;
             let vName = String(r.Village_Name || '').trim();
             let isMatch = (currentVillages.length === 0) || 
-                          currentVillages.some(v => vName.includes(v) || v.includes(vName)) || 
-                          !vName;
-            if (isMatch) count++;
+                          (vName !== '' && currentVillages.some(v => isSameVillage(vName, v)));
+            if (isMatch) data.push(r);
         });
-        let elT = document.getElementById('total-pedhinamu');
-        if (elT) elT.innerText = toGujaratiDigits(count);
+
+        data.sort((a, b) => {
+            let t1 = (a.timestamp && a.timestamp.toMillis) ? a.timestamp.toMillis() : 0;
+            let t2 = (b.timestamp && b.timestamp.toMillis) ? b.timestamp.toMillis() : 0;
+            return t2 - t1;
+        });
+
+        allPedhinamuList = data;
+        safeSetText('total-pedhinamu', toGujaratiDigits(allPedhinamuList.length));
+
+        if (typeof renderPedhinamuList === 'function') renderPedhinamuList();
+    }, (error) => {
+        console.error("Pedhinamu Sync Error:", error);
     });
+}
+
+function updateDashboardStatsUI() {
+    let currentVillages = (activeSeja && activeSeja.villages) ? activeSeja.villages : [];
+    let p = 0, d = 0, rCount = 0, c = 0;
+    let today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let villageCounts = {};
+    currentVillages.forEach(v => villageCounts[v] = 0);
+
+    noticesData.forEach(r => {
+        let vName = String(r.Village_Name || r.village || '').trim();
+        let matchedVill = currentVillages.find(v => isSameVillage(vName, v));
+        if (matchedVill) {
+            villageCounts[matchedVill] = (villageCounts[matchedVill] || 0) + 1;
+        }
+
+        let subD = r.Submitted_Date || r.SubmittedDate || r.submitted_date || '';
+        let servedD = r.Served_Date || r.ServedDate || r.served_date || '';
+        let isSubmitted = (String(r.Current_Status || '').includes("જમા") || !!subD);
+
+        if (isSubmitted) {
+            c++;
+        } else if (servedD) {
+            let sDate = parseUniversalDate(servedD);
+            if (sDate) {
+                sDate.setHours(0, 0, 0, 0);
+                let diffDays = Math.floor((today - sDate) / (1000 * 60 * 60 * 24));
+                if (diffDays < 30) d++;
+                else rCount++;
+            } else { p++; }
+        } else { p++; }
+    });
+
+    safeSetText('pending-notices', toGujaratiDigits(p));
+    safeSetText('due-notices', toGujaratiDigits(d));
+    safeSetText('completed-notices', toGujaratiDigits(c));
+    safeSetText('total-pedhinamu', toGujaratiDigits(allPedhinamuList.length));
+
+    let alertBanner = document.getElementById('ready-notices-alert');
+    let alertTitle = document.getElementById('ready-alert-title');
+    if (alertBanner && alertTitle) {
+        if (rCount > 0) {
+            alertTitle.innerText = `${toGujaratiDigits(rCount)} નોંધોની મુદત પૂર્ણ (૩૦ દિવસ) - જમા કરવા પાત્ર`;
+            alertBanner.style.display = 'flex';
+        } else {
+            alertBanner.style.display = 'none';
+        }
+    }
+
+    let vStrip = document.getElementById('village-wise-stats-strip');
+    if (vStrip && currentVillages.length > 0) {
+        vStrip.innerHTML = currentVillages.map(v => {
+            let shortVName = v.split('(')[0];
+            return `<div class="v-stat-item"><span>${shortVName}:</span> <span class="v-stat-badge">${toGujaratiDigits(villageCounts[v] || 0)}</span></div>`;
+        }).join('<span style="color:#e2e8f0;">|</span>');
+        vStrip.style.display = 'flex';
+    }
+
+    renderNoticeChart(p, d + rCount, c);
 }
 
 function renderNoticeChart(pending, due, completed) {
@@ -341,73 +414,52 @@ function renderNoticeChart(pending, due, completed) {
 
 function enforceMaxTodayOnDates() {
     let todayStr = new Date().toISOString().split('T')[0];
-    const dateInputIds = ['notice-gen-date', 'notice-received-date', 'notice-served-date', 'notice-submitted-date', 'edit-notice-gen-date', 'edit-notice-received-date', 'edit-notice-served-date', 'edit-notice-submitted-date', 'inp-date', 'inp-deathdate', 'inp-affidavit-date'];
+    const dateInputIds = [
+        'notice-gen-date', 'notice-received-date', 'notice-served-date', 'notice-submitted-date',
+        'edit-notice-gen-date', 'edit-notice-received-date', 'edit-notice-served-date', 'edit-notice-submitted-date',
+        'inp-date', 'inp-deathdate', 'inp-affidavit-date'
+    ];
     dateInputIds.forEach(id => { let el = document.getElementById(id); if (el) el.setAttribute('max', todayStr); });
 }
 
-// Startup
 window.onload = function() {
-    if(typeof setupLivePreview === 'function') setupLivePreview();
+    if (typeof setupLivePreview === 'function') setupLivePreview();
     enforceMaxTodayOnDates();
     checkLoginSession();
 };
 
-// ==========================================
-// PWA INSTALL PROMPT LOGIC
-// ==========================================
+// =========================================================================
+// 5. PWA INSTALL PROMPT LOGIC
+// =========================================================================
 let deferredPrompt;
 
 window.addEventListener('beforeinstallprompt', (e) => {
-    // બ્રાઉઝરના ડિફૉલ્ટ પ્રોમ્પ્ટને અટકાવો
     e.preventDefault();
-    // ઇવેન્ટને સેવ કરી રાખો જેથી પછીથી યુઝર ક્લિક કરે ત્યારે વાપરી શકાય
     deferredPrompt = e;
-    
-    // ડેશબોર્ડ પર ઇન્સ્ટોલ બૅનર બતાવો
     let installContainer = document.getElementById('pwa-install-container');
-    if (installContainer) {
-        installContainer.style.display = 'flex';
-    }
+    if (installContainer) installContainer.style.display = 'flex';
 });
 
 function installPWAApp() {
     if (!deferredPrompt) return;
-    
-    // ઇન્સ્ટોલ પ્રોમ્પ્ટ બતાવો
     deferredPrompt.prompt();
-    
-    // યુઝરના રિસ્પોન્સની રાહ જુઓ
-    deferredPrompt.userChoice.then((choiceResult) => {
-        if (choiceResult.outcome === 'accepted') {
-            console.log('User accepted the install prompt');
-        } else {
-            console.log('User dismissed the install prompt');
-        }
+    deferredPrompt.userChoice.then(() => {
         deferredPrompt = null;
-        
-        // ઇન્સ્ટોલ થઈ ગયા પછી બૅનર છુપાવી દો
         let installContainer = document.getElementById('pwa-install-container');
-        if (installContainer) {
-            installContainer.style.display = 'none';
-        }
+        if (installContainer) installContainer.style.display = 'none';
     });
 }
 
-// જો એપ પહેલેથી જ ઇન્સ્ટોલ થયેલી હોય તો બૅનર નહીં દેખાય
-window.addEventListener('appinstalled', (evt) => {
-    console.log('App successfully installed.');
+window.addEventListener('appinstalled', () => {
     let installContainer = document.getElementById('pwa-install-container');
-    if (installContainer) {
-        installContainer.style.display = 'none';
-    }
+    if (installContainer) installContainer.style.display = 'none';
 });
 
-// ==========================================
-// SMART PHONETIC SEARCH (ENGLISH TO GUJARATI)
-// ==========================================
+// =========================================================================
+// 6. SMART PHONETIC SEARCH (ENGLISH TO GUJARATI)
+// =========================================================================
 function gujaratiToLatin(str) {
     if (!str) return "";
-    
     const charMap = {
         'અ': 'a', 'આ': 'a', 'ઇ': 'i', 'ઈ': 'i', 'ઉ': 'u', 'ઊ': 'u', 'ઋ': 'ru',
         'એ': 'e', 'ઐ': 'ai', 'ઓ': 'o', 'ઔ': 'au', 'અં': 'an', 'અઃ': 'ah',
@@ -421,7 +473,6 @@ function gujaratiToLatin(str) {
         'ય': 'y', 'ર': 'r', 'લ': 'l', 'વ': 'v', 'શ': 'sh', 'ષ': 'sh', 'સ': 's', 'હ': 'h', 'ળ': 'l',
         'ક્ષ': 'ksh', 'જ્ઞ': 'gn'
     };
-
     const matras = ['ા', 'િ', 'ી', 'ુ', 'ૂ', 'ૃ', 'ે', 'ૈ', 'ો', 'ૌ', 'ં', 'ઃ'];
     const virama = '્';
     const consonants = [
@@ -434,14 +485,11 @@ function gujaratiToLatin(str) {
     for (let i = 0; i < str.length; i++) {
         let char = str[i];
         let nextChar = str[i + 1];
-
         if (charMap[char]) {
             result += charMap[char];
-            if (consonants.includes(char)) {
-                if (!matras.includes(nextChar) && nextChar !== virama) {
-                    if (nextChar && nextChar !== ' ' && nextChar !== '-' && nextChar !== '(') {
-                        result += 'a';
-                    }
+            if (consonants.includes(char) && !matras.includes(nextChar) && nextChar !== virama) {
+                if (nextChar && nextChar !== ' ' && nextChar !== '-' && nextChar !== '(') {
+                    result += 'a';
                 }
             }
         } else if (char !== virama) {
@@ -454,39 +502,30 @@ function gujaratiToLatin(str) {
 function normalizePhonetic(str) {
     if (!str) return "";
     return str.toLowerCase()
-        .replace(/w/g, 'v')             // 'w' અને 'v' સરખા ગણાય (Salawada / Salavada)
-        .replace(/ee/g, 'i')            // 'ee' -> 'i'
-        .replace(/oo/g, 'u')            // 'oo' -> 'u'
-        .replace(/sh/g, 's')            // 'sh' -> 's'
-        .replace(/aa/g, 'a')            // 'aa' -> 'a'
-        .replace(/([a-z])\1+/g, '$1')   // ડબલ અક્ષરો સરખા ગણાય (tt -> t, ll -> l)
+        .replace(/w/g, 'v')
+        .replace(/ee/g, 'i')
+        .replace(/oo/g, 'u')
+        .replace(/sh/g, 's')
+        .replace(/aa/g, 'a')
+        .replace(/([a-z])\1+/g, '$1')
         .replace(/\s+/g, '');
 }
 
 function matchesSmartSearch(sourceGujaratiText, searchQuery) {
     if (!sourceGujaratiText || !searchQuery) return false;
-    
     let src = String(sourceGujaratiText).toLowerCase();
     let query = String(searchQuery).trim().toLowerCase();
 
-    // ૧. ડાયરેક્ટ ગુજરાતી મેચ (જો યુઝરે સીધું ગુજરાતીમાં જ ટાઇપ કર્યું હોય)
     if (src.includes(query)) return true;
 
-    // ૨. English Phonetical Match
-    let latinSrc = gujaratiToLatin(src);
-    let normSrc = normalizePhonetic(latinSrc);
+    let normSrc = normalizePhonetic(gujaratiToLatin(src));
     let normQuery = normalizePhonetic(query);
-
     if (normSrc.includes(normQuery)) return true;
 
-    // ૩. Consonant Skeleton Match (જો સ્પેલિંગમાં vowels નો થોડો ફેર હોય, દા.ત. kaslal vs kasalal)
     if (normQuery.length >= 3) {
         let skelSrc = normSrc.replace(/[aeiou]/g, '');
         let skelQuery = normQuery.replace(/[aeiou]/g, '');
-        if (skelQuery.length >= 2 && skelSrc.includes(skelQuery)) {
-            return true;
-        }
+        if (skelQuery.length >= 2 && skelSrc.includes(skelQuery)) return true;
     }
-
     return false;
 }

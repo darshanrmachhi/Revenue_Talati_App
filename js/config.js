@@ -1,18 +1,26 @@
 // js/config.js
 
+const DEFAULT_PASS = "123456";
+
+// Global Session & State Variables
 var currentUser = null;
 var userSejas = [];
 var activeSeja = null;
-var allNotices = [];
-var currentNoticeTab = 'all';
-var noticeSearchQuery = "";
-var currentEditingNotice = null;
+
+// Central Data Stores & Unsubscribers
+var noticesData = [];
 var allPedhinamuList = [];
+var unsubscribeNotices = null;
+var unsubscribePedhinamu = null;
+
+// UI & Chart States
+var currentNoticeTab = 'all';
 var pedhinamuSearchQuery = "";
 var noticeApexChart = null;
+
+// Pedhinamu Form States
 var heirsArray = [];
 var panchArray = [];
-var editModeId = null;
 var currentEditingPedhinamuId = null;
 
 const firebaseConfig = {

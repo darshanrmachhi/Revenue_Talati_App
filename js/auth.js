@@ -1,7 +1,7 @@
 // js/auth.js
 
 // =========================================================================
-// MASTER DATA LOCAL STORAGE CACHING (With 24-Hour TTL)
+// 1. MASTER DATA LOCAL STORAGE CACHING (With 24-Hour TTL)
 // =========================================================================
 const MASTER_CACHE_KEY = 'revenue_talati_master_directory_v1';
 const MASTER_CACHE_TIME_KEY = 'revenue_talati_master_directory_time_v1';
@@ -12,8 +12,7 @@ function getMasterDataCache() {
         let dataStr = localStorage.getItem(MASTER_CACHE_KEY);
         let timeStr = localStorage.getItem(MASTER_CACHE_TIME_KEY);
         if (!dataStr || !timeStr) return null;
-        let age = Date.now() - parseInt(timeStr, 10);
-        if (age > CACHE_TTL_MS) {
+        if (Date.now() - parseInt(timeStr, 10) > CACHE_TTL_MS) {
             localStorage.removeItem(MASTER_CACHE_KEY);
             localStorage.removeItem(MASTER_CACHE_TIME_KEY);
             return null;
@@ -39,19 +38,18 @@ function forceRefreshMasterData() {
     localStorage.removeItem('taluka_directory_cache');
     if (typeof talukaDirectoryData !== 'undefined') talukaDirectoryData = null;
 
-    showToast("માસ્ટર ડેટા રિફ્રેશ થઈ રહ્યો છે...");
+    showToast("માસ્ટર ડેટા રિફ્રેશ થઈ રહ્યો છે...", "info");
     db.collection("Master_Data").doc("Taluka_Directory").get().then((doc) => {
         if (doc.exists) {
             let response = doc.data();
             setMasterDataCache(response);
             if (typeof talukaDirectoryData !== 'undefined') talukaDirectoryData = response;
             
-            // જો યુઝર લોગિન હોય તો તેના સેજાના ગામો પણ તાજા કરો
-            if (currentUser) {
-                syncUserSejasFromMaster(response);
-            }
-            if (document.getElementById('view-directory').classList.contains('active')) {
-                loadDirectoryData();
+            if (currentUser) syncUserSejasFromMaster(response);
+            
+            let dirView = document.getElementById('view-directory');
+            if (dirView && dirView.classList.contains('active')) {
+                if (typeof loadDirectoryData === 'function') loadDirectoryData();
             } else {
                 initUserEnvironment();
             }
@@ -63,64 +61,34 @@ function forceRefreshMasterData() {
 }
 
 // =========================================================================
-// MULTI-USER AUTHENTICATION & SESSION MANAGEMENT
+// 2. CENTRALIZED SEJA MATCHING HELPER (NO DUPLICATION)
 // =========================================================================
-// ensureFirebaseAuth deleted here
-
-function checkLoginSession() {
-    let savedSession = localStorage.getItem('revenue_talati_user');
-    if (savedSession) {
-        try {
-            let parsed = JSON.parse(savedSession);
-            currentUser = parsed.user;
-            userSejas = parsed.sejas || [];
-            activeSeja = parsed.activeSeja || (userSejas.length > 0 ? userSejas[0] : null);
-            
-            let loginModal = document.getElementById('modal-login');
-            if (loginModal) loginModal.style.display = 'none';
-            
-            let cachedMaster = getMasterDataCache();
-            if (cachedMaster && (!activeSeja || !activeSeja.villages || activeSeja.villages.length <= 1)) {
-                syncUserSejasFromMaster(cachedMaster);
-            }
-            
-            initUserEnvironment();
-        } catch (e) {
-            localStorage.removeItem('revenue_talati_user');
-            let loginModal = document.getElementById('modal-login');
-            if (loginModal) loginModal.style.display = 'flex';
-        }
-    } else {
-        let loginModal = document.getElementById('modal-login');
-        if (loginModal) loginModal.style.display = 'flex';
-    }
-}
-
-function syncUserSejasFromMaster(masterData) {
-    if (!masterData || !masterData.sejas || !currentUser) return;
-    let mob = String(currentUser.mobile || "").replace(/[^0-9]/g, '');
-    let userName = String(currentUser.name || "").trim().toLowerCase();
-    let userSejaStr = String(currentUser.seja || "").trim().toLowerCase();
-
+function extractMatchedSejas(masterData, mob, userName, userSejaStr) {
     let matchedSejas = [];
+    if (!masterData || !Array.isArray(masterData.sejas)) return matchedSejas;
+
+    let cleanMob = String(mob || "").replace(/[^0-9]/g, '');
+    let cleanName = String(userName || "").trim().toLowerCase();
+    let cleanSeja = String(userSejaStr || "").trim().toLowerCase();
+
     masterData.sejas.forEach(s => {
         let tName = String(s.talatiName || "").trim().toLowerCase();
         let sCont = String(s.talatiMobile || s.contact || s.mobile || "").replace(/[^0-9]/g, '');
         let sName = String(s.sejaName || s.name || "").trim().toLowerCase();
 
         let isMatch = false;
-        if (mob && sCont && sCont.includes(mob)) isMatch = true;
-        else if (userSejaStr && sName && (userSejaStr.includes(sName) || sName.includes(userSejaStr))) isMatch = true;
-        else if (userName && tName && (tName.includes(userName) || userName.includes(tName))) isMatch = true;
+        if (cleanMob && sCont && sCont.includes(cleanMob)) isMatch = true;
+        else if (cleanSeja && sName && (cleanSeja.includes(sName) || sName.includes(cleanSeja))) isMatch = true;
+        else if (cleanName && tName && (tName.includes(cleanName) || cleanName.includes(tName))) isMatch = true;
 
         if (isMatch) {
             let vList = [];
-            if (s.panchayats && Array.isArray(s.panchayats)) {
+            if (Array.isArray(s.panchayats)) {
                 s.panchayats.forEach(p => {
-                    if (p.villages && Array.isArray(p.villages)) {
+                    if (Array.isArray(p.villages)) {
                         p.villages.forEach(v => {
                             let vName = typeof v === 'string' ? v : (v.villageName || v.name || "");
-                            if (vName) vList.push(vName);
+                            if (vName) vList.push(vName.trim());
                         });
                     }
                 });
@@ -133,82 +101,84 @@ function syncUserSejasFromMaster(masterData) {
             });
         }
     });
+    return matchedSejas;
+}
 
-    if (matchedSejas.length > 0) {
-        userSejas = matchedSejas;
-        activeSeja = userSejas[0];
-        localStorage.setItem('revenue_talati_user', JSON.stringify({
-            user: currentUser,
-            sejas: userSejas,
-            activeSeja: activeSeja
-        }));
+function saveUserSessionToLocal() {
+    localStorage.setItem('revenue_talati_user', JSON.stringify({
+        user: currentUser,
+        sejas: userSejas,
+        activeSeja: activeSeja
+    }));
+}
+
+function syncUserSejasFromMaster(masterData) {
+    if (!masterData || !currentUser) return;
+    let matched = extractMatchedSejas(masterData, currentUser.mobile, currentUser.name, currentUser.seja);
+    if (matched.length > 0) {
+        userSejas = matched;
+        // જો અગાઉ પસંદ કરેલો સેજો નવા લિસ્ટમાં હોય તો તે જ રાખો, નહીંતર પહેલો સેજો
+        let prevActive = activeSeja ? matched.find(s => s.sejaName === activeSeja.sejaName) : null;
+        activeSeja = prevActive || userSejas[0];
+        saveUserSessionToLocal();
+    }
+}
+
+// =========================================================================
+// 3. MULTI-USER AUTHENTICATION & SESSION MANAGEMENT
+// =========================================================================
+function checkLoginSession() {
+    let savedSession = localStorage.getItem('revenue_talati_user');
+    let loginModal = document.getElementById('modal-login');
+
+    if (savedSession) {
+        try {
+            let parsed = JSON.parse(savedSession);
+            currentUser = parsed.user;
+            userSejas = parsed.sejas || [];
+            activeSeja = parsed.activeSeja || (userSejas.length > 0 ? userSejas[0] : null);
+            
+            if (loginModal) loginModal.style.display = 'none';
+            
+            let cachedMaster = getMasterDataCache();
+            if (cachedMaster && (!activeSeja || !activeSeja.villages || activeSeja.villages.length <= 1)) {
+                syncUserSejasFromMaster(cachedMaster);
+            }
+            initUserEnvironment();
+        } catch (e) {
+            localStorage.removeItem('revenue_talati_user');
+            if (loginModal) loginModal.style.display = 'flex';
+        }
+    } else {
+        if (loginModal) loginModal.style.display = 'flex';
     }
 }
 
 function executeLogin() {
-    let mobInput = document.getElementById('login-mobile').value.trim();
-    let passInput = document.getElementById('login-password').value.trim();
+    let mobInput = toEnglishDigits(safeGetValue('login-mobile')).replace(/[^0-9]/g, '');
+    let passInput = toEnglishDigits(safeGetValue('login-password'));
     let btn = document.getElementById('btn-login-submit');
+    let defaultPwd = (typeof DEFAULT_PASS !== 'undefined') ? DEFAULT_PASS : "123456";
 
     if (mobInput.length !== 10) { alert("કૃપા કરી ૧૦ આંકડાનો સાચો મોબાઈલ નંબર નાખો."); return; }
     if (!passInput) { alert("કૃપા કરી પાસવર્ડ નાખો."); return; }
 
-    btn.disabled = true;
-    btn.innerText = "ચકાસણી ચાલુ છે...";
+    if (btn) { btn.disabled = true; btn.innerText = "ચકાસણી ચાલુ છે..."; }
 
     db.collection("Users").get().then(async (snapshot) => {
         let foundUser = null;
+        let foundDocId = null;
+
         snapshot.forEach(doc => {
             let d = doc.data();
-            let dbMob = String(d.Mobile || d.mobile || d.Phone || doc.id || "").replace(/[^0-9]/g, '');
+            let dbMob = toEnglishDigits(String(d.Mobile || d.mobile || d.Phone || doc.id || "")).replace(/[^0-9]/g, '');
             if (dbMob.includes(mobInput)) {
                 foundUser = d;
+                foundDocId = doc.id;
             }
         });
 
-        if (!foundUser) {
-            // જો Users કલેક્શનમાં ન હોય તો સીધું Taluka_Directory માંથી તલાટી મોબાઈલ ચેક કરો
-            let masterDoc = await db.collection("Master_Data").doc("Taluka_Directory").get();
-            if (masterDoc.exists) {
-                let mData = masterDoc.data();
-                setMasterDataCache(mData);
-                if (mData.sejas) {
-                    let matchedSeja = mData.sejas.find(s => String(s.talatiMobile || "").replace(/[^0-9]/g, '').includes(mobInput));
-                    if (matchedSeja && passInput === "000000") {
-                        foundUser = {
-                            Name: matchedSeja.talatiName,
-                            Mobile: mobInput,
-                            Seja_Name: matchedSeja.sejaName,
-                            Password: "000000"
-                        };
-                    }
-                }
-            }
-        }
-
-        if (!foundUser) {
-            btn.disabled = false; btn.innerText = "લોગિન કરો";
-            alert("આ મોબાઈલ નંબર રજીસ્ટર થયેલ નથી!");
-            return;
-        }
-
-        let dbPass = String(foundUser.Password || foundUser.password || "000000").trim();
-        if (passInput !== dbPass && passInput !== "000000") {
-            btn.disabled = false; btn.innerText = "લોગિન કરો";
-            alert("પાસવર્ડ ખોટો છે!");
-            return;
-        }
-
-        let userName = foundUser.Name || foundUser.name || foundUser.Talati_Name || "તલાટી";
-        let userSejaStr = String(foundUser.Seja_Name || foundUser.seja || "").trim().toLowerCase();
-
-        currentUser = {
-            name: userName,
-            mobile: mobInput,
-            seja: foundUser.Seja_Name || ""
-        };
-
-        // Master_Data માંથી સેજા અને ગામો મેળવો
+        // Master_Data લોડ કરો (કેશમાંથી અથવા Firestore માંથી)
         let masterData = getMasterDataCache();
         if (!masterData) {
             try {
@@ -220,45 +190,52 @@ function executeLogin() {
             } catch (e) { console.warn(e); }
         }
 
-        let loadedSejas = [];
-        if (masterData && masterData.sejas) {
-            masterData.sejas.forEach(s => {
-                let tName = String(s.talatiName || "").trim().toLowerCase();
-                let sCont = String(s.talatiMobile || s.contact || s.mobile || "").replace(/[^0-9]/g, '');
-                let sName = String(s.sejaName || s.name || "").trim().toLowerCase();
-
-                let isMatch = false;
-                if (sCont && sCont.includes(mobInput)) isMatch = true;
-                else if (userSejaStr && sName && (userSejaStr.includes(sName) || sName.includes(userSejaStr))) isMatch = true;
-                else if (tName && userName.toLowerCase() && (tName.includes(userName.toLowerCase()) || userName.toLowerCase().includes(tName))) isMatch = true;
-
-                if (isMatch) {
-                    let vList = [];
-                    if (s.panchayats && Array.isArray(s.panchayats)) {
-                        s.panchayats.forEach(p => {
-                            if (p.villages && Array.isArray(p.villages)) {
-                                p.villages.forEach(v => {
-                                    let vName = typeof v === 'string' ? v : (v.villageName || v.name || "");
-                                    if (vName) vList.push(vName);
-                                });
-                            }
-                        });
-                    }
-                    vList = [...new Set(vList)].filter(v => v !== "");
-                    loadedSejas.push({
-                        sejaName: s.sejaName || "સેજો",
-                        chargeType: s.chargeType || "કાયમી",
-                        villages: vList
-                    });
-                }
-            });
+        // જો Users કલેક્શનમાં ન હોય તો સીધું Taluka_Directory માંથી તલાટી મોબાઈલ ચેક કરો
+        if (!foundUser && masterData && Array.isArray(masterData.sejas)) {
+            let matchedSeja = masterData.sejas.find(s => String(s.talatiMobile || "").replace(/[^0-9]/g, '').includes(mobInput));
+            if (matchedSeja) {
+                foundUser = {
+                    Name: matchedSeja.talatiName,
+                    Mobile: mobInput,
+                    Seja_Name: matchedSeja.sejaName,
+                    Password: defaultPwd
+                };
+            }
         }
 
+        if (!foundUser) {
+            if (btn) { btn.disabled = false; btn.innerText = "લોગિન કરો"; }
+            alert("આ મોબાઈલ નંબર રજીસ્ટર થયેલ નથી!");
+            return;
+        }
+
+        let dbPass = toEnglishDigits(String(foundUser.Password || foundUser.password || defaultPwd).trim());
+        // જો ડેટાબેઝમાં જૂનો '000000' રહી ગયો હોય તો પણ '123456' અને યુઝરનો પોતાનો પાસવર્ડ માન્ય ગણાશે
+        let isValidPass = (passInput === dbPass) || (dbPass === "000000" && passInput === defaultPwd);
+
+        if (!isValidPass) {
+            if (btn) { btn.disabled = false; btn.innerText = "લોગિન કરો"; }
+            alert("પાસવર્ડ ખોટો છે!");
+            return;
+        }
+
+        let userName = foundUser.Name || foundUser.name || foundUser.Talati_Name || "તલાટી";
+        let userSejaStr = String(foundUser.Seja_Name || foundUser.seja || "").trim();
+
+        currentUser = {
+            docId: foundDocId || mobInput,
+            name: userName,
+            mobile: mobInput,
+            seja: userSejaStr
+        };
+
+        let loadedSejas = extractMatchedSejas(masterData, mobInput, userName, userSejaStr);
+
         if (loadedSejas.length === 0) {
-            let rawVillages = foundUser.Villages || foundUser.Village || foundUser.villages || foundUser.Seja_Name || "";
+            let rawVillages = foundUser.Villages || foundUser.Village || foundUser.villages || userSejaStr || "";
             let villagesArray = String(rawVillages).split(',').map(v => v.trim()).filter(v => v !== "");
             loadedSejas.push({
-                sejaName: foundUser.Seja_Name || "સેજો",
+                sejaName: userSejaStr || "સેજો",
                 chargeType: foundUser.Charge_Type || "કાયમી",
                 villages: villagesArray
             });
@@ -266,22 +243,15 @@ function executeLogin() {
 
         userSejas = loadedSejas;
         activeSeja = userSejas[0];
+        saveUserSessionToLocal();
 
-        localStorage.setItem('revenue_talati_user', JSON.stringify({
-            user: currentUser,
-            sejas: userSejas,
-            activeSeja: activeSeja
-        }));
-
-        btn.disabled = false;
-        btn.innerText = "લોગિન કરો";
+        if (btn) { btn.disabled = false; btn.innerText = "લોગિન કરો"; }
         document.getElementById('modal-login').style.display = 'none';
         initUserEnvironment();
         showToast("સ્વાગત છે, " + currentUser.name);
 
     }).catch(err => {
-        btn.disabled = false;
-        btn.innerText = "લોગિન કરો";
+        if (btn) { btn.disabled = false; btn.innerText = "લોગિન કરો"; }
         alert("લોગિન એરર: " + err.message);
     });
 }
@@ -289,17 +259,16 @@ function executeLogin() {
 function initUserEnvironment() {
     if (!currentUser || !activeSeja) return;
 
-    let elName = document.getElementById('user-display-name'); 
-    let elTitle = document.getElementById('current-seja-title'); 
+    safeSetText('user-display-name', currentUser.name || "તલાટી");
+    safeSetText('current-seja-title', (activeSeja.sejaName || "") + " સેજો");
+
     let elBadge = document.getElementById('current-charge-badge'); 
-    let elSwitch = document.getElementById('seja-switch-btn-container');
-    
-    if (elName) elName.innerText = currentUser.name || "તલાટી";
-    if (elTitle) elTitle.innerText = (activeSeja.sejaName || "") + " સેજો";
     if (elBadge) { 
         elBadge.innerText = activeSeja.chargeType || "કાયમી"; 
         elBadge.className = "badge " + (activeSeja.chargeType === 'કાયમી' ? 'permanent' : 'additional'); 
     }
+
+    let elSwitch = document.getElementById('seja-switch-btn-container');
     if (elSwitch) { elSwitch.style.display = (userSejas && userSejas.length > 1) ? 'block' : 'none'; }
     
     // ૧. આજની તારીખ અને વાર સેટ કરો
@@ -324,11 +293,10 @@ function initUserEnvironment() {
     // ૩. ગામોના ડ્રોપડાઉન ભરો
     if (activeSeja.villages && activeSeja.villages.length > 0) {
         const dropIds = ['inp-village', 'panch-vill', 'notice-village', 'edit-notice-village'];
+        let optionsHtml = activeSeja.villages.map(v => `<option value="${v}">${v}</option>`).join('');
         dropIds.forEach(id => {
             let sel = document.getElementById(id);
-            if (sel) {
-                sel.innerHTML = activeSeja.villages.map(v => `<option value="${v}">${v}</option>`).join('');
-            }
+            if (sel) sel.innerHTML = optionsHtml;
         });
     }
     
@@ -355,27 +323,43 @@ function switchActiveSeja(sejaName) {
     let found = userSejas.find(s => s.sejaName === sejaName);
     if (found) {
         activeSeja = found;
-        localStorage.setItem('revenue_talati_user', JSON.stringify({
-            user: currentUser,
-            sejas: userSejas,
-            activeSeja: activeSeja
-        }));
+        saveUserSessionToLocal();
         document.getElementById('modal-seja-switch').style.display = 'none';
         initUserEnvironment();
         showToast(`${sejaName} સેજો સક્રિય થયો`);
     }
 }
 
+// ભવિષ્યમાં પ્રોફાઈલમાંથી પાસવર્ડ બદલવા માટેનું તૈયાર ફંક્શન
+function changeUserPassword(newPass) {
+    if (!currentUser || !currentUser.mobile) return;
+    let cleanPass = toEnglishDigits(String(newPass || '').trim());
+    if (cleanPass.length < 6) { alert("પાસવર્ડ ઓછામાં ઓછો ૬ અક્ષર/આંકડાનો હોવો જોઈએ."); return; }
+
+    let docRef = db.collection("Users").doc(currentUser.docId || currentUser.mobile);
+    docRef.set({
+        Name: currentUser.name,
+        Mobile: currentUser.mobile,
+        Seja_Name: currentUser.seja,
+        Password: cleanPass,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true }).then(() => {
+        showToast("પાસવર્ડ સફળતાપૂર્વક બદલાઈ ગયો!");
+    }).catch(err => {
+        alert("પાસવર્ડ અપડેટ એરર: " + err.message);
+    });
+}
+
 function userLogout() {
     if (!confirm("શું તમે લોગઆઉટ કરવા માંગો છો?")) return;
-    if (typeof unsubscribeNotices === 'function' && unsubscribeNotices) unsubscribeNotices();
-    if (typeof unsubscribePedhinamu === 'function' && unsubscribePedhinamu) unsubscribePedhinamu();
-    if (typeof unsubscribeDashboardNotices === 'function' && unsubscribeDashboardNotices) unsubscribeDashboardNotices();
-    if (typeof unsubscribeDashboardPedhinamu === 'function' && unsubscribeDashboardPedhinamu) unsubscribeDashboardPedhinamu();
+    if (typeof unsubscribeNotices === 'function' && unsubscribeNotices) { unsubscribeNotices(); unsubscribeNotices = null; }
+    if (typeof unsubscribePedhinamu === 'function' && unsubscribePedhinamu) { unsubscribePedhinamu(); unsubscribePedhinamu = null; }
 
     localStorage.removeItem('revenue_talati_user');
     currentUser = null;
     userSejas = [];
     activeSeja = null;
+    noticesData = [];
+    allPedhinamuList = [];
     document.getElementById('modal-login').style.display = 'flex';
 }
