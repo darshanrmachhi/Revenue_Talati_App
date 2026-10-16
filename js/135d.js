@@ -1,10 +1,7 @@
 // js/135d.js
 
-var noticesData = [];
-var currentNoticeTab = 'all'; // ડિફોલ્ટ: બધી (All)
 var currentVillageFilter = 'all';
 var currentTypeFilter = 'all';
-var unsubscribeNotices = null;
 var currentEditingNoticeId = null;
 
 var STANDARD_NOTICE_TYPES = [
@@ -17,18 +14,9 @@ var STANDARD_NOTICE_TYPES = [
     'અન્ય'
 ];
 
-function getVillageBase(name) {
-    if (!name) return '';
-    return String(name).split('(')[0].replace(/[\s\-_]/g, '').trim().toLowerCase();
-}
-
-function isSameVillage(v1, v2) {
-    if (!v1 || !v2) return false;
-    var b1 = getVillageBase(v1);
-    var b2 = getVillageBase(v2);
-    return (b1 && b2 && b1 === b2);
-}
-
+// =========================================================
+// ૧. હેલ્પર ફંક્શન્સ (નોટિસ ડેટા રીડર્સ & સ્ટેટસ કેલ્ક્યુલેટર)
+// =========================================================
 function getNoticeType(item) {
     if (!item || typeof item !== 'object') return '';
     var directVal = item.Notice_Type || item.notice_type || item.NoticeType || 
@@ -76,66 +64,55 @@ function getNoticeSubDate(item) {
     return item.Submitted_Date || item.SubmittedDate || item.submitted_date || '';
 }
 
+// નોટિસની સ્થિતિ અને દિવસોની ગણતરી કરતું સેન્ટ્રલ ફંક્શન (No Duplication)
+function evaluateNoticeStatus(item, todayDate) {
+    var today = todayDate || new Date();
+    today.setHours(0, 0, 0, 0);
+
+    var servedD = getNoticeServedDate(item);
+    var subD = getNoticeSubDate(item);
+    var isSubmitted = (String(item.Current_Status || '').includes("જમા") || !!subD);
+    var sDate = servedD ? parseUniversalDate(servedD) : null;
+    var diffDays = null;
+
+    if (sDate) {
+        sDate.setHours(0, 0, 0, 0);
+        diffDays = Math.floor((today - sDate) / (1000 * 60 * 60 * 24));
+    }
+
+    var state = 'pending';
+    if (isSubmitted) {
+        state = 'completed';
+    } else if (servedD) {
+        state = (diffDays !== null && diffDays >= 30) ? 'ready' : 'active';
+    }
+
+    return {
+        state: state,
+        isSubmitted: isSubmitted,
+        servedD: servedD,
+        subD: subD,
+        diffDays: diffDays
+    };
+}
+
 // =========================================================
-// ૧. લાઈવ નોટિસ ડેટા લોડ કરવો
+// ૨. ૧૩૫-ડી ડેસ્ક લોડ કરવું (Central Data માંથી Instant Render)
 // =========================================================
 function loadNoticesDesk() {
     renderNoticeVillageFilters();
     renderNoticeTypeFilters();
+    updateStatusTabsUIAndCounts();
+    applyNoticeFilters();
 
-    var container = document.getElementById('notice-list-container');
-    if (container && noticesData.length === 0) {
-        container.innerHTML = '<p style="text-align:center; color:#777; margin-top:20px;"><i class="fa-solid fa-spinner fa-spin"></i> નોટિસો લોડ થઈ રહી છે...</p>';
+    // જો કોઈ કારણસર સેન્ટ્રલ લિસનર ચાલુ ન હોય તો જ ચાલુ કરો
+    if (!unsubscribeNotices && typeof loadDashboardData === 'function') {
+        loadDashboardData();
     }
-
-    if (unsubscribeNotices) {
-        unsubscribeNotices();
-    }
-
-    var currentVillages = (typeof activeSeja !== 'undefined' && activeSeja && activeSeja.villages) ? activeSeja.villages : [];
-
-    unsubscribeNotices = db.collection("Notices_135D").onSnapshot(function(querySnapshot) {
-        var list = [];
-        querySnapshot.forEach(function(doc) {
-            var data = doc.data();
-            data.id = doc.id;
-            
-            var vName = String(data.Village_Name || data.village || '').trim();
-            var isMatch = (currentVillages.length === 0) || 
-                          currentVillages.some(function(v) { return isSameVillage(vName, v); });
-
-            if (isMatch) {
-                list.push(data);
-            }
-        });
-
-        list.sort(function(a, b) {
-            var timeA = 0;
-            var timeB = 0;
-            if (a.createdAt && a.createdAt.toDate) timeA = a.createdAt.toDate().getTime();
-            else if (getNoticeRecDate(a)) timeA = new Date(parseUniversalDate(getNoticeRecDate(a))).getTime() || 0;
-
-            if (b.createdAt && b.createdAt.toDate) timeB = b.createdAt.toDate().getTime();
-            else if (getNoticeRecDate(b)) timeB = new Date(parseUniversalDate(getNoticeRecDate(b))).getTime() || 0;
-
-            return timeB - timeA;
-        });
-
-        noticesData = list;
-        renderNoticeVillageFilters();
-        renderNoticeTypeFilters();
-        updateStatusTabsUIAndCounts(); // ટેબ્સના કાઉન્ટ અને એક્ટિવ સ્ટેટ્સ અપડેટ કરો
-        applyNoticeFilters();
-    }, function(error) {
-        console.error("Firestore 135D Error:", error);
-        if (container) {
-            container.innerHTML = '<p style="text-align:center; color:#dc2626; padding: 20px;">ડેટા લાવવામાં એરર: ' + error.message + '</p>';
-        }
-    });
 }
 
 // =========================================================
-// ૨. ગામ ફિલ્ટર બટન્સ (Chips)
+// ૩. ગામ ફિલ્ટર બટન્સ (Chips)
 // =========================================================
 function renderNoticeVillageFilters() {
     var cont = document.getElementById('notice-village-filters');
@@ -145,6 +122,11 @@ function renderNoticeVillageFilters() {
     if (currentVillages.length === 0) {
         cont.innerHTML = '';
         return;
+    }
+
+    // જો પસંદ કરેલું ગામ નવા સેજામાં ન હોય તો 'all' કરી દો
+    if (currentVillageFilter !== 'all' && !currentVillages.some(function(v) { return isSameVillage(v, currentVillageFilter); })) {
+        currentVillageFilter = 'all';
     }
 
     var counts = { all: noticesData.length };
@@ -171,14 +153,13 @@ function switchNoticeVillage(vName, btnElem) {
     document.querySelectorAll('.village-filter-btn').forEach(function(b) { b.classList.remove('active'); });
     if (btnElem) btnElem.classList.add('active');
     
-    // ગામ બદલાય ત્યારે પ્રકાર અને ટેબ્સના કાઉન્ટ તાજા કરો
     renderNoticeTypeFilters();
     updateStatusTabsUIAndCounts();
     applyNoticeFilters();
 }
 
 // =========================================================
-// ૩. પ્રકાર ફિલ્ટર બટન્સ (Type Filter Chips)
+// ૪. પ્રકાર ફિલ્ટર બટન્સ (Type Filter Chips)
 // =========================================================
 function renderNoticeTypeFilters() {
     var cont = document.getElementById('notice-type-filters');
@@ -191,17 +172,10 @@ function renderNoticeTypeFilters() {
         });
     }
 
-    var typesInDb = [];
+    var displayTypes = STANDARD_NOTICE_TYPES.slice();
     baseList.forEach(function(n) {
         var t = getNoticeType(n);
-        if (t && typesInDb.indexOf(t) === -1) {
-            typesInDb.push(t);
-        }
-    });
-
-    var displayTypes = STANDARD_NOTICE_TYPES.slice();
-    typesInDb.forEach(function(t) {
-        if (displayTypes.indexOf(t) === -1) {
+        if (t && displayTypes.indexOf(t) === -1) {
             displayTypes.push(t);
         }
     });
@@ -210,7 +184,7 @@ function renderNoticeTypeFilters() {
     displayTypes.forEach(function(t) {
         counts[t] = baseList.filter(function(n) {
             var nt = getNoticeType(n);
-            return nt.toLowerCase() === t.toLowerCase() || nt.includes(t) || t.includes(nt);
+            return nt && (nt.toLowerCase() === t.toLowerCase() || nt.includes(t) || t.includes(nt));
         }).length;
     });
 
@@ -239,17 +213,16 @@ function switchNoticeType(tName, btnElem) {
 }
 
 // =========================================================
-// ૪. સ્થિતિવાર ટેબ્સના કાઉન્ટ અને UI અપડેટ (ખાસ સુધારો)
+// ૫. સ્થિતિવાર ટેબ્સના કાઉન્ટ અને UI અપડેટ
 // =========================================================
 function updateStatusTabsUIAndCounts() {
-    // પસંદ કરેલા ગામ અને પ્રકાર મુજબ ટેબ્સના કાઉન્ટ ગણો
     var baseList = noticesData.filter(function(item) {
         if (currentVillageFilter !== 'all') {
             if (!isSameVillage(item.Village_Name || item.village, currentVillageFilter)) return false;
         }
         if (currentTypeFilter !== 'all') {
             var nType = getNoticeType(item);
-            if (nType.toLowerCase() !== currentTypeFilter.toLowerCase() && !nType.includes(currentTypeFilter)) return false;
+            if (!nType || (nType.toLowerCase() !== currentTypeFilter.toLowerCase() && !nType.includes(currentTypeFilter))) return false;
         }
         return true;
     });
@@ -257,49 +230,22 @@ function updateStatusTabsUIAndCounts() {
     var today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    var cntAll = baseList.length;
-    var cntPending = 0;
-    var cntActive = 0;
-    var cntReady = 0;
-    var cntCompleted = 0;
+    var counts = { all: baseList.length, pending: 0, active: 0, ready: 0, completed: 0 };
 
     baseList.forEach(function(item) {
-        var servedD = getNoticeServedDate(item);
-        var subD = getNoticeSubDate(item);
-        var isSubmitted = (String(item.Current_Status || '').includes("જમા") || !!subD);
-        var sDate = servedD ? parseUniversalDate(servedD) : null;
-        var diffDays = null;
-        if (sDate) {
-            sDate.setHours(0, 0, 0, 0);
-            diffDays = Math.floor((today - sDate) / (1000 * 60 * 60 * 24));
-        }
-
-        if (isSubmitted) {
-            cntCompleted++;
-        } else if (servedD) {
-            if (diffDays !== null && diffDays >= 30) cntReady++;
-            else cntActive++;
-        } else {
-            cntPending++;
-        }
+        var st = evaluateNoticeStatus(item, today);
+        if (counts[st.state] !== undefined) counts[st.state]++;
     });
 
-    // ટેબ્સ પર સંખ્યા બતાવો
-    safeSetText('badge-tab-all', toGujaratiDigits(cntAll));
-    safeSetText('badge-tab-pending', toGujaratiDigits(cntPending));
-    safeSetText('badge-tab-active', toGujaratiDigits(cntActive));
-    safeSetText('badge-tab-ready', toGujaratiDigits(cntReady));
-    safeSetText('badge-tab-completed', toGujaratiDigits(cntCompleted));
+    safeSetText('badge-tab-all', toGujaratiDigits(counts.all));
+    safeSetText('badge-tab-pending', toGujaratiDigits(counts.pending));
+    safeSetText('badge-tab-active', toGujaratiDigits(counts.active));
+    safeSetText('badge-tab-ready', toGujaratiDigits(counts.ready));
+    safeSetText('badge-tab-completed', toGujaratiDigits(counts.completed));
 
-    // એક્ટિવ ટેબનું સફેદ બોક્સ યોગ્ય ટેબ પર સેટ કરો
     document.querySelectorAll('.notice-tabs .tab-btn').forEach(function(b) { b.classList.remove('active'); });
-    var activeTabEl = document.getElementById('tab-btn-' + currentNoticeTab);
-    if (activeTabEl) {
-        activeTabEl.classList.add('active');
-    } else {
-        var defEl = document.getElementById('tab-btn-all');
-        if (defEl) defEl.classList.add('active');
-    }
+    var activeTabEl = document.getElementById('tab-btn-' + currentNoticeTab) || document.getElementById('tab-btn-all');
+    if (activeTabEl) activeTabEl.classList.add('active');
 }
 
 function switchNoticeTab(tabKey, btnElem) {
@@ -310,17 +256,15 @@ function switchNoticeTab(tabKey, btnElem) {
 }
 
 function switchNoticeTabAndShow(tabKey) {
-    showView('135d-desk');
     currentNoticeTab = tabKey;
-    updateStatusTabsUIAndCounts();
-    applyNoticeFilters();
+    showView('135d-desk');
 }
 
 // =========================================================
-// ૫. ફિલ્ટરિંગ અને કાર્ડ્સ રેન્ડરિંગ લોજિક
+// ૬. ફિલ્ટરિંગ અને કાર્ડ્સ રેન્ડરિંગ લોજિક
 // =========================================================
 function applyNoticeFilters() {
-    var query = document.getElementById('notice-search-input') ? document.getElementById('notice-search-input').value.trim().toLowerCase() : '';
+    var query = safeGetValue('notice-search-input').toLowerCase();
     var clearBtn = document.getElementById('clear-notice-search');
     if (clearBtn) clearBtn.style.display = query ? 'block' : 'none';
 
@@ -328,42 +272,23 @@ function applyNoticeFilters() {
     today.setHours(0, 0, 0, 0);
 
     var filtered = noticesData.filter(function(item) {
-        // ૧. ગામ ફિલ્ટર
         if (currentVillageFilter !== 'all') {
             if (!isSameVillage(item.Village_Name || item.village, currentVillageFilter)) return false;
         }
 
-        // ૨. પ્રકાર ફિલ્ટર
         if (currentTypeFilter !== 'all') {
             var nType = getNoticeType(item);
-            var matchType = nType.toLowerCase() === currentTypeFilter.toLowerCase() || 
+            var matchType = nType && (nType.toLowerCase() === currentTypeFilter.toLowerCase() || 
                             nType.includes(currentTypeFilter) || 
-                            currentTypeFilter.includes(nType);
+                            currentTypeFilter.includes(nType));
             if (!matchType) return false;
         }
 
-        // ૩. સ્થિતિ ફિલ્ટર (જો 'all' હોય તો ફિલ્ટર ન કરવું)
-        var servedD = getNoticeServedDate(item);
-        var subD = getNoticeSubDate(item);
-        var isSubmitted = (String(item.Current_Status || '').includes("જમા") || !!subD);
-        var sDate = servedD ? parseUniversalDate(servedD) : null;
-        var diffDays = null;
-        if (sDate) {
-            sDate.setHours(0, 0, 0, 0);
-            diffDays = Math.floor((today - sDate) / (1000 * 60 * 60 * 24));
+        if (currentNoticeTab !== 'all') {
+            var st = evaluateNoticeStatus(item, today);
+            if (st.state !== currentNoticeTab) return false;
         }
 
-        if (currentNoticeTab === 'pending') {
-            if (isSubmitted || servedD) return false;
-        } else if (currentNoticeTab === 'active') {
-            if (isSubmitted || !servedD || (diffDays !== null && diffDays >= 30)) return false;
-        } else if (currentNoticeTab === 'ready') {
-            if (isSubmitted || !servedD || (diffDays !== null && diffDays < 30)) return false;
-        } else if (currentNoticeTab === 'completed') {
-            if (!isSubmitted) return false;
-        }
-
-        // ૪. સર્ચ ફિલ્ટર
         if (query) {
             var mNo = String(item.Mutation_No || '');
             var match = mNo.includes(query) || 
@@ -377,17 +302,17 @@ function applyNoticeFilters() {
         return true;
     });
 
-    renderNoticeList(filtered);
+    renderNoticeList(filtered, today);
 }
 
-function filterNotices(val) { applyNoticeFilters(); }
+function filterNotices() { applyNoticeFilters(); }
+
 function clearNoticeSearch() {
-    var inp = document.getElementById('notice-search-input');
-    if (inp) inp.value = '';
+    safeSetValue('notice-search-input', '');
     applyNoticeFilters();
 }
 
-function renderNoticeList(list) {
+function renderNoticeList(list, today) {
     var container = document.getElementById('notice-list-container');
     if (!container) return;
 
@@ -396,35 +321,21 @@ function renderNoticeList(list) {
         return;
     }
 
-    var today = new Date();
-    today.setHours(0, 0, 0, 0);
-
     var html = list.map(function(item) {
-        var servedD = getNoticeServedDate(item);
-        var subD = getNoticeSubDate(item);
-        var isSubmitted = (String(item.Current_Status || '').includes("જમા") || !!subD);
-        var sDate = servedD ? parseUniversalDate(servedD) : null;
-        var diffDays = null;
-        if (sDate) {
-            sDate.setHours(0, 0, 0, 0);
-            diffDays = Math.floor((today - sDate) / (1000 * 60 * 60 * 24));
-        }
-
+        var st = evaluateNoticeStatus(item, today);
         var borderColor = '#dc2626';
         var statusBadge = '';
 
-        if (isSubmitted) {
+        if (st.state === 'completed') {
             borderColor = '#059669';
-            statusBadge = '<span style="color:#059669; font-weight:700;"><i class="bi bi-check-circle-fill"></i> કચેરીએ જમા (' + formatDisplayDateGujarati(subD) + ')</span>';
-        } else if (servedD) {
-            if (diffDays !== null && diffDays >= 30) {
-                borderColor = '#4f46e5';
-                statusBadge = '<span style="color:#4f46e5; font-weight:700;"><i class="bi bi-bell-fill"></i> ૩૦ દિવસ પૂર્ણ (' + toGujaratiDigits(diffDays) + ' દિવસ થયા)</span>';
-            } else {
-                borderColor = '#d97706';
-                var remaining = 30 - (diffDays || 0);
-                statusBadge = '<span style="color:#d97706; font-weight:700;"><i class="bi bi-hourglass-split"></i> મુદતમાં (' + toGujaratiDigits(remaining) + ' દિવસ બાકી)</span>';
-            }
+            statusBadge = '<span style="color:#059669; font-weight:700;"><i class="bi bi-check-circle-fill"></i> કચેરીએ જમા (' + formatDisplayDateGujarati(st.subD) + ')</span>';
+        } else if (st.state === 'ready') {
+            borderColor = '#4f46e5';
+            statusBadge = '<span style="color:#4f46e5; font-weight:700;"><i class="bi bi-bell-fill"></i> ૩૦ દિવસ પૂર્ણ (' + toGujaratiDigits(st.diffDays) + ' દિવસ થયા)</span>';
+        } else if (st.state === 'active') {
+            borderColor = '#d97706';
+            var remaining = 30 - (st.diffDays || 0);
+            statusBadge = '<span style="color:#d97706; font-weight:700;"><i class="bi bi-hourglass-split"></i> મુદતમાં (' + toGujaratiDigits(remaining) + ' દિવસ બાકી)</span>';
         } else {
             borderColor = '#dc2626';
             statusBadge = '<span style="color:#dc2626; font-weight:700;"><i class="bi bi-exclamation-triangle-fill"></i> બજવણી બાકી</span>';
@@ -434,7 +345,7 @@ function renderNoticeList(list) {
         var recDateDisplay = formatDisplayDateGujarati(getNoticeRecDate(item));
         var noticeTypeDisplay = getNoticeType(item) || '-';
 
-        return '<div class="notice-card" style="background:#fff; border-radius:10px; padding:14px 16px; margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.06); display:flex; justify-content:space-between; align-items:flex-start; border-left: 4px solid ' + borderColor + ';">' +
+        return '<div class="notice-card" style="border-left: 4px solid ' + borderColor + ';">' +
             '<div style="flex: 1;">' +
                 '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">' +
                     '<h4 style="margin:0; font-size:16px; font-weight:700; color:#0d47a1;">નોંધ નં: ' + toGujaratiDigits(item.Mutation_No) + '</h4>' +
@@ -460,10 +371,10 @@ function renderNoticeList(list) {
 }
 
 // =========================================================
-// ૬. નવી નોટિસ ઉમેરવી & એડિટિંગ
+// ૭. નવી નોટિસ ઉમેરવી & એડિટિંગ
 // =========================================================
 function openNewNoticeModal() {
-    let todayStr = new Date().toISOString().split('T')[0];
+    var todayStr = new Date().toISOString().split('T')[0];
     
     safeSetValue('notice-mutation-no', '');
     safeSetValue('notice-khatedar', '');
@@ -477,6 +388,7 @@ function openNewNoticeModal() {
     var vSel = document.getElementById('notice-village');
     if (vSel && typeof activeSeja !== 'undefined' && activeSeja && activeSeja.villages) {
         vSel.innerHTML = activeSeja.villages.map(function(v) { return '<option value="' + v + '">' + v + '</option>'; }).join('');
+        if (currentVillageFilter !== 'all') vSel.value = currentVillageFilter;
     }
 
     document.getElementById('modal-new-notice').style.display = 'flex';
@@ -569,7 +481,7 @@ function openEditNoticeModal(id) {
 }
 
 function toggleSubmittedDateInput() {
-    var sVal = document.getElementById('edit-notice-status').value;
+    var sVal = safeGetValue('edit-notice-status');
     var grp = document.getElementById('grp-submitted-date');
     if (grp) {
         grp.style.display = (sVal === 'કચેરીએ જમા') ? 'block' : 'none';
@@ -589,6 +501,11 @@ function submitNoticeUpdate() {
     var subDate = safeGetValue('edit-notice-submitted-date');
     var status = safeGetValue('edit-notice-status');
     var remarks = safeGetValue('edit-notice-remarks');
+
+    // જો 'કચેરીએ જમા' સિલેક્ટ કર્યું હોય અને તારીખ ખાલી હોય તો આજની તારીખ લઈ લો
+    if (status === 'કચેરીએ જમા' && !subDate) {
+        subDate = new Date().toISOString().split('T')[0];
+    }
 
     var btn = document.getElementById('btn-update-notice');
     if (btn) { btn.disabled = true; btn.innerText = "અપડેટ થાય છે..."; }
