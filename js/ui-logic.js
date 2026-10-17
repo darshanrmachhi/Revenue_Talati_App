@@ -210,6 +210,11 @@ function showView(viewId, pushHistory = true) {
         if (title) title.innerText = '૧૩૫-ડી ડેસ્ક'; 
         if (typeof loadNoticesDesk === 'function') loadNoticesDesk(); 
     }
+    else if (viewId === 'profile') { 
+        if (backBtn) backBtn.style.display = 'block'; 
+        if (title) title.innerText = 'મારી પ્રોફાઈલ'; 
+        if (typeof loadUserProfileData === 'function') loadUserProfileData(); 
+    }
 
     if (pushHistory) { window.history.pushState({ view: viewId }, '', '#' + viewId); }
 }

@@ -26,7 +26,7 @@
         </div>
         <div style="display:flex; gap:15px; align-items:center;">
             <i class="fa-solid fa-rotate no-print" style="font-size: 18px; cursor: pointer;" title="માસ્ટર ડેટા રિફ્રેશ કરો" onclick="forceRefreshMasterData()"></i>
-            <i class="fa-regular fa-circle-user no-print" style="font-size: 20px; cursor: pointer;" title="પ્રોફાઈલ / લોગઆઉટ" onclick="userLogout()"></i>
+            <i class="fa-regular fa-circle-user no-print" style="font-size: 20px; cursor: pointer;" title="મારી પ્રોફાઈલ" onclick="showView('profile')"></i>
         </div>
     </header>
 
@@ -264,6 +264,194 @@
                 <p style="text-align:center; color:#777; margin-top:20px;"><i class="fa-solid fa-spinner fa-spin"></i> ડેટા લોડ થઈ રહ્યો છે...</p>
             </div>
         </div> <!-- END VIEW 4 -->
+
+        <!-- VIEW 5: MY PROFILE & SERVICE BOOK -->
+        <div id="view-profile" class="app-view">
+            <!-- Top Profile Hero Card -->
+            <div class="profile-hero-card">
+                <div class="avatar-wrapper">
+                    <img id="prof-display-img" src="https://ui-avatars.com/api/?name=Talati&background=0d47a1&color=fff&size=150" alt="Profile Photo">
+                    <label for="prof-img-input" class="avatar-edit-badge" title="ફોટો બદલો">
+                        <i class="fa-solid fa-camera"></i>
+                    </label>
+                    <input type="file" id="prof-img-input" accept="image/*" style="display:none;" onchange="handleProfilePhotoUpload(event)">
+                </div>
+                <h2 id="prof-emp-name" style="font-size:18px; margin: 8px 0 2px 0; color:#0f172a;">-</h2>
+                <p id="prof-emp-cadre" style="font-size:13px; color:#64748b; margin:0; font-weight:600;">મહેસૂલી તલાટી</p>
+                <div style="margin-top:6px;">
+                    <span class="badge permanent" id="prof-charge-badge">કાયમી</span>
+                    <span class="badge" style="background:#e0f2fe; color:#0369a1;" id="prof-seja-badge">- સેજો</span>
+                </div>
+            </div>
+
+            <!-- Profile Action Toolbar -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin: 15px 0 10px 0;">
+                <span class="section-title" style="margin:0; border:none;"><i class="fa-solid fa-id-card"></i> સેવા વિગત & સેવાપોથી</span>
+                <button class="btn btn-primary" id="btn-toggle-edit-prof" onclick="toggleProfileEditMode()" style="padding: 6px 12px; font-size: 12px;">
+                    <i class="fa-solid fa-pen-to-square"></i> માહિતી સુધારો
+                </button>
+            </div>
+
+            <!-- View / Edit Form Card -->
+            <div class="profile-card">
+                <form id="form-user-profile" onsubmit="event.preventDefault();">
+                    <!-- ૧. મૂળ વ્યક્તિગત વિગત -->
+                    <h4 class="profile-group-heading"><i class="fa-solid fa-user"></i> વ્યક્તિગત વિગત</h4>
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label class="form-label">મોબાઈલ નંબર (Login ID):</label>
+                            <input type="text" id="prof-mobile" class="form-control" disabled style="background:#f1f5f9; cursor:not-allowed;">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">ઈમેલ એડ્રેસ:</label>
+                            <input type="email" id="prof-email" class="form-control prof-editable" placeholder="email@example.com" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">જન્મ તારીખ (DOB):</label>
+                            <input type="date" id="prof-dob" class="form-control prof-editable" disabled onchange="calculateProfileAge()">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">વર્તમાન ઉંમર:</label>
+                            <input type="text" id="prof-age" class="form-control" placeholder="-" disabled style="background:#f1f5f9;">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">બ્લડ ગ્રુપ:</label>
+                            <select id="prof-blood-group" class="form-control prof-editable" disabled>
+                                <option value="">પસંદ કરો</option>
+                                <option value="A+">A+</option><option value="A-">A-</option>
+                                <option value="B+">B+</option><option value="B-">B-</option>
+                                <option value="O+">O+</option><option value="O-">O-</option>
+                                <option value="AB+">AB+</option><option value="AB-">AB-</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">વતન / મૂળ રહેઠાણ:</label>
+                            <input type="text" id="prof-native" class="form-control prof-editable" placeholder="ગામ, તાલુકો, જિલ્લો" disabled>
+                        </div>
+                    </div>
+
+                    <!-- ૨. નોકરી અને કર્મયોગી વિગત -->
+                    <h4 class="profile-group-heading" style="margin-top:18px;"><i class="fa-solid fa-briefcase"></i> સેવા / નિમણૂક વિગત</h4>
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label class="form-label">કર્મચારી નંબર (ID):</label>
+                            <input type="text" id="prof-emp-id" class="form-control prof-editable" placeholder="કર્મયોગી ID" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">શૈક્ષણિક લાયકાત:</label>
+                            <input type="text" id="prof-education" class="form-control prof-editable" placeholder="દા.ત. B.Sc., M.Sc." disabled>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">પ્રથમ સરકારી જોઈનિંગ તારીખ:</label>
+                            <input type="date" id="prof-first-join" class="form-control prof-editable" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">મહેસૂલ વિભાગમાં હાજર તારીખ:</label>
+                            <input type="date" id="prof-rev-join" class="form-control prof-editable" disabled>
+                        </div>
+                    </div>
+
+                    <div id="prof-save-actions" style="display:none; margin-top:20px; text-align:right;">
+                        <button type="button" class="btn btn-secondary" onclick="cancelProfileEdit()" style="margin-right:8px;">રદ કરો</button>
+                        <button type="button" class="btn btn-primary" id="btn-save-profile" onclick="saveUserProfileData()"><i class="fa-solid fa-check"></i> માહિતી સેવ કરો</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- ૩. ડિજિટલ સેવાપોથી / ટાઈમલાઈન (Posting History) -->
+            <div class="profile-card" style="margin-top:16px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <h4 style="margin:0; font-size:14px; color:#0d47a1;"><i class="fa-solid fa-timeline"></i> સેવાપોથી ઇતિહાસ (Posting Timeline)</h4>
+                    <button class="btn btn-secondary" onclick="openAddPostingModal()" style="font-size:11px; padding:4px 8px;">+ નવો હુકમ ઉમેરો</button>
+                </div>
+                <div id="posting-timeline-container" class="timeline-container">
+                    <!-- લાઈવ ટાઈમલાઈન આઈટમ્સ અહીં રેન્ડર થશે -->
+                </div>
+            </div>
+
+            <!-- ૪. પાસવર્ડ અને સુરક્ષા સેટિંગ્સ -->
+            <div class="profile-card" style="margin-top:16px; margin-bottom:30px;">
+                <h4 style="margin:0 0 12px 0; font-size:14px; color:#b91c1c;"><i class="fa-solid fa-shield-halved"></i> સુરક્ષા અને એપ્લિકેશન સેટિંગ્સ</h4>
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #f1f5f9;">
+                        <div>
+                            <b style="font-size:13px;">પાસવર્ડ બદલો</b>
+                            <p style="font-size:11px; color:#64748b; margin:2px 0 0 0;">એકાઉન્ટ સુરક્ષા માટે નવો પાસવર્ડ સેટ કરો</p>
+                        </div>
+                        <button class="btn btn-secondary" onclick="openChangePasswordModal()" style="font-size:12px; padding:6px 12px;"><i class="fa-solid fa-key"></i> પાસવર્ડ બદલો</button>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #f1f5f9;">
+                        <div>
+                            <b style="font-size:13px;">સ્થાનિક ડેટા રિફ્રેશ કરો</b>
+                            <p style="font-size:11px; color:#64748b; margin:2px 0 0 0;">કેશ સાફ કરી સર્વર પરથી નવો ડેટા મેળવો</p>
+                        </div>
+                        <button class="btn btn-secondary" onclick="forceRefreshMasterData()" style="font-size:12px; padding:6px 12px;"><i class="fa-solid fa-rotate"></i> કેશ રીસેટ</button>
+                    </div>
+                    <div style="text-align:center; margin-top:10px;">
+                        <button class="btn btn-secondary" onclick="userLogout()" style="background:#fee2e2; color:#b91c1c; width:100%; border:none; padding:10px; font-weight:700;"><i class="fa-solid fa-right-from-bracket"></i> લોગઆઉટ કરો</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: ADD POSTING TIMELINE ENTRY -->
+        <div id="modal-add-posting" class="modal-backdrop" style="display:none; align-items:center; z-index:280;">
+            <div class="modal-card" style="border-radius:12px; padding:20px; max-width:400px; width:94%;">
+                <div class="modal-header" style="padding:0 0 10px 0;">
+                    <h3 style="margin:0; font-size:15px; color:#0d47a1;">સેવાપોથીમાં નવી નોંધ ઉમેરો</h3>
+                    <button class="modal-close-btn" onclick="document.getElementById('modal-add-posting').style.display='none'"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div style="margin-top:12px; display:flex; flex-direction:column; gap:10px;">
+                    <div class="form-group">
+                        <label class="form-label">જગ્યા / કચેરી / સેજો:</label>
+                        <input type="text" id="post-place" class="form-control" placeholder="દા.ત. કાકચિયા ગ્રામ પંચાયત અથવા સાલાવાડા સેજો">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">હોદ્દો / પ્રકાર:</label>
+                        <input type="text" id="post-role" class="form-control" placeholder="દા.ત. તલાટી કમ મંત્રી અથવા મહેસૂલી તલાટી (કાયમી)">
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                        <div class="form-group">
+                            <label class="form-label">હાજર તારીખ:</label>
+                            <input type="date" id="post-from" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">છૂટા તારીખ:</label>
+                            <input type="date" id="post-to" class="form-control">
+                        </div>
+                    </div>
+                    <label style="font-size:12px; display:flex; align-items:center; gap:6px;">
+                        <input type="checkbox" id="post-is-current" onchange="togglePostingToDate(this)"> હાલ આ જગ્યા પર ફરજ ચાલુ છે
+                    </label>
+                    <div class="form-group">
+                        <label class="form-label">હુકમ ક્રમાંક / વિશેષ નોંધ:</label>
+                        <input type="text" id="post-order" class="form-control" placeholder="દા.ત. હુકમ નં. ૧૨૪/૨૦૨૬">
+                    </div>
+                    <button type="button" class="btn btn-primary" style="margin-top:8px;" onclick="saveNewPostingEntry()">+ ઉમેરો</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: CHANGE PASSWORD -->
+        <div id="modal-change-password" class="modal-backdrop" style="display:none; align-items:center; z-index:280;">
+            <div class="modal-card" style="border-radius:12px; padding:20px; max-width:360px; width:92%;">
+                <div class="modal-header" style="padding:0 0 10px 0;">
+                    <h3 style="margin:0; font-size:16px; color:#0d47a1;">નવો પાસવર્ડ સેટ કરો</h3>
+                    <button class="modal-close-btn" onclick="document.getElementById('modal-change-password').style.display='none'"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div style="margin-top:12px; display:flex; flex-direction:column; gap:12px;">
+                    <div class="form-group">
+                        <label class="form-label">નવો પાસવર્ડ (ઓછામાં ઓછા ૬ અંક):</label>
+                        <input type="password" id="new-user-pass" class="form-control" placeholder="નવો પાસવર્ડ દાખલ કરો">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">નવો પાસવર્ડ ફરીથી નાખો:</label>
+                        <input type="password" id="confirm-user-pass" class="form-control" placeholder="પાસવર્ડ કન્ફર્મ કરો">
+                    </div>
+                    <button type="button" class="btn btn-primary" onclick="submitPasswordChange()">પાસવર્ડ સાચવો</button>
+                </div>
+            </div>
+        </div>
 
     </div> <!-- ================= END MAIN CONTAINER ================= -->
 
@@ -949,6 +1137,9 @@
         <div class="nav-item" id="nav-directory" onclick="showView('directory')">
             <i class="fa-solid fa-address-book"></i>ડિરેક્ટરી
         </div>
+        <div class="nav-item" id="nav-profile" onclick="showView('profile')">
+            <i class="fa-solid fa-circle-user"></i>પ્રોફાઈલ
+        </div>
     </div>
 
     <div id="toast">નોટિફિકેશન</div>
@@ -968,6 +1159,7 @@
     <script src="js/pedhinamu.js?v=6"></script>
     <script src="js/area-calc.js?v=6"></script>
     <script src="js/directory.js?v=6"></script>
+    <script src="js/profile.js?v=6"></script>
 
     <!-- SERVICE WORKER REGISTRATION -->
     <script>

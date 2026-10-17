@@ -12,6 +12,7 @@ const assetsToCache = [
   './js/pedhinamu.js?v=6',
   './js/area-calc.js?v=6',
   './js/directory.js?v=6',
+  './js/profile.js?v=6',
   './manifest.json'
 ];
 
