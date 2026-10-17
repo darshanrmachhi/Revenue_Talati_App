@@ -259,7 +259,15 @@ function executeLogin() {
 function initUserEnvironment() {
     if (!currentUser || !activeSeja) return;
 
-    safeSetText('user-display-name', currentUser.name || "તલાટી");
+    // સમય મુજબ શુભેચ્છા સંદેશ (Dynamic Greeting)
+    let curHour = new Date().getHours();
+    let greetingText = "નમસ્તે";
+    if (curHour >= 5 && curHour < 12) greetingText = "શુભ પ્રભાત";
+    else if (curHour >= 12 && curHour < 17) greetingText = "શુભ બપોર";
+    else greetingText = "શુભ સંધ્યા";
+    
+    safeSetText('hero-greeting-text', greetingText);
+    safeSetText('user-display-name', (currentUser.name || "તલાટી") + " 👋");
     safeSetText('current-seja-title', (activeSeja.sejaName || "") + " સેજો");
 
     let elBadge = document.getElementById('current-charge-badge'); 

@@ -35,24 +35,35 @@
         
         <!-- VIEW 1: DASHBOARD -->
         <div id="view-dashboard" class="app-view active">
+            <!-- MODERN HERO SEJA CARD -->
             <div class="hero-seja-card">
                 <div class="hero-content" style="width: 100%;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                        <span class="hero-badge"><i class="bi bi-shield-check"></i> <span id="current-charge-badge">કાયમી ચાર્જ</span></span>
-                        <span id="current-date-display" style="font-size: 11px; opacity: 0.9; font-weight: 600;"><i class="bi bi-calendar3"></i> તા. -</span>
+                    <div class="hero-top-strip">
+                        <span class="hero-badge">
+                            <span class="live-pulse-dot"></span>
+                            <span id="current-charge-badge">કાયમી ચાર્જ</span>
+                        </span>
+                        <span id="current-date-display" class="hero-date-chip">
+                            <i class="bi bi-calendar3"></i> તા. -
+                        </span>
                     </div>
                     
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div class="hero-main-row">
                         <div>
-                            <h2 id="current-seja-title">સાલાવાડા સેજો</h2>
-                            <p><i class="bi bi-person-badge"></i> <span id="user-display-name">તલાટી</span></p>
+                            <div class="hero-greeting-sub">
+                                <span id="hero-greeting-text">નમસ્તે</span>, 
+                                <b id="user-display-name">તલાટી</b>
+                            </div>
+                            <h2 id="current-seja-title" class="hero-title">- સેજો</h2>
                         </div>
                         <div id="seja-switch-btn-container" style="display:none;">
-                            <button class="btn-switch-hero" onclick="openSejaSwitchModal()"><i class="bi bi-arrow-repeat"></i> સેજો બદલો</button>
+                            <button class="btn-switch-hero" onclick="openSejaSwitchModal()">
+                                <i class="bi bi-arrow-repeat"></i> સેજો બદલો
+                            </button>
                         </div>
                     </div>
 
-                    <!-- સેજા હેઠળના ગામોની ચિપ્સ (ક્લિક કરવાથી સીધી ગામની પ્રોફાઈલ ખુલશે) -->
+                    <!-- સેજા હેઠળના ગામોની ચિપ્સ -->
                     <div id="hero-villages-chips" class="hero-villages-wrap"></div>
                 </div>
             </div>
@@ -222,48 +233,57 @@
 
         <!-- VIEW 4: 135-D NOTICE DESK -->
         <div id="view-135d-desk" class="app-view">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <div class="section-title" style="margin:0; border:none;">૧૩૫-ડી નોટિસ ડેસ્ક</div>
-                <button class="btn-new" onclick="openNewNoticeModal()"><i class="fa-solid fa-plus"></i> નવી નોંધ</button>
+            <!-- Modern Header & Quick Stats Strip -->
+            <div class="view-header-row">
+                <div>
+                    <h2 class="view-main-title"><i class="bi bi-file-earmark-text-fill text-primary"></i> ૧૩૫-ડી નોટિસ ડેસ્ક</h2>
+                    <p class="view-sub-title">નોંધ બજવણી અને મુદત ટ્રેકિંગ</p>
+                </div>
+                <button class="btn-new" onclick="openNewNoticeModal()">
+                    <i class="fa-solid fa-plus"></i> નવી નોંધ
+                </button>
             </div>
 
-            <!-- શોધ બોક્સ -->
-            <div class="search-box" style="margin-bottom: 12px;">
-                <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                <input type="text" id="notice-search-input" placeholder="નોંધ નંબર, ખાતેદાર, ગામ કે પ્રકાર શોધો..." oninput="filterNotices(this.value)">
-                <i class="fa-solid fa-circle-xmark clear-icon" id="clear-notice-search" onclick="clearNoticeSearch()" style="display:none;"></i>
-            </div>
+            <!-- Sticky Search & Filter Header -->
+            <div class="desk-sticky-controls">
+                <!-- Search Box -->
+                <div class="search-box">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" id="notice-search-input" placeholder="નોંધ નં., ખાતેદાર કે ગામ શોધો..." oninput="filterNotices(this.value)">
+                    <i class="fa-solid fa-circle-xmark clear-icon" id="clear-notice-search" onclick="clearNoticeSearch()" style="display:none;"></i>
+                </div>
 
-            <!-- ૧. સેજાના ગામોના ફિલ્ટર બટન્સ -->
-            <div id="notice-village-filters" class="village-filter-bar"></div>
+                <!-- ગામ ફિલ્ટર પિલ્સ -->
+                <div id="notice-village-filters" class="village-filter-bar"></div>
 
-            <!-- ૨. નોંધના પ્રકારના ફિલ્ટર બટન્સ (અહીં નવું ઉમેર્યું) -->
-            <div id="notice-type-filters" class="village-filter-bar" style="margin-bottom: 14px;"></div>
+                <!-- નોંધ પ્રકાર ફિલ્ટર પિલ્સ -->
+                <div id="notice-type-filters" class="type-filter-bar"></div>
 
-            <!-- ૩. સ્થિતિવાર ફિલ્ટર ટેબ્સ (ડાયનેમિક કાઉન્ટ સાથે) -->
-            <div class="notice-tabs" id="notice-status-tabs">
-                <div class="tab-btn active" id="tab-btn-all" onclick="switchNoticeTab('all', this)">
-                    બધી (All) <span class="badge-count" id="badge-tab-all">૦</span>
-                </div>
-                <div class="tab-btn" id="tab-btn-pending" onclick="switchNoticeTab('pending', this)">
-                    બજાવવાની બાકી <span class="badge-count" id="badge-tab-pending">૦</span>
-                </div>
-                <div class="tab-btn" id="tab-btn-active" onclick="switchNoticeTab('active', this)">
-                    મુદતમાં <span class="badge-count" id="badge-tab-active">૦</span>
-                </div>
-                <div class="tab-btn" id="tab-btn-ready" onclick="switchNoticeTab('ready', this)">
-                    તૈયાર (૩૦ દિવસ) <span class="badge-count" id="badge-tab-ready">૦</span>
-                </div>
-                <div class="tab-btn" id="tab-btn-completed" onclick="switchNoticeTab('completed', this)">
-                    કચેરીએ જમા <span class="badge-count" id="badge-tab-completed">૦</span>
+                <!-- સ્થિતિવાર સ્લાઇડિંગ ટેબ્સ -->
+                <div class="notice-tabs" id="notice-status-tabs">
+                    <div class="tab-btn active" id="tab-btn-all" onclick="switchNoticeTab('all', this)">
+                        બધી <span class="badge-count" id="badge-tab-all">૦</span>
+                    </div>
+                    <div class="tab-btn tab-btn-pending" id="tab-btn-pending" onclick="switchNoticeTab('pending', this)">
+                        બજવણી બાકી <span class="badge-count" id="badge-tab-pending">૦</span>
+                    </div>
+                    <div class="tab-btn tab-btn-active" id="tab-btn-active" onclick="switchNoticeTab('active', this)">
+                        મુદતમાં <span class="badge-count" id="badge-tab-active">૦</span>
+                    </div>
+                    <div class="tab-btn tab-btn-ready" id="tab-btn-ready" onclick="switchNoticeTab('ready', this)">
+                        ૩૦ દિવસ પૂર્ણ <span class="badge-count" id="badge-tab-ready">૦</span>
+                    </div>
+                    <div class="tab-btn tab-btn-completed" id="tab-btn-completed" onclick="switchNoticeTab('completed', this)">
+                        જમા <span class="badge-count" id="badge-tab-completed">૦</span>
+                    </div>
                 </div>
             </div>
 
             <!-- નોટિસ કાર્ડ્સ લિસ્ટ કન્ટેનર -->
-            <div id="notice-list-container">
+            <div id="notice-list-container" class="notices-card-list">
                 <p style="text-align:center; color:#777; margin-top:20px;"><i class="fa-solid fa-spinner fa-spin"></i> ડેટા લોડ થઈ રહ્યો છે...</p>
             </div>
-        </div> <!-- END VIEW 4 -->
+        </div>
 
         <!-- VIEW 5: MY PROFILE & SERVICE BOOK -->
         <div id="view-profile" class="app-view">

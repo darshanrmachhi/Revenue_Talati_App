@@ -317,54 +317,66 @@ function renderNoticeList(list, today) {
     if (!container) return;
 
     if (list.length === 0) {
-        container.innerHTML = '<div style="text-align:center; padding: 40px 10px; color: #94a3b8;"><i class="bi bi-inbox" style="font-size: 32px; display:block; margin-bottom: 8px;"></i><p style="font-size: 14px; margin: 0;">પસંદ કરેલ ફિલ્ટરમાં કોઈ ૧૩૫-ડી નોટિસ મળી નથી.</p></div>';
+        container.innerHTML = `
+            <div style="text-align:center; padding: 45px 15px; color: #94a3b8; background: #ffffff; border-radius: 16px; border: 1.5px dashed #cbd5e1; margin-top: 10px;">
+                <i class="bi bi-inbox" style="font-size: 38px; display:block; margin-bottom: 10px; color: #cbd5e1;"></i>
+                <h4 style="font-size: 15px; margin: 0; color: #475569; font-weight: 700;">કોઈ ૧૩૫-ડી નોટિસ મળી નથી</h4>
+                <p style="font-size: 12px; margin: 4px 0 0 0;">પસંદ કરેલા ફિલ્ટરમાં કોઈ રેકોર્ડ ઉપલબ્ધ નથી.</p>
+            </div>
+        `;
         return;
     }
 
     var html = list.map(function(item) {
         var st = evaluateNoticeStatus(item, today);
-        var borderColor = '#dc2626';
-        var statusBadge = '';
+        var stateClass = 'state-' + st.state;
+        var badgeHtml = '';
 
         if (st.state === 'completed') {
-            borderColor = '#059669';
-            statusBadge = '<span style="color:#059669; font-weight:700;"><i class="bi bi-check-circle-fill"></i> કચેરીએ જમા (' + formatDisplayDateGujarati(st.subD) + ')</span>';
+            badgeHtml = '<span class="notice-badge-pill badge-pill-completed"><i class="bi bi-check-circle-fill"></i> કચેરીએ જમા (' + formatDisplayDateGujarati(st.subD) + ')</span>';
         } else if (st.state === 'ready') {
-            borderColor = '#4f46e5';
-            statusBadge = '<span style="color:#4f46e5; font-weight:700;"><i class="bi bi-bell-fill"></i> ૩૦ દિવસ પૂર્ણ (' + toGujaratiDigits(st.diffDays) + ' દિવસ થયા)</span>';
+            badgeHtml = '<span class="notice-badge-pill badge-pill-ready"><i class="bi bi-bell-fill"></i> ૩૦ દિવસ પૂર્ણ (' + toGujaratiDigits(st.diffDays) + ' દિવસ થયા)</span>';
         } else if (st.state === 'active') {
-            borderColor = '#d97706';
             var remaining = 30 - (st.diffDays || 0);
-            statusBadge = '<span style="color:#d97706; font-weight:700;"><i class="bi bi-hourglass-split"></i> મુદતમાં (' + toGujaratiDigits(remaining) + ' દિવસ બાકી)</span>';
+            badgeHtml = '<span class="notice-badge-pill badge-pill-active"><i class="bi bi-hourglass-split"></i> મુદતમાં (' + toGujaratiDigits(remaining) + ' દિવસ બાકી)</span>';
         } else {
-            borderColor = '#dc2626';
-            statusBadge = '<span style="color:#dc2626; font-weight:700;"><i class="bi bi-exclamation-triangle-fill"></i> બજવણી બાકી</span>';
+            badgeHtml = '<span class="notice-badge-pill badge-pill-pending"><i class="bi bi-exclamation-triangle-fill"></i> બજવણી બાકી</span>';
         }
 
         var genDateDisplay = formatDisplayDateGujarati(getNoticeGenDate(item));
         var recDateDisplay = formatDisplayDateGujarati(getNoticeRecDate(item));
         var noticeTypeDisplay = getNoticeType(item) || '-';
 
-        return '<div class="notice-card" style="border-left: 4px solid ' + borderColor + ';">' +
-            '<div style="flex: 1;">' +
-                '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">' +
-                    '<h4 style="margin:0; font-size:16px; font-weight:700; color:#0d47a1;">નોંધ નં: ' + toGujaratiDigits(item.Mutation_No) + '</h4>' +
-                    '<span style="font-size:11px; color:#64748b;">મળ્યા: ' + recDateDisplay + '</span>' +
-                '</div>' +
-                '<div style="font-size:13px; font-weight:600; color:#1e293b; margin-bottom:3px;">ખાતેદાર: ' + (item.Khatedar_Name || '-') + '</div>' +
-                '<div style="font-size:12px; color:#475569; margin-bottom:6px;">' +
-                    '<span style="color:#0284c7; font-weight:600;">' + (item.Village_Name || item.village || '-') + '</span> | ' +
-                    '<span style="background:#f1f5f9; padding:1px 6px; border-radius:4px; font-weight:600; color:#334155;">' + noticeTypeDisplay + '</span> | ' +
-                    'નોટિસ તા: ' + genDateDisplay +
-                '</div>' +
-                '<div style="font-size:12px;">' + statusBadge + '</div>' +
-            '</div>' +
-            '<div style="margin-left:12px; align-self:center;">' +
-                '<button class="btn-icon-circle" onclick="openEditNoticeModal(\'' + item.id + '\')" title="સુધારો કરો" style="background:#f1f5f9; border:none; width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#334155;">' +
-                    '<i class="bi bi-pencil-fill" style="font-size:13px;"></i>' +
-                '</button>' +
-            '</div>' +
-        '</div>';
+        return `
+            <div class="modern-notice-card ${stateClass}">
+                <div style="flex: 1; min-width: 0;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                        <span style="font-size:15px; font-weight:800; color:#0d47a1;">
+                            નોંધ નં: ${toGujaratiDigits(item.Mutation_No)}
+                        </span>
+                        <span style="font-size:11px; color:#64748b; font-weight:600;">
+                            મળ્યા: ${recDateDisplay}
+                        </span>
+                    </div>
+                    <div style="font-size:13.5px; font-weight:700; color:#1e293b; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                        ${item.Khatedar_Name || '-'}
+                    </div>
+                    <div style="font-size:11.5px; color:#475569; margin-bottom:6px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                        <span style="color:#0284c7; font-weight:700;"><i class="bi bi-geo-alt-fill"></i> ${item.Village_Name || item.village || '-'}</span>
+                        <span style="color:#cbd5e1;">•</span>
+                        <span style="background:#f1f5f9; padding:1px 6px; border-radius:4px; font-weight:600; color:#334155;">${noticeTypeDisplay}</span>
+                        <span style="color:#cbd5e1;">•</span>
+                        <span>તા: ${genDateDisplay}</span>
+                    </div>
+                    <div>${badgeHtml}</div>
+                </div>
+                <div style="margin-left:12px; align-self:center;">
+                    <button class="btn-icon-circle" onclick="openEditNoticeModal('${item.id}')" title="સુધારો કરો" style="background:#f1f5f9; border:none; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#1e3a8a; box-shadow:0 1px 3px rgba(0,0,0,0.06);">
+                        <i class="bi bi-pencil-fill" style="font-size:13px;"></i>
+                    </button>
+                </div>
+            </div>
+        `;
     }).join('');
 
     container.innerHTML = html;

@@ -44,26 +44,48 @@ function renderPedhinamuList() {
     });
 
     if (filtered.length === 0) {
-        container.innerHTML = "<p style='text-align:center; color:#64748b; margin-top:20px;'>કોઈ પેઢીનામું મળ્યું નથી.</p>";
+        container.innerHTML = `
+            <div style="text-align:center; padding: 45px 15px; color: #94a3b8; background: #ffffff; border-radius: 16px; border: 1.5px dashed #cbd5e1; margin-top: 10px;">
+                <i class="bi bi-diagram-3" style="font-size: 38px; display:block; margin-bottom: 10px; color: #cbd5e1;"></i>
+                <h4 style="font-size: 15px; margin: 0; color: #475569; font-weight: 700;">કોઈ પેઢીનામું મળ્યું નથી</h4>
+                <p style="font-size: 12px; margin: 4px 0 0 0;">નવું પેઢીનામું બનાવવા ઉપર "નવું બનાવો" બટન દબાવો.</p>
+            </div>
+        `;
         return;
     }
 
     container.innerHTML = filtered.map(r => {
         let safeDecName = String(r.Deceased_Name || '').replace(/'/g, "\\'");
         return `
-        <div class="list-card" style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; margin-bottom:10px;">
+        <div class="pedhinamu-card">
             <div style="flex:1; cursor:pointer;" onclick="viewAndPrintExisting('${r.Pedhinamu_ID}')">
-                <div style="display:flex; justify-content:space-between; align-items:baseline;">
-                    <h3 style="font-size:15px; color:var(--primary-blue); margin:0;">${r.Deceased_Name || 'વારસાઈ'}</h3>
-                    <span style="font-size:11px; font-weight:bold; color:var(--primary);">${formatDisplayDateGujarati(r.Issued_Date) || '-'}</span>
+                <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:3px;">
+                    <h3 style="font-size:15px; font-weight:800; color:var(--primary-blue); margin:0;">
+                        ${r.Deceased_Name || 'વારસાઈ'}
+                    </h3>
+                    <span style="font-size:11px; font-weight:700; color:#64748b; background:#f1f5f9; padding:1px 6px; border-radius:4px;">
+                        ${formatDisplayDateGujarati(r.Issued_Date) || '-'}
+                    </span>
                 </div>
-                <p style="font-size:12px; color:#334155; margin-top:3px;"><b>અરજદાર:</b> ${r.Applicant_Name || '-'} (${r.Applicant_Relation || '-'})</p>
-                <p style="font-size:11px; color:#64748b;"><b>ગામ:</b> ${r.Village_Name} | <b>હેતુ:</b> ${r.Remarks || 'વારસાઈ'}</p>
+                <p style="font-size:12.5px; color:#334155; margin:0 0 4px 0; font-weight:600;">
+                    <b>અરજદાર:</b> ${r.Applicant_Name || '-'} <span style="font-size:11px; color:#64748b;">(${r.Applicant_Relation || '-'})</span>
+                </p>
+                <p style="font-size:11.5px; color:#64748b; margin:0; display:flex; gap:8px;">
+                    <span style="color:#0284c7; font-weight:600;"><i class="bi bi-geo-alt-fill"></i> ${r.Village_Name || '-'}</span>
+                    <span>•</span>
+                    <span><b>હેતુ:</b> ${r.Remarks || 'વારસાઈ'}</span>
+                </p>
             </div>
             <div style="margin-left:12px; display:flex; gap:6px;">
-                <button class="btn btn-primary" style="padding:6px 10px; font-size:12px; display:flex; align-items:center; gap:4px;" onclick="viewAndPrintExisting('${r.Pedhinamu_ID}')" title="પેઢીનામું જુઓ અને પ્રિન્ટ કરો"><i class="bi bi-printer-fill"></i> પ્રિન્ટ</button>
-                <button class="btn btn-secondary" style="padding:6px 10px; font-size:12px; background:#f1f5f9; color:#1e293b; display:flex; align-items:center; gap:4px;" onclick="loadPedhinamuForEditing('${r.Pedhinamu_ID}')" title="ફોર્મમાં લોડ કરી સુધારો કરો"><i class="bi bi-pencil-square"></i> સુધારો</button>
-                <button class="btn btn-secondary" style="padding:6px 10px; font-size:12px; background:#fee2e2; color:#b91c1c; display:flex; align-items:center; gap:4px;" onclick="deletePedhinamuAction('${r.Pedhinamu_ID}', '${safeDecName}')" title="રદ કરો"><i class="bi bi-trash-fill"></i></button>
+                <button class="btn btn-primary" style="padding:6px 10px; font-size:12px; display:flex; align-items:center; gap:4px; border-radius:8px;" onclick="viewAndPrintExisting('${r.Pedhinamu_ID}')" title="પ્રિન્ટ કરો">
+                    <i class="bi bi-printer-fill"></i>
+                </button>
+                <button class="btn btn-secondary" style="padding:6px 10px; font-size:12px; background:#f1f5f9; color:#1e293b; display:flex; align-items:center; gap:4px; border-radius:8px;" onclick="loadPedhinamuForEditing('${r.Pedhinamu_ID}')" title="સુધારો">
+                    <i class="bi bi-pencil-square"></i>
+                </button>
+                <button class="btn btn-secondary" style="padding:6px 8px; font-size:12px; background:#fee2e2; color:#b91c1c; display:flex; align-items:center; border-radius:8px;" onclick="deletePedhinamuAction('${r.Pedhinamu_ID}', '${safeDecName}')" title="રદ કરો">
+                    <i class="bi bi-trash-fill"></i>
+                </button>
             </div>
         </div>`;
     }).join('');
@@ -75,7 +97,7 @@ function renderPedhinamuList() {
 function openPedhinamuModal(isEdit = false) {
     let vSelect = document.getElementById('inp-village');
     let pSelect = document.getElementById('panch-vill');
-    let vList = (activeSeja && activeSeja.villages && activeSeja.villages.length > 0) ? activeSeja.villages : ["સાલાવાડા"];
+    let vList = (activeSeja && activeSeja.villages && activeSeja.villages.length > 0) ? activeSeja.villages : [];
     let optionsHtml = vList.map(v => `<option value="${v}">${v}</option>`).join('');
     
     if (vSelect) vSelect.innerHTML = optionsHtml;
@@ -483,7 +505,7 @@ function populatePedhinamuFormFromRecord(rec) {
                 safeSetValue('inp-age', full.form.age || "");
 
                 let vSel = document.getElementById('inp-village');
-                let targetVill = full.form.village || rec.Village_Name || "સાલાવાડા";
+                let targetVill = full.form.village || rec.Village_Name || "-";
                 if (vSel && ![...vSel.options].some(o => o.value === targetVill)) {
                     vSel.innerHTML += `<option value="${targetVill}">${targetVill}</option>`;
                 }
@@ -520,7 +542,7 @@ function populatePedhinamuFormFromRecord(rec) {
         safeSetValue('inp-age', "");
 
         let vSel = document.getElementById('inp-village');
-        let targetVill = rec.Village_Name || "સાલાવાડા";
+        let targetVill = rec.Village_Name || " ";
         if (vSel && ![...vSel.options].some(o => o.value === targetVill)) {
             vSel.innerHTML += `<option value="${targetVill}">${targetVill}</option>`;
         }
