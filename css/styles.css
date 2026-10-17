@@ -125,7 +125,7 @@ body { background-color: var(--bg-color); color: var(--text-main); padding-botto
 .vp-stat-val { font-size: 15px; font-weight: 700; color: var(--primary-blue); display: block; }
 .vp-stat-lbl { font-size: 11px; color: var(--text-muted); }
 .btn-external-link { display: block; text-align: center; background: #eff6ff; color: #1d4ed8; text-decoration: none; font-size: 12px; font-weight: 600; padding: 8px; border-radius: 6px; border: 1px dashed #bfdbfe; }
-.btn-mini-contact { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; color: white; text-decoration: none; font-size: 12px; margin-left: 4px; cursor: pointer; border: none;}
+
 
 /* ================= 4. PEDHINAMU & TREE STYLES ================= */
 .stepper { display: flex; justify-content: space-between; margin-bottom: 20px; position: relative; border-bottom: 2px solid #e2e8f0; }
