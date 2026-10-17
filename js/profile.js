@@ -136,7 +136,6 @@ function handleProfilePhotoUpload(event) {
     reader.onload = function(e) {
         let img = new Image();
         img.onload = function() {
-            // કેનવાસ દ્વારા ફોટોને મહત્તમ 300x300 પિક્સેલ અને કમ્પ્રેસ કરો
             let maxDim = 300;
             let width = img.width;
             let height = img.height;
@@ -159,14 +158,11 @@ function handleProfilePhotoUpload(event) {
             let ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, width, height);
 
-            // JPEG ગુણવત્તા 0.8 રાખી નાની સાઇઝમાં ડેટા URL બનાવો (~25-40 KB)
             let compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
 
-            // સ્ક્રીન પર તરત બતાવો
             let imgEl = document.getElementById('prof-display-img');
             if (imgEl) imgEl.src = compressedBase64;
 
-            // ફાયરબેઝમાં સેવ કરો
             let userDocId = currentUser.docId || currentUser.mobile;
             db.collection("Users").doc(userDocId).set({
                 photoBase64: compressedBase64,
@@ -174,6 +170,7 @@ function handleProfilePhotoUpload(event) {
             }, { merge: true }).then(() => {
                 showToast("પ્રોફાઈલ ફોટો અપડેટ થઈ ગયો!");
                 if (currentProfileData) currentProfileData.photoBase64 = compressedBase64;
+                updateHeaderAvatar(compressedBase64); // હેડરનો મિની અવતાર લાઈવ અપડેટ
             }).catch(err => {
                 alert("ફોટો સેવ કરવામાં એરર: " + err.message);
             });
