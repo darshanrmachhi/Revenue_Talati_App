@@ -100,18 +100,11 @@ function evaluateNoticeStatus(item, todayDate) {
 // ૨. ૧૩૫-ડી ડેસ્ક લોડ કરવું (Central Data માંથી Instant Render)
 // =========================================================
 function loadNoticesDesk() {
-    // જો ડેટા હજુ લોડ થઈ રહ્યો હોય અને લિસ્ટ ખાલી હોય તો શિમર લોડર બતાવો
-    var container = document.getElementById('notice-list-container');
-    if (container && noticesData.length === 0) {
-        container.innerHTML = getSkeletonCardsHtml(3);
-    }
-
     renderNoticeVillageFilters();
     renderNoticeTypeFilters();
     updateStatusTabsUIAndCounts();
     applyNoticeFilters();
 
-    // જો કોઈ કારણસર સેન્ટ્રલ લિસનર ચાલુ ન હોય તો જ ચાલુ કરો
     if (!unsubscribeNotices && typeof loadDashboardData === 'function') {
         loadDashboardData();
     }
@@ -321,6 +314,12 @@ function clearNoticeSearch() {
 function renderNoticeList(list, today) {
     var container = document.getElementById('notice-list-container');
     if (!container) return;
+
+    // જો ફાયરબેઝમાંથી હજુ ડેટા લોડ થઈ રહ્યો હોય તો શિમર બતાવો
+    if (!isNoticesLoaded) {
+        container.innerHTML = getSkeletonCardsHtml(3);
+        return;
+    }
 
     if (list.length === 0) {
         container.innerHTML = `

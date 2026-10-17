@@ -26,7 +26,10 @@
         </div>
         <div style="display:flex; gap:15px; align-items:center;">
             <i class="fa-solid fa-rotate no-print" style="font-size: 18px; cursor: pointer;" title="માસ્ટર ડેટા રિફ્રેશ કરો" onclick="forceRefreshMasterData()"></i>
-            <i class="fa-regular fa-circle-user no-print" style="font-size: 20px; cursor: pointer;" title="મારી પ્રોફાઈલ" onclick="showView('profile')"></i>
+            <div class="header-avatar-btn no-print" onclick="showView('profile')" title="મારી પ્રોફાઈલ">
+                <img id="header-avatar-img" src="" alt="User" style="display:none;">
+                <i id="header-avatar-icon" class="fa-regular fa-circle-user" style="font-size: 21px;"></i>
+            </div>
         </div>
     </header>
 
@@ -203,7 +206,8 @@
             </div>
 
             <div id="directory-grid-container" class="seja-grid">
-                <div class="loading-state"><i class="fa-solid fa-spinner fa-spin"></i><p>તાલુકા દફતર ડેટા લોડ થઈ રહ્યો છે...</p></div>
+                <div class="skeleton-card"><div class="skeleton-line" style="width:50%;height:16px;"></div><div class="skeleton-line" style="width:80%;"></div></div>
+                <div class="skeleton-card"><div class="skeleton-line" style="width:50%;height:16px;"></div><div class="skeleton-line" style="width:80%;"></div></div>
             </div>
 
             <div id="panchayat-view-container" style="display: none;">

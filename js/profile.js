@@ -3,6 +3,22 @@
 var currentProfileData = null;
 var isProfileEditing = false;
 
+// હેડરનો નાનો પ્રોફાઇલ ફોટો અપડેટ કરતું ફંક્શન
+function updateHeaderAvatar(photoUrl) {
+    let img = document.getElementById('header-avatar-img');
+    let icon = document.getElementById('header-avatar-icon');
+    if (!img || !icon) return;
+
+    if (photoUrl) {
+        img.src = photoUrl;
+        img.style.display = 'block';
+        icon.style.display = 'none';
+    } else {
+        img.style.display = 'none';
+        icon.style.display = 'block';
+    }
+}
+
 // =========================================================
 // ૧. પ્રોફાઈલ ડેટા લોડ કરવો
 // =========================================================
@@ -50,15 +66,18 @@ function populateProfileFields(data) {
     if (!data) return;
 
     // પ્રોફાઈલ ફોટો
+    let photoSrc = data.photoBase64 || data.profilePicUrl || '';
     let imgEl = document.getElementById('prof-display-img');
     if (imgEl) {
-        if (data.photoBase64 || data.profilePicUrl) {
-            imgEl.src = data.photoBase64 || data.profilePicUrl;
+        if (photoSrc) {
+            imgEl.src = photoSrc;
         } else {
             let n = encodeURIComponent(currentUser.name || "Talati");
             imgEl.src = `https://ui-avatars.com/api/?name=${n}&background=0d47a1&color=fff&size=150`;
         }
     }
+    // હેડરનો મિની અવતાર અપડેટ કરો:
+    updateHeaderAvatar(photoSrc);
 
     // વ્યક્તિગત વિગતો
     safeSetValue('prof-email', data.email || '');
@@ -268,7 +287,7 @@ function renderPostingTimeline(historyList) {
                     </div>
                     ${item.orderNo ? `<div style="font-size:11px; color:#64748b;"><i class="fa-solid fa-file-lines"></i> ${item.orderNo}</div>` : ''}
                     <div style="text-align:right; margin-top:4px;">
-                        <button type="button" onclick="deletePostingEntry(${idx})" style="background:none; border:none; color:#ef4444; font-size:11px; cursor:pointer;" title="નોંધ હટાવો">
+                        <button type="button" onclick="deletePostingEntry('${item.id}')" style="background:none; border:none; color:#ef4444; font-size:11px; cursor:pointer;" title="નોંધ હટાવો">
                             <i class="fa-solid fa-trash"></i> હટાવો
                         </button>
                     </div>
@@ -347,11 +366,12 @@ function saveNewPostingEntry() {
     });
 }
 
-function deletePostingEntry(index) {
+function deletePostingEntry(entryId) {
     if (!confirm("શું તમે ખરેખર આ સેવા નોંધ હટાવવા માંગો છો?")) return;
     if (!currentProfileData || !Array.isArray(currentProfileData.postingHistory)) return;
 
-    currentProfileData.postingHistory.splice(index, 1);
+    // index ના બદલે અનન્ય ID વડે ફિલ્ટર કરો જેથી હંમેશા સાચી એન્ટ્રી જ ડિલીટ થાય
+    currentProfileData.postingHistory = currentProfileData.postingHistory.filter(item => item.id !== entryId);
     let userDocId = currentUser.docId || currentUser.mobile;
 
     db.collection("Users").doc(userDocId).set({

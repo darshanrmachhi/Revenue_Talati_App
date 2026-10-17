@@ -9,6 +9,7 @@ var activeSeja = null;
 
 // Central Data Stores & Unsubscribers
 var noticesData = [];
+var isNoticesLoaded = false;
 var allPedhinamuList = [];
 var unsubscribeNotices = null;
 var unsubscribePedhinamu = null;

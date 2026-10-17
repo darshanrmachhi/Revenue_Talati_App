@@ -362,6 +362,7 @@ function userLogout() {
     if (!confirm("શું તમે લોગઆઉટ કરવા માંગો છો?")) return;
     if (typeof unsubscribeNotices === 'function' && unsubscribeNotices) { unsubscribeNotices(); unsubscribeNotices = null; }
     if (typeof unsubscribePedhinamu === 'function' && unsubscribePedhinamu) { unsubscribePedhinamu(); unsubscribePedhinamu = null; }
+    if (typeof updateHeaderAvatar === 'function') updateHeaderAvatar('');
 
     localStorage.removeItem('revenue_talati_user');
     currentUser = null;
@@ -369,5 +370,6 @@ function userLogout() {
     activeSeja = null;
     noticesData = [];
     allPedhinamuList = [];
+    isNoticesLoaded = false;
     document.getElementById('modal-login').style.display = 'flex';
 }

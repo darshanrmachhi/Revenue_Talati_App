@@ -124,6 +124,30 @@ body {
 }
 .btn-new:active { transform: scale(0.95); }
 
+/* હેડર મિની પ્રોફાઇલ અવતાર બટન */
+.header-avatar-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.15s ease;
+}
+.header-avatar-btn:active {
+    transform: scale(0.92);
+}
+.header-avatar-btn img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.85);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
 /* ================= 2. HERO SEJA CARD & BENTO STATS ================= */
 .hero-seja-card {
     background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 55%, #3b82f6 100%);
@@ -853,13 +877,21 @@ body {
 
 .modal-card::before {
     content: '';
-    display: block;
+    display: none;
     width: 38px;
     height: 4px;
     background: #cbd5e1;
     border-radius: 4px;
     margin: 8px auto 4px auto;
     flex-shrink: 0;
+}
+/* સેન્ટરમાં ખૂલતા પોપ-અપ મોડલ્સ માટે ડ્રેગ હેન્ડલ પિલ છુપાવો */
+#modal-login .modal-card::before,
+#modal-change-password .modal-card::before,
+#modal-seja-switch .modal-card::before,
+#modal-edit-village .modal-card::before,
+#modal-add-posting .modal-card::before {
+    display: none;
 }
 
 /* સ્કેલેટન શિમર કાર્ડ્સ એનિમેશન */

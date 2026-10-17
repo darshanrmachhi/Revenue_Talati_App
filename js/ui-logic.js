@@ -274,6 +274,7 @@ function loadDashboardData() {
         });
 
         noticesData = list;
+        isNoticesLoaded = true;
         updateDashboardStatsUI();
 
         // જો યુઝર અત્યારે ૧૩૫-ડી ટેબમાં જ હોય તો તેનું UI પણ લાઈવ અપડેટ કરો
@@ -422,7 +423,8 @@ function enforceMaxTodayOnDates() {
     const dateInputIds = [
         'notice-gen-date', 'notice-received-date', 'notice-served-date', 'notice-submitted-date',
         'edit-notice-gen-date', 'edit-notice-received-date', 'edit-notice-served-date', 'edit-notice-submitted-date',
-        'inp-date', 'inp-deathdate', 'inp-affidavit-date'
+        'inp-date', 'inp-deathdate', 'inp-affidavit-date',
+        'prof-dob', 'prof-first-join', 'prof-rev-join', 'post-from', 'post-to'
     ];
     dateInputIds.forEach(id => { let el = document.getElementById(id); if (el) el.setAttribute('max', todayStr); });
 }
