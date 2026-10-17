@@ -100,6 +100,12 @@ function evaluateNoticeStatus(item, todayDate) {
 // ૨. ૧૩૫-ડી ડેસ્ક લોડ કરવું (Central Data માંથી Instant Render)
 // =========================================================
 function loadNoticesDesk() {
+    // જો ડેટા હજુ લોડ થઈ રહ્યો હોય અને લિસ્ટ ખાલી હોય તો શિમર લોડર બતાવો
+    var container = document.getElementById('notice-list-container');
+    if (container && noticesData.length === 0) {
+        container.innerHTML = getSkeletonCardsHtml(3);
+    }
+
     renderNoticeVillageFilters();
     renderNoticeTypeFilters();
     updateStatusTabsUIAndCounts();

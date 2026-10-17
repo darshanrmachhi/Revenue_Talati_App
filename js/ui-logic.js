@@ -534,3 +534,35 @@ function matchesSmartSearch(sourceGujaratiText, searchQuery) {
     }
     return false;
 }
+
+// =========================================================
+// ૭. સ્કેલેટન શિમર જનરેટર & બેકડ્રોપ ટચ ડિસમિસ
+// =========================================================
+function getSkeletonCardsHtml(count = 3) {
+    let html = '';
+    for (let i = 0; i < count; i++) {
+        html += `
+            <div class="skeleton-card">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div class="skeleton-line" style="width: 38%; height: 16px;"></div>
+                    <div class="skeleton-line" style="width: 22%; height: 12px;"></div>
+                </div>
+                <div class="skeleton-line" style="width: 65%; height: 13px;"></div>
+                <div style="display:flex; gap: 8px;">
+                    <div class="skeleton-line" style="width: 28%; height: 11px;"></div>
+                    <div class="skeleton-line" style="width: 24%; height: 11px;"></div>
+                    <div class="skeleton-line" style="width: 32%; height: 11px;"></div>
+                </div>
+            </div>
+        `;
+    }
+    return html;
+}
+
+// મોડલની બહાર (Backdrop પર) ટચ કરતાં મોડલ આપોઆપ બંધ કરવું
+document.addEventListener('click', function(e) {
+    if (e.target && e.target.classList && e.target.classList.contains('modal-backdrop')) {
+        if (e.target.id === 'modal-login') return; // લોગિન સ્ક્રીન બંધ ન થવી જોઈએ
+        e.target.style.display = 'none';
+    }
+});

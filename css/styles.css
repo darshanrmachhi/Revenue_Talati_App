@@ -842,3 +842,58 @@ body {
 #toast.show { visibility: visible; animation: fadein 0.4s, fadeout 0.4s 2.4s; }
 @keyframes fadein { from {bottom: 40px; opacity: 0;} to {bottom: 85px; opacity: 1;} }
 @keyframes fadeout { from {bottom: 85px; opacity: 1;} to {bottom: 40px; opacity: 0;} }
+
+/* ================= 9. NATIVE BOTTOM SHEET & SKELETON SHIMMER ================= */
+
+/* તમામ મોડલ્સ માટે નેટિવ બોટમ શીટ ડ્રેગ હેન્ડલ પિલ */
+.modal-backdrop {
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.modal-card::before {
+    content: '';
+    display: block;
+    width: 38px;
+    height: 4px;
+    background: #cbd5e1;
+    border-radius: 4px;
+    margin: 8px auto 4px auto;
+    flex-shrink: 0;
+}
+
+/* સ્કેલેટન શિમર કાર્ડ્સ એનિમેશન */
+.skeleton-card {
+    background: #ffffff;
+    border-radius: var(--radius-lg);
+    padding: 14px 16px;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: relative;
+    overflow: hidden;
+}
+
+.skeleton-line {
+    height: 12px;
+    background: #e2e8f0;
+    border-radius: 6px;
+    position: relative;
+    overflow: hidden;
+}
+
+.skeleton-line::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.7) 50%, rgba(255,255,255,0) 100%);
+    animation: shimmerPulse 1.4s infinite;
+}
+
+@keyframes shimmerPulse {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}

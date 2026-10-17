@@ -36,7 +36,7 @@ function loadDirectoryData() {
     if (talukaDirectoryData) { renderSejasGrid(talukaDirectoryData.sejas); return; }
     
     let container = document.getElementById('directory-grid-container');
-    if (container) container.innerHTML = '<p style="text-align:center; padding: 20px;"><i class="fa-solid fa-spinner fa-spin"></i> ડિરેક્ટરી લોડ થાય છે...</p>';
+    if (container) container.innerHTML = getSkeletonCardsHtml(3);
     
     let mySejaName = (activeSeja && activeSeja.sejaName) ? activeSeja.sejaName : "";
     let cachedData = (typeof getMasterDataCache === 'function') ? getMasterDataCache() : null;
