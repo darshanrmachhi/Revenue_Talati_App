@@ -12,6 +12,12 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     <link rel="stylesheet" href="css/styles.css?v=6">
+
+    <!-- Apple iOS PWA Support Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="તલાટી દફતર">
+    <link rel="apple-touch-icon" href="icon-192.png">
 </head>
 <body>
 
@@ -1196,5 +1202,39 @@
             });
         }
     </script>
+
+
+
+<!-- 9. IOS PWA INSTALLATION GUIDE MODAL -->
+    <div id="modal-ios-install" class="modal-backdrop" style="display: none; align-items: center; z-index: 350;">
+        <div class="modal-card" style="border-radius: 16px; padding: 22px; max-width: 380px; width: 92%;">
+            <div class="modal-header" style="padding: 0 0 12px 0; border-bottom: 1px solid var(--border-color);">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <i class="fa-brands fa-apple" style="font-size:22px; color:#0f172a;"></i>
+                    <h3 style="margin: 0; font-size: 16px; color: var(--primary-deep);">iPhone માં એપ ઇન્સ્ટોલ કરો</h3>
+                </div>
+                <button class="modal-close-btn" onclick="closeIOSInstallModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div style="margin-top: 14px; font-size: 13px; color: #334155; line-height: 1.6;">
+                <p style="margin-bottom: 12px; font-weight: 600; color: #1e3a8a;">
+                    iPhone માં એપ ઇન્સ્ટોલ કરવા નીચે મુજબનાં સરળ પગલાં અનુસરો:
+                </p>
+                
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px; margin-bottom:10px;">
+                    <b style="color:#0284c7; display:block; margin-bottom:4px;"><i class="fa-brands fa-chrome"></i> Google Chrome યુઝર્સ માટે:</b>
+                    ૧. ઉપર/નીચે જમણી બાજુ રહેલ <b>Share (શેર)</b> આઇકોન <i class="fa-solid fa-arrow-up-from-bracket" style="color:#2563eb;"></i> પર ક્લિક કરો.<br>
+                    ૨. નીચે સ્ક્રોલ કરી <b>'Add to Home Screen' (હોમ સ્ક્રીન પર ઉમેરો)</b> <i class="fa-regular fa-square-plus" style="color:#16a34a;"></i> પસંદ કરો.<br>
+                    ૩. ઉપર જમણી બાજુ <b>Add</b> પર ક્લિક કરો.
+                </div>
+
+                <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px;">
+                    <b style="color:#059669; display:block; margin-bottom:4px;"><i class="fa-brands fa-safari"></i> Safari યુઝર્સ માટે:</b>
+                    ૧. નીચે વચ્ચે રહેલ <b>Share</b> બટન <i class="fa-solid fa-arrow-up-from-bracket" style="color:#2563eb;"></i> દબાવો.<br>
+                    ૨. <b>'Add to Home Screen'</b> પર ક્લિક કરો.
+                </div>
+            </div>
+            <button class="btn btn-primary" style="width: 100%; margin-top: 16px; padding: 10px;" onclick="closeIOSInstallModal()">સમજાઈ ગયું</button>
+        </div>
+    </div>
 </body>
 </html>

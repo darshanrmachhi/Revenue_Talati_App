@@ -452,30 +452,94 @@ window.onload = function() {
 };
 
 // =========================================================
-// 5. PWA INSTALL PROMPT LOGIC
+// 5. SMART MULTI-PLATFORM PWA INSTALL LOGIC (ANDROID & iOS)
 // =========================================================
-let deferredPrompt;
+let deferredPrompt = null;
 
+// ડિવાઇસ અને સ્ટેન્ડઅલોન મોડ ચેક કરવું
+function isRunningStandalone() {
+    return (window.matchMedia('(display-mode: standalone)').matches) || 
+           (window.navigator.standalone === true) || 
+           (document.referrer.includes('android-app://'));
+}
+
+function isIOSDevice() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+}
+
+// પેજ લોડ થતાં જ પ્લેટફોર્મ મુજબ બેનર કંટ્રોલ
+function checkPWAInstallState() {
+    let installContainer = document.getElementById('pwa-install-container');
+    if (!installContainer) return;
+
+    // જો ઍપ પહેલેથી ઇન્સ્ટોલ કરેલી હોય તો બેનર ક્યારેય ન બતાવો
+    if (isRunningStandalone()) {
+        installContainer.style.display = 'none';
+        return;
+    }
+
+    // iPhone (iOS Chrome કે Safari) માટે બેનર ડિસ્પ્લે કરો
+    if (isIOSDevice()) {
+        installContainer.style.display = 'flex';
+        let bannerSub = installContainer.querySelector('p');
+        if (bannerSub) bannerSub.innerText = "iPhone હોમ સ્ક્રીન પર એપ તરીકે ઉમેરો.";
+    }
+}
+
+// Android / Desktop Chromium માટે નેટિવ ઇવેન્ટ લિસનર
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
     let installContainer = document.getElementById('pwa-install-container');
-    if (installContainer) installContainer.style.display = 'flex';
+    if (installContainer && !isRunningStandalone()) {
+        installContainer.style.display = 'flex';
+    }
 });
 
+// ઇન્સ્ટોલ બટન ક્લિક હેન્ડલર (Cross-Platform)
 function installPWAApp() {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    deferredPrompt.userChoice.then(() => {
-        deferredPrompt = null;
-        let installContainer = document.getElementById('pwa-install-container');
-        if (installContainer) installContainer.style.display = 'none';
-    });
+    // ૧. જો iPhone હોય તો iOS ગાઇડ મોડલ ખોલો
+    if (isIOSDevice()) {
+        openIOSInstallModal();
+        return;
+    }
+
+    // ૨. જો Android / Desktop હોય અને પ્રોમ્પ્ટ તૈયાર હોય
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+                let installContainer = document.getElementById('pwa-install-container');
+                if (installContainer) installContainer.style.display = 'none';
+            }
+            deferredPrompt = null;
+        });
+    } else {
+        // બ્રાઉઝર મેનૂમાંથી ઉમેરવા માટેની સૂચના
+        showToast("બ્રાઉઝર મેનૂ (⋮) માં જઈ 'Install App' કે 'Add to Home Screen' કરો.", "info");
+    }
+}
+
+function openIOSInstallModal() {
+    let m = document.getElementById('modal-ios-install');
+    if (m) m.style.display = 'flex';
+}
+
+function closeIOSInstallModal() {
+    let m = document.getElementById('modal-ios-install');
+    if (m) m.style.display = 'none';
 }
 
 window.addEventListener('appinstalled', () => {
     let installContainer = document.getElementById('pwa-install-container');
     if (installContainer) installContainer.style.display = 'none';
+    deferredPrompt = null;
+    showToast("તલાટી દફતર એપ સફળતાપૂર્વક ઇન્સ્ટોલ થઈ ગઈ!");
+});
+
+// window.onload માં પણ ચેક કોલ ઉમેરો
+window.addEventListener('DOMContentLoaded', () => {
+    checkPWAInstallState();
 });
 
 // =========================================================
