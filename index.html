@@ -860,7 +860,7 @@
             <!-- મલ્ટિપલ સર્વે નંબરો -->
             <div class="form-group" style="margin-top: 10px;">
                 <label class="form-label">સર્વે / બ્લોક નંબરો (અલ્પવિરામ કરી લખો):</label>
-                <input type="text" class="form-control" id="notice-surveys" placeholder="દા.ત. 25, 26/1, 32">
+                <input type="text" class="form-control" id="notice-surveys" placeholder="દા.ત. 25, 26/1, 32" autocomplete="off">
             </div>
 
             <!-- ડાયનેમિક પક્ષકારોનું કન્ટેનર -->
@@ -933,7 +933,7 @@
             <!-- મલ્ટિપલ સર્વે નંબરો -->
             <div class="form-group" style="margin-top: 10px;">
                 <label class="form-label">સર્વે / બ્લોક નંબરો (અલ્પવિરામ કરી લખો):</label>
-                <input type="text" class="form-control" id="edit-notice-surveys" placeholder="દા.ત. 25, 26/1, 32">
+                <input type="text" class="form-control" id="edit-notice-surveys" placeholder="દા.ત. 25, 26/1, 32" autocomplete="off">
             </div>
 
             <!-- ડાયનેમિક પક્ષકારોનું કન્ટેનર -->
@@ -1151,11 +1151,11 @@
             </div>
             <div class="form-group" style="margin-bottom: 15px;">
                 <label class="form-label"><i class="fa-solid fa-mobile-screen"></i> મોબાઈલ નંબર:</label>
-                <input type="tel" class="form-control" id="login-mobile" placeholder="૧૦ આંકડાનો મોબાઈલ નં." maxlength="10">
+                <input type="tel" class="form-control" id="login-mobile" placeholder="૧૦ આંકડાનો મોબાઈલ નં." maxlength="10" autocomplete="username">
             </div>
             <div class="form-group" style="margin-bottom: 20px;">
                 <label class="form-label"><i class="fa-solid fa-lock"></i> પાસવર્ડ:</label>
-                <input type="password" class="form-control" id="login-password" placeholder="૬ આંકડાનો પાસવર્ડ દાખલ કરો" value="123456">
+                <input type="password" class="form-control" id="login-password" placeholder="૬ આંકડાનો પાસવર્ડ દાખલ કરો" autocomplete="current-password">
             </div>
             <button class="btn btn-primary" id="btn-login-submit" style="width: 100%; padding: 12px;" onclick="executeLogin()">લોગિન કરો</button>
         </div>

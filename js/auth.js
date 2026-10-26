@@ -247,6 +247,7 @@ function executeLogin() {
 
         if (btn) { btn.disabled = false; btn.innerText = "લોગિન કરો"; }
         document.getElementById('modal-login').style.display = 'none';
+        safeSetValue('login-password', '');
         initUserEnvironment();
         showToast("સ્વાગત છે, " + currentUser.name);
 
