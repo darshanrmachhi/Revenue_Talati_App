@@ -43,7 +43,7 @@ function toEnglishDigits(str) {
     return String(str).replace(/[૦-૯]/g, d => gujToEng[d] || d);
 }
 
-// ગામનું મૂળ નામ કાઢવું (દા.ત. 'ચારણગામ(સાલાવાડા)' -> 'ચારણગામ')
+// ગામનું મૂળ નામ કાઢવું (દા.ત. 'ગામનું નામ(પેટા)' -> 'ગામનું નામ')
 function getVillageBase(name) {
     if (!name) return '';
     return String(name).split('(')[0].replace(/[\s\-_]/g, '').trim().toLowerCase();
@@ -95,13 +95,20 @@ function formatLandAreaDisplay(val) {
     return toGujaratiDigits(val);
 }
 
-function parseUniversalDate(dateStr) {
-    if (!dateStr) return null;
-    if (typeof dateStr.toDate === 'function') return dateStr.toDate();
-    if (dateStr.seconds) return new Date(dateStr.seconds * 1000);
+function parseUniversalDate(dateVal) {
+    if (!dateVal) return null;
+    if (dateVal instanceof Date) return isNaN(dateVal.getTime()) ? null : dateVal;
+    if (typeof dateVal.toDate === 'function') return dateVal.toDate();
+    if (dateVal.seconds) return new Date(dateVal.seconds * 1000);
     
-    let s = toEnglishDigits(String(dateStr).trim());
+    let s = toEnglishDigits(String(dateVal).trim());
     
+    // ISO ફોર્મેટ ચકાસણી (દા.ત. YYYY-MM-DDTHH:mm:ss)
+    if (s.includes('T')) {
+        let d = new Date(s);
+        if (!isNaN(d.getTime())) return d;
+    }
+
     if (s.includes('/')) {
         let parts = s.split('/');
         if (parts.length === 3) {
@@ -193,7 +200,8 @@ function showView(viewId, pushHistory = true) {
     }
     else if (viewId === 'directory') {
         if (backBtn) backBtn.style.display = 'block';
-        if (title) title.innerText = 'તાલુકા ડિરેક્ટરી';
+        let talukaName = (talukaDirectoryData && talukaDirectoryData.talukaName) || "લુણાવાડા";
+        if (title) title.innerText = talukaName + ' ડિરેક્ટરી';
         let pCont = document.getElementById('panchayat-view-container');
         let dCont = document.getElementById('directory-grid-container');
         if (pCont) pCont.style.display = 'none';
@@ -241,7 +249,7 @@ window.addEventListener('popstate', function(event) {
 });
 
 // =========================================================================
-// 4. CENTRAL REAL-TIME SYNC ENGINE (SINGLE LISTENER FOR ENTIRE APP)
+// 4. CENTRAL REAL-TIME SYNC ENGINE (SECURE ISOLATION)
 // =========================================================================
 function loadDashboardData() {
     let currentVillages = (activeSeja && activeSeja.villages) ? activeSeja.villages : [];
@@ -251,7 +259,7 @@ function loadDashboardData() {
     if (unsubscribeNotices) { unsubscribeNotices(); unsubscribeNotices = null; }
     if (unsubscribePedhinamu) { unsubscribePedhinamu(); unsubscribePedhinamu = null; }
 
-    // ૧. ૧૩૫-ડી નોટિસનું સેન્ટ્રલ લિસનર
+    // ૧. ૧૩૫-ડી નોટિસ લિસનર
     unsubscribeNotices = db.collection("Notices_135D").onSnapshot((querySnapshot) => {
         let list = [];
         querySnapshot.forEach((doc) => {
@@ -259,8 +267,8 @@ function loadDashboardData() {
             data.id = doc.id;
             let vName = String(data.Village_Name || data.village || '').trim();
             
-            // ખાલી ગામ હોય તો બધાને ન દેખાય; માત્ર સેજાના ગામો સાથે જ મેચ થાય
-            let isMatch = (currentVillages.length === 0) || 
+            // સિક્યોરિટી શરત: માત્ર સક્રિય સેજાના ગામો જ સિંક થશે
+            let isMatch = (currentVillages.length > 0) && 
                           (vName !== '' && currentVillages.some(v => isSameVillage(vName, v)));
             if (isMatch) list.push(data);
         });
@@ -277,7 +285,6 @@ function loadDashboardData() {
         isNoticesLoaded = true;
         updateDashboardStatsUI();
 
-        // જો યુઝર અત્યારે ૧૩૫-ડી ટેબમાં જ હોય તો તેનું UI પણ લાઈવ અપડેટ કરો
         if (typeof renderNoticeVillageFilters === 'function') renderNoticeVillageFilters();
         if (typeof renderNoticeTypeFilters === 'function') renderNoticeTypeFilters();
         if (typeof updateStatusTabsUIAndCounts === 'function') updateStatusTabsUIAndCounts();
@@ -289,14 +296,15 @@ function loadDashboardData() {
         if (loadStatus) loadStatus.innerText = "(સિંક એરર)";
     });
 
-    // ૨. પેઢીનામા રજીસ્ટરનું સેન્ટ્રલ લિસનર
+    // ૨. પેઢીનામા રજીસ્ટર લિસનર
     unsubscribePedhinamu = db.collection("Pedhinamu_Register").onSnapshot((querySnapshot) => {
         let data = [];
         querySnapshot.forEach((doc) => {
             let r = doc.data();
             r.Pedhinamu_ID = doc.id;
             let vName = String(r.Village_Name || '').trim();
-            let isMatch = (currentVillages.length === 0) || 
+            
+            let isMatch = (currentVillages.length > 0) && 
                           (vName !== '' && currentVillages.some(v => isSameVillage(vName, v)));
             if (isMatch) data.push(r);
         });
@@ -340,13 +348,17 @@ function updateDashboardStatsUI() {
             c++;
         } else if (servedD) {
             let sDate = parseUniversalDate(servedD);
-            if (sDate) {
+            if (sDate && !isNaN(sDate.getTime())) {
                 sDate.setHours(0, 0, 0, 0);
                 let diffDays = Math.floor((today - sDate) / (1000 * 60 * 60 * 24));
                 if (diffDays < 30) d++;
                 else rCount++;
-            } else { p++; }
-        } else { p++; }
+            } else { 
+                p++; 
+            }
+        } else { 
+            p++; 
+        }
     });
 
     safeSetText('pending-notices', toGujaratiDigits(p));
@@ -377,42 +389,43 @@ function updateDashboardStatsUI() {
     renderNoticeChart(p, d + rCount, c);
 }
 
+// સુધારેલું નોટિસ ચાર્ટ ફંક્શન (No flickering, Fast Smooth Re-render)
 function renderNoticeChart(pending, due, completed) {
     let chartElem = document.querySelector("#notices-chart-container");
     if (!chartElem || typeof ApexCharts === 'undefined') return;
 
-    let options = {
-        series: [pending, due, completed],
-        chart: { type: 'donut', height: 185, fontFamily: 'Noto Sans Gujarati, sans-serif' },
-        labels: ['બજાવવાની બાકી', 'મુદતમાં ચાલુ', 'કચેરીએ જમા'],
-        colors: ['#ef4444', '#f59e0b', '#10b981'],
-        legend: { position: 'right', fontSize: '12px', offsetY: 15 },
-        dataLabels: { enabled: false },
-        plotOptions: { 
-            pie: { 
-                donut: { 
-                    size: '70%', 
-                    labels: { 
-                        show: true, 
-                        total: { 
+    if (noticeApexChart) { 
+        // આખું ઓપ્શન રીસેટ કરવાને બદલે સીરીઝ અપડેટ કરો
+        noticeApexChart.updateSeries([pending, due, completed], true); 
+    } else {
+        chartElem.innerHTML = "";
+        let options = {
+            series: [pending, due, completed],
+            chart: { type: 'donut', height: 185, fontFamily: 'Noto Sans Gujarati, sans-serif' },
+            labels: ['બજાવવાની બાકી', 'મુદતમાં ચાલુ', 'કચેરીએ જમા'],
+            colors: ['#ef4444', '#f59e0b', '#10b981'],
+            legend: { position: 'right', fontSize: '12px', offsetY: 15 },
+            dataLabels: { enabled: false },
+            plotOptions: { 
+                pie: { 
+                    donut: { 
+                        size: '70%', 
+                        labels: { 
                             show: true, 
-                            label: 'કુલ નોટિસો', 
-                            fontSize: '11px', 
-                            fontWeight: 600, 
-                            formatter: function (w) { 
-                                return toGujaratiDigits(w.globals.seriesTotals.reduce((a, b) => a + b, 0)); 
+                            total: { 
+                                show: true, 
+                                label: 'કુલ નોટિસો', 
+                                fontSize: '11px', 
+                                fontWeight: 600, 
+                                formatter: function (w) { 
+                                    return toGujaratiDigits(w.globals.seriesTotals.reduce((a, b) => a + b, 0)); 
+                                } 
                             } 
                         } 
                     } 
                 } 
-            } 
-        }
-    };
-
-    if (noticeApexChart) { 
-        noticeApexChart.updateOptions(options); 
-    } else {
-        chartElem.innerHTML = "";
+            }
+        };
         noticeApexChart = new ApexCharts(chartElem, options);
         noticeApexChart.render();
     }
@@ -426,7 +439,10 @@ function enforceMaxTodayOnDates() {
         'inp-date', 'inp-deathdate', 'inp-affidavit-date',
         'prof-dob', 'prof-first-join', 'prof-rev-join', 'post-from', 'post-to'
     ];
-    dateInputIds.forEach(id => { let el = document.getElementById(id); if (el) el.setAttribute('max', todayStr); });
+    dateInputIds.forEach(id => { 
+        let el = document.getElementById(id); 
+        if (el) el.setAttribute('max', todayStr); 
+    });
 }
 
 window.onload = function() {
@@ -435,9 +451,9 @@ window.onload = function() {
     checkLoginSession();
 };
 
-// =========================================================================
+// =========================================================
 // 5. PWA INSTALL PROMPT LOGIC
-// =========================================================================
+// =========================================================
 let deferredPrompt;
 
 window.addEventListener('beforeinstallprompt', (e) => {
@@ -462,9 +478,9 @@ window.addEventListener('appinstalled', () => {
     if (installContainer) installContainer.style.display = 'none';
 });
 
-// =========================================================================
+// =========================================================
 // 6. SMART PHONETIC SEARCH (ENGLISH TO GUJARATI)
-// =========================================================================
+// =========================================================
 function gujaratiToLatin(str) {
     if (!str) return "";
     const charMap = {
@@ -538,7 +554,7 @@ function matchesSmartSearch(sourceGujaratiText, searchQuery) {
 }
 
 // =========================================================
-// ૭. સ્કેલેટન શિમર જનરેટર & બેકડ્રોપ ટચ ડિસમિસ
+// 7. સ્કેલેટન શિમર જનરેટર & બેકડ્રોપ ટચ ડિસમિસ
 // =========================================================
 function getSkeletonCardsHtml(count = 3) {
     let html = '';
@@ -561,10 +577,9 @@ function getSkeletonCardsHtml(count = 3) {
     return html;
 }
 
-// મોડલની બહાર (Backdrop પર) ટચ કરતાં મોડલ આપોઆપ બંધ કરવું
 document.addEventListener('click', function(e) {
     if (e.target && e.target.classList && e.target.classList.contains('modal-backdrop')) {
-        if (e.target.id === 'modal-login') return; // લોગિન સ્ક્રીન બંધ ન થવી જોઈએ
+        if (e.target.id === 'modal-login') return;
         e.target.style.display = 'none';
     }
 });
