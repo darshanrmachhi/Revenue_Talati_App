@@ -5,8 +5,8 @@ var isProfileEditing = false;
 
 // હેડરનો નાનો પ્રોફાઇલ ફોટો અપડેટ કરતું ફંક્શન
 function updateHeaderAvatar(photoUrl) {
-    let img = document.getElementById('header-avatar-img');
-    let icon = document.getElementById('header-avatar-icon');
+    let img = document.getElementById('nav-avatar-img');
+    let icon = document.getElementById('nav-avatar-icon');
     if (!img || !icon) return;
 
     if (photoUrl) {

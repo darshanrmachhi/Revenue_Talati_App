@@ -932,3 +932,50 @@ body {
     0% { transform: translateX(-100%); }
     100% { transform: translateX(100%); }
 }
+
+/* ================= BOTTOM NAV PROFILE AVATAR ================= */
+.nav-item-profile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 2px !important;
+}
+
+.nav-avatar-circle {
+    width: 27px;
+    height: 27px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+    transition: all 0.2s ease;
+    border: 1.5px solid #cbd5e1;
+    background: #f1f5f9;
+}
+
+.nav-avatar-circle img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+}
+
+.nav-avatar-circle i {
+    font-size: 20px !important;
+    margin: 0 !important;
+    color: #64748b;
+}
+
+/* જ્યારે પ્રોફાઈલ ટેબ સક્રિય (Active) હોય ત્યારે */
+.nav-item.active .nav-avatar-circle {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.35);
+    transform: scale(1.08);
+}
+
+.nav-item.active .nav-avatar-circle i {
+    color: #2563eb;
+}
