@@ -725,6 +725,170 @@ body {
 .btn-mini-wa { background-color: #16a34a; }
 .btn-mini-copy { background-color: #64748b; }
 
+
+
+/* ================= COMPACT & ELEGANT SEJA DIRECTORY CARDS ================= */
+.seja-grid { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 8px; 
+    margin-bottom: 25px; 
+}
+
+.seja-compact-card {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 10px 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+    border: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+}
+
+.seja-compact-card:active {
+    transform: scale(0.985);
+    background: #f8fafc;
+}
+
+/* પોતાના સેજા માટે હાઈલાઈટ */
+.seja-compact-card.my-seja {
+    border-color: #93c5fd;
+    border-left: 4px solid #2563eb;
+    background: linear-gradient(90deg, #f0f7ff 0%, #ffffff 45%);
+}
+
+/* ડાબી બાજુ તલાટી પ્રોફાઇલ અવતાર */
+.seja-card-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 1.5px solid #e2e8f0;
+    background: #f1f5f9;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.seja-compact-card.my-seja .seja-card-avatar {
+    border-color: #3b82f6;
+}
+
+.seja-card-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* વચ્ચેની વિગતો */
+.seja-card-body {
+    flex: 1;
+    min-width: 0; /* Text truncation માટે */
+}
+
+.seja-card-top {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 2px;
+}
+
+.seja-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--primary-deep);
+}
+
+.my-seja-tag {
+    font-size: 9.5px;
+    font-weight: 700;
+    color: #1d4ed8;
+    background: #dbeafe;
+    padding: 1px 6px;
+    border-radius: 8px;
+}
+
+.seja-talati-name {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #334155;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 3px;
+}
+
+.seja-sub-stats {
+    font-size: 11px;
+    color: #64748b;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.dot-sep {
+    color: #cbd5e1;
+    font-size: 9px;
+}
+
+/* જમણી બાજુના એક્શન બટનો (કોલ & વોટ્સએપ) */
+.seja-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.action-circle-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    font-size: 13.5px;
+    transition: transform 0.15s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.action-circle-btn:active {
+    transform: scale(0.9);
+}
+
+.action-circle-btn.call {
+    background: #eff6ff;
+    color: #2563eb;
+    border: 1px solid #bfdbfe;
+}
+
+.action-circle-btn.wa {
+    background: #f0fdf4;
+    color: #16a34a;
+    border: 1px solid #bbf7d0;
+}
+
+.no-contact-dot {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #cbd5e1;
+    font-size: 12px;
+    background: #f8fafc;
+}
+
+
+
+
+
 /* ================= 6. PEDHINAMU & TREE STYLES ================= */
 .stepper { display: flex; justify-content: space-between; margin-bottom: 20px; position: relative; border-bottom: 2px solid #e2e8f0; }
 .step-indicator { flex: 1; text-align: center; padding: 12px 10px; color: #94a3b8; font-weight: 600; font-size: 14px; cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -2px;}

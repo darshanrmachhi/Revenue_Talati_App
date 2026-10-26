@@ -89,28 +89,65 @@ function renderSejasGrid(sejasList) {
     if (bc) bc.innerHTML = `<span class="crumb-link" onclick="renderSejasGrid()"><i class="fa-solid fa-house"></i> લુણાવાડા</span>`;
     
     if (!list || list.length === 0) { 
-        container.innerHTML = `<p style="grid-column: 1/-1; text-align:center;">કોઈ સેજો મળ્યો નથી.</p>`; 
+        container.innerHTML = `<p style="grid-column: 1/-1; text-align:center; padding:30px; color:#94a3b8;">કોઈ સેજો મળ્યો નથી.</p>`; 
         return; 
     }
 
     let mySejaName = (activeSeja && activeSeja.sejaName) ? activeSeja.sejaName : "";
+    let myCachedPhoto = localStorage.getItem('user_profile_avatar') || '';
+
     container.innerHTML = list.map(seja => {
         const isMySeja = (seja.sejaName === mySejaName);
         const chargeClass = (seja.chargeType === "કાયમી") ? "permanent" : "additional";
         const cm = seja.talatiMobile && seja.talatiMobile !== "-" ? toEnglishDigits(seja.talatiMobile).replace(/[^0-9]/g, '') : '';
-        return `<div class="seja-grid-card ${isMySeja ? 'my-seja' : ''}" onclick="renderPanchayatsView('${seja.sejaName}')">
-            <div>
-                <div class="seja-card-header">
-                    <div class="seja-card-title">${seja.sejaName} સેજો ${isMySeja?'<span style="font-size:10px; color:#2563eb; display:block;">(મારો સેજો)</span>':''}</div>
-                    <span class="badge-charge ${chargeClass}">${seja.chargeType}</span>
+        
+        // પ્રોફાઇલ ફોટો હેન્ડલર (પોતાનો સેજો હોય તો સિંક ફોટો, નહીંતર ડાયરેક્ટરી ફોટો કે સ્માર્ટ અવતાર)
+        let photoSrc = (isMySeja && myCachedPhoto) ? myCachedPhoto : (seja.photoUrl || seja.photo || '');
+        if (!photoSrc) {
+            let encName = encodeURIComponent(seja.talatiName || 'તલાટી');
+            photoSrc = `https://ui-avatars.com/api/?name=${encName}&background=eff6ff&color=1d4ed8&font-size=0.4&bold=true`;
+        }
+
+        return `
+            <div class="seja-compact-card ${isMySeja ? 'my-seja' : ''}" onclick="renderPanchayatsView('${seja.sejaName}')">
+                <div class="seja-card-avatar">
+                    <img src="${photoSrc}" alt="${seja.talatiName}">
                 </div>
-                <div class="talati-info"><i class="fa-solid fa-user-tie" style="color:var(--text-muted); font-size:12px;"></i><span>${seja.talatiName}</span></div>
-                <div class="seja-counts-bar"><span><i class="fa-solid fa-building"></i> ${toGujaratiDigits(seja.panchayatsCount)} પંચાયત</span><span><i class="fa-solid fa-location-dot"></i> ${toGujaratiDigits(seja.villagesCount)} ગામો</span></div>
+                
+                <div class="seja-card-body">
+                    <div class="seja-card-top">
+                        <span class="seja-title">${seja.sejaName} સેજો</span>
+                        <span class="badge-charge ${chargeClass}">${seja.chargeType}</span>
+                        ${isMySeja ? '<span class="my-seja-tag">મારો સેજો</span>' : ''}
+                    </div>
+                    
+                    <div class="seja-talati-name">
+                        <i class="fa-solid fa-user-tie" style="font-size:11px; opacity:0.6;"></i> ${seja.talatiName}
+                    </div>
+                    
+                    <div class="seja-sub-stats">
+                        <span><i class="fa-solid fa-building"></i> ${toGujaratiDigits(seja.panchayatsCount)} પંચાયત</span>
+                        <span class="dot-sep">•</span>
+                        <span><i class="fa-solid fa-location-dot"></i> ${toGujaratiDigits(seja.villagesCount)} ગામો</span>
+                    </div>
+                </div>
+
+                <div class="seja-card-actions" onclick="event.stopPropagation()">
+                    ${cm.length === 10 ? `
+                        <a href="tel:${cm}" class="action-circle-btn call" title="કોલ કરો">
+                            <i class="fa-solid fa-phone"></i>
+                        </a>
+                        <a href="https://wa.me/91${cm}" target="_blank" class="action-circle-btn wa" title="વોટ્સએપ">
+                            <i class="fa-brands fa-whatsapp"></i>
+                        </a>
+                    ` : `
+                        <span class="no-contact-dot" title="સંપર્ક ઉપલબ્ધ નથી">
+                            <i class="fa-solid fa-phone-slash"></i>
+                        </span>
+                    `}
+                </div>
             </div>
-            <div class="seja-quick-actions" onclick="event.stopPropagation()">
-                ${cm.length === 10 ? `<a href="tel:${cm}" class="btn-contact btn-call"><i class="fa-solid fa-phone"></i> કોલ</a><a href="https://wa.me/91${cm}" target="_blank" class="btn-contact btn-wa"><i class="fa-brands fa-whatsapp"></i> વોટ્સએપ</a>` : `<span style="font-size:11px; color:#999; text-align:center; width:100%;">સંપર્ક ઉપલબ્ધ નથી</span>`}
-            </div>
-        </div>`;
+        `;
     }).join('');
 }
 
