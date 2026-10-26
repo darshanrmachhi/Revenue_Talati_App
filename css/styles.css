@@ -433,45 +433,56 @@ body {
     right: 12px;
     max-width: 500px;
     margin: 0 auto;
-    background: rgba(255, 255, 255, 0.92); 
+    background: rgba(255, 255, 255, 0.94); 
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     display: flex; 
     justify-content: space-around; 
     align-items: center;
-    padding: 6px 4px; 
-    border-radius: 30px;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12), 0 1px 3px rgba(0, 0, 0, 0.05); 
-    border: 1px solid rgba(255, 255, 255, 0.6);
+    padding: 6px 6px; 
+    border-radius: 32px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.14), 0 2px 6px rgba(0, 0, 0, 0.04); 
+    border: 1px solid rgba(255, 255, 255, 0.8);
     z-index: 120;
 }
+
 .nav-item { 
     flex: 1; 
-    text-align: center; 
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     color: #64748b; 
     font-size: 10.5px; 
     font-weight: 700; 
     cursor: pointer; 
-    padding: 6px 2px;
+    min-height: 42px;
+    padding: 4px 2px;
     border-radius: 20px;
     transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     position: relative;
 }
+
 .nav-item i { 
     font-size: 17px; 
     margin-bottom: 2px; 
     display: block; 
     transition: transform 0.2s ease;
 }
+
 .nav-item.active { 
     color: #1e3a8a; 
-    background: rgba(37, 99, 235, 0.1); 
+    background: rgba(37, 99, 235, 0.08); 
 }
+
 .nav-item.active i {
-    transform: translateY(-2px);
+    transform: translateY(-1px);
     color: #2563eb;
 }
-.nav-item:active { transform: scale(0.92); }
+
+.nav-item:active { 
+    transform: scale(0.92); 
+}
 
 /* ================= 4. 135-D & PEDHINAMU MODERN UI ================= */
 .view-header-row {
@@ -938,21 +949,22 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 4px 2px !important;
+    padding: 0 !important;
 }
 
 .nav-avatar-circle {
-    width: 27px;
-    height: 27px;
+    width: 35px; /* કદ ૨૭px થી વધારીને ૩૫px કર્યું */
+    height: 35px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
     position: relative;
-    transition: all 0.2s ease;
-    border: 1.5px solid #cbd5e1;
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    border: 2px solid #cbd5e1;
     background: #f1f5f9;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 .nav-avatar-circle img {
@@ -964,15 +976,19 @@ body {
 }
 
 .nav-avatar-circle i {
-    font-size: 20px !important;
+    font-size: 26px !important;
     margin: 0 !important;
     color: #64748b;
 }
 
-/* જ્યારે પ્રોફાઈલ ટેબ સક્રિય (Active) હોય ત્યારે */
+/* પ્રોફાઇલ ટેબ સક્રિય (Active) હોય ત્યારે બ્લૂ રિંગ અને ગ્લો */
+.nav-item-profile.active {
+    background: transparent !important; /* પ્રોફાઇલ માટે પાછળનો સ્ક્વેર બેકગ્રાઉન્ડ હટાવ્યો */
+}
+
 .nav-item.active .nav-avatar-circle {
     border-color: #2563eb;
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.35);
+    box-shadow: 0 0 0 2.5px rgba(37, 99, 235, 0.35), 0 3px 8px rgba(37, 99, 235, 0.2);
     transform: scale(1.08);
 }
 
