@@ -4,8 +4,8 @@ var talukaDirectoryData = null;
 let currentActiveSeja = null; 
 let currentActivePanchayat = null;
 let currentActiveVillage = null;
-let editingLandRecordIdx = null; // સરકારી જમીન એડિટ ટ્રેકિંગ માટે
-let editingBookmarkIdx = null;   // બુકમાર્ક એડિટ ટ્રેકિંગ માટે
+let editingLandRecordId = null; // સુધારો: Index ના બદલે અનન્ય ID વડે ટ્રેકિંગ
+let editingBookmarkId = null;   // સુધારો: Index ના બદલે અનન્ય ID વડે ટ્રેકિંગ
 
 // Call, WhatsApp અને Copy નું ૩-બટન ગ્રુપ બનાવતું હેલ્પર ફંક્શન
 function buildContactActionButtons(rawMobile) {
@@ -204,7 +204,7 @@ function openVillageProfile(vid, pname) {
     let tp = null;
     
     for (let p of currentActiveSeja.panchayats) { 
-        let v = p.villages.find(i => i.villageId === vid || i.villageName === vid); 
+        let v = p.villages.find(i => String(i.villageId).trim() === String(vid).trim() || i.villageName === vid); 
         if (v) { tv = v; tp = p; break; } 
     }
     if (!tv) return; 
@@ -260,7 +260,7 @@ function openVillageProfile(vid, pname) {
 
     renderVillageViewExtra(tv);
 
-    let docId = tv.villageId || tv.villageName.replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
+    let docId = String(tv.villageId || tv.villageName).trim().replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
     db.collection("Village_Land_Records").doc(docId).get().then(doc => {
         if (doc.exists) {
             let lData = doc.data();
@@ -295,8 +295,9 @@ function renderVillageViewExtra(tv) {
             
             let grouped = {};
             tv.landRecords.forEach(r => {
-                if (!grouped[r.category]) grouped[r.category] = [];
-                grouped[r.category].push(r);
+                let cat = r.category || 'અન્ય';
+                if (!grouped[cat]) grouped[cat] = [];
+                grouped[cat].push(r);
             });
 
             for (let cat in grouped) {
@@ -328,15 +329,16 @@ function renderVillageViewExtra(tv) {
             let html = '<div style="font-size:13px; font-weight:700; color:#854d0e; margin-top:15px; border-top:1px dashed #cbd5e1; padding-top:12px; margin-bottom:8px;"><i class="fa-solid fa-thumbtack"></i> અગત્યના બુકમાર્કસ</div>';
             
             html += tv.bookmarks.map(b => {
-                let bg = b.tag.includes('કોર્ટ') ? '#fee2e2' : (b.tag.includes('દબાણ') ? '#ffedd5' : '#fefce8');
-                let tc = b.tag.includes('કોર્ટ') ? '#991b1b' : (b.tag.includes('દબાણ') ? '#9a3412' : '#854d0e');
-                let brc = b.tag.includes('કોર્ટ') ? '#f87171' : (b.tag.includes('દબાણ') ? '#fb923c' : '#fde047');
+                let tag = b.tag || 'અન્ય';
+                let bg = tag.includes('કોર્ટ') ? '#fee2e2' : (tag.includes('દબાણ') ? '#ffedd5' : '#fefce8');
+                let tc = tag.includes('કોર્ટ') ? '#991b1b' : (tag.includes('દબાણ') ? '#9a3412' : '#854d0e');
+                let brc = tag.includes('કોર્ટ') ? '#f87171' : (tag.includes('દબાણ') ? '#fb923c' : '#fde047');
                 let formattedArea = formatLandAreaDisplay(b.area);
 
                 return `
                     <div style="background:${bg}; border-left:4px solid ${brc}; padding:10px 12px; margin-bottom:8px; border-radius:6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                            <span style="font-size:10px; font-weight:bold; color:${tc}; text-transform:uppercase; letter-spacing:0.5px;">${b.tag}</span>
+                            <span style="font-size:10px; font-weight:bold; color:${tc}; text-transform:uppercase; letter-spacing:0.5px;">${tag}</span>
                             ${formattedArea ? `<span style="font-size:12px; font-weight:700; color:#047857; background:rgba(255,255,255,0.85); padding:1px 7px; border-radius:4px; border:1px solid rgba(4,120,87,0.25);"><i class="fa-solid fa-vector-square" style="font-size:10px;"></i> ${formattedArea}</span>` : ''}
                         </div>
                         <div style="font-size:13px; font-weight:bold; color:#1e293b;">
@@ -362,8 +364,8 @@ function copyToClipboard(t) { navigator.clipboard.writeText(t).then(() => showTo
 function openEditVillageForm() {
     if (!currentActiveVillage) return;
     
-    editingLandRecordIdx = null;
-    editingBookmarkIdx = null;
+    editingLandRecordId = null;
+    editingBookmarkId = null;
 
     let subTitle = document.getElementById('edit-vil-subtitle');
     if (subTitle) subTitle.innerText = `મોજે: ${currentActiveVillage.villageName} (${currentActiveVillage.villageId || ''})`;
@@ -376,6 +378,14 @@ function openEditVillageForm() {
     if (!currentActiveVillage.landRecords) currentActiveVillage.landRecords = [];
     if (!currentActiveVillage.bookmarks) currentActiveVillage.bookmarks = [];
 
+    // દરેક જૂના રેકોર્ડને અનન્ય ID આપવું (જો ન હોય તો)
+    currentActiveVillage.landRecords.forEach((r, idx) => {
+        if (!r.id) r.id = 'lr_' + Date.now() + '_' + idx;
+    });
+    currentActiveVillage.bookmarks.forEach((b, idx) => {
+        if (!b.id) b.id = 'bm_' + Date.now() + '_' + idx;
+    });
+
     renderEditManagers();
     document.getElementById('modal-edit-village').style.display = 'flex';
 }
@@ -384,8 +394,8 @@ function renderEditManagers() {
     let cont = document.getElementById('edit-vil-land-manager-container');
     if (!cont) return;
 
-    let isEditingLR = (editingLandRecordIdx !== null);
-    let isEditingBM = (editingBookmarkIdx !== null);
+    let isEditingLR = (editingLandRecordId !== null);
+    let isEditingBM = (editingBookmarkId !== null);
 
     let html = `
         <div style="margin-top:20px; border-top:2px solid #e2e8f0; padding-top:15px;">
@@ -422,17 +432,18 @@ function renderEditManagers() {
             
             <div id="edit-lr-list" style="margin-top:12px; max-height:160px; overflow-y:auto;">
                 ${currentActiveVillage.landRecords.length === 0 ? '<div style="text-align:center; font-size:11px; color:#94a3b8; padding:8px;">કોઈ રેકોર્ડ નથી</div>' : ''}
-                ${currentActiveVillage.landRecords.map((r, i) => {
+                ${currentActiveVillage.landRecords.map((r) => {
                     let formattedArea = formatLandAreaDisplay(r.area);
+                    let isEditingThis = (editingLandRecordId === r.id);
                     return `
-                        <div style="display:flex; justify-content:space-between; align-items:center; background:${editingLandRecordIdx === i ? '#eff6ff' : '#f8fafc'}; padding:8px 10px; margin-bottom:6px; font-size:12px; border:1px solid ${editingLandRecordIdx === i ? '#93c5fd' : '#e2e8f0'}; border-radius:6px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; background:${isEditingThis ? '#eff6ff' : '#f8fafc'}; padding:8px 10px; margin-bottom:6px; font-size:12px; border:1px solid ${isEditingThis ? '#93c5fd' : '#e2e8f0'}; border-radius:6px;">
                             <div style="flex:1;">
                                 <b>${r.category}:</b> ${toGujaratiDigits(r.surveyNo)}${formattedArea ? `<span style="color:#047857; font-weight:600;">(${formattedArea})</span>` : ''}
                                 ${r.remarks ? `<span style="font-size:11px; color:#64748b; display:block;">${toGujaratiDigits(r.remarks)}</span>` : ''}
                             </div>
                             <div style="display:flex; gap:8px; margin-left:8px;">
-                                <button type="button" onclick="editLandRecord(${i})" style="color:#2563eb; background:none; border:none; cursor:pointer; font-size:14px;" title="સુધારો કરો"><i class="fa-solid fa-pen-to-square"></i></button>
-                                <button type="button" onclick="removeLandRecord(${i})" style="color:#ef4444; background:none; border:none; cursor:pointer; font-size:14px;" title="રદ કરો"><i class="fa-solid fa-trash"></i></button>
+                                <button type="button" onclick="editLandRecord('${r.id}')" style="color:#2563eb; background:none; border:none; cursor:pointer; font-size:14px;" title="સુધારો કરો"><i class="fa-solid fa-pen-to-square"></i></button>
+                                <button type="button" onclick="removeLandRecord('${r.id}')" style="color:#ef4444; background:none; border:none; cursor:pointer; font-size:14px;" title="રદ કરો"><i class="fa-solid fa-trash"></i></button>
                             </div>
                         </div>
                     `;
@@ -470,17 +481,18 @@ function renderEditManagers() {
             
             <div id="edit-bm-list" style="margin-top:12px; max-height:160px; overflow-y:auto;">
                 ${currentActiveVillage.bookmarks.length === 0 ? '<div style="text-align:center; font-size:11px; color:#94a3b8; padding:8px;">કોઈ બુકમાર્ક નથી</div>' : ''}
-                ${currentActiveVillage.bookmarks.map((b, i) => {
+                ${currentActiveVillage.bookmarks.map((b) => {
                     let formattedArea = formatLandAreaDisplay(b.area);
+                    let isEditingThis = (editingBookmarkId === b.id);
                     return `
-                        <div style="display:flex; justify-content:space-between; align-items:center; background:${editingBookmarkIdx === i ? '#fef9c3' : '#fefce8'}; padding:8px 10px; margin-bottom:6px; font-size:12px; border:1px solid ${editingBookmarkIdx === i ? '#fde047' : '#fef08a'}; border-radius:6px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; background:${isEditingThis ? '#fef9c3' : '#fefce8'}; padding:8px 10px; margin-bottom:6px; font-size:12px; border:1px solid ${isEditingThis ? '#fde047' : '#fef08a'}; border-radius:6px;">
                             <div style="flex:1;">
                                 <b>${b.tag}:</b> ${toGujaratiDigits(b.surveyNo)}${formattedArea ? `<span style="color:#047857; font-weight:600;">(${formattedArea})</span>` : ''}
                                 ${b.note ? `<span style="font-size:11px; color:#64748b; display:block;">${toGujaratiDigits(b.note)}</span>` : ''}
                             </div>
                             <div style="display:flex; gap:8px; margin-left:8px;">
-                                <button type="button" onclick="editBookmark(${i})" style="color:#2563eb; background:none; border:none; cursor:pointer; font-size:14px;" title="સુધારો કરો"><i class="fa-solid fa-pen-to-square"></i></button>
-                                <button type="button" onclick="removeBookmark(${i})" style="color:#ef4444; background:none; border:none; cursor:pointer; font-size:14px;" title="રદ કરો"><i class="fa-solid fa-trash"></i></button>
+                                <button type="button" onclick="editBookmark('${b.id}')" style="color:#2563eb; background:none; border:none; cursor:pointer; font-size:14px;" title="સુધારો કરો"><i class="fa-solid fa-pen-to-square"></i></button>
+                                <button type="button" onclick="removeBookmark('${b.id}')" style="color:#ef4444; background:none; border:none; cursor:pointer; font-size:14px;" title="રદ કરો"><i class="fa-solid fa-trash"></i></button>
                             </div>
                         </div>
                     `;
@@ -499,29 +511,41 @@ window.saveLandRecordEntry = function() {
     
     if(!sur) { showToast("કૃપા કરી સર્વે નંબર દાખલ કરો", "warning"); return; }
     
-    let recordObj = {
-        id: (editingLandRecordIdx !== null && currentActiveVillage.landRecords[editingLandRecordIdx].id) ? currentActiveVillage.landRecords[editingLandRecordIdx].id : Date.now().toString(),
-        category: cat,
-        surveyNo: sur,
-        area: area,
-        remarks: rem
-    };
-
-    if (editingLandRecordIdx !== null) {
-        currentActiveVillage.landRecords[editingLandRecordIdx] = recordObj;
-        editingLandRecordIdx = null;
-        showToast("એન્ટ્રી સુધારી લેવાઈ છે!");
+    if (editingLandRecordId !== null) {
+        let idx = currentActiveVillage.landRecords.findIndex(r => r.id === editingLandRecordId);
+        if (idx !== -1) {
+            currentActiveVillage.landRecords[idx] = {
+                id: editingLandRecordId,
+                category: cat,
+                surveyNo: sur,
+                area: area,
+                remarks: rem
+            };
+            showToast("એન્ટ્રી સુધારી લેવાઈ છે!");
+        }
+        editingLandRecordId = null;
     } else {
+        let recordObj = {
+            id: 'lr_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+            category: cat,
+            surveyNo: sur,
+            area: area,
+            remarks: rem
+        };
         currentActiveVillage.landRecords.push(recordObj);
         showToast("નવી એન્ટ્રી ઉમેરાઈ ગઈ!");
     }
+
+    safeSetValue('new-lr-survey', '');
+    safeSetValue('new-lr-area', '');
+    safeSetValue('new-lr-rem', '');
     renderEditManagers();
 };
 
-window.editLandRecord = function(idx) {
-    let r = currentActiveVillage.landRecords[idx];
+window.editLandRecord = function(id) {
+    let r = currentActiveVillage.landRecords.find(item => item.id === id);
     if (!r) return;
-    editingLandRecordIdx = idx;
+    editingLandRecordId = id;
     renderEditManagers();
     safeSetValue('new-lr-cat', r.category || 'ગૌચર');
     safeSetValue('new-lr-survey', r.surveyNo || '');
@@ -532,14 +556,22 @@ window.editLandRecord = function(idx) {
 };
 
 window.cancelLandRecordEdit = function() {
-    editingLandRecordIdx = null;
+    editingLandRecordId = null;
+    safeSetValue('new-lr-survey', '');
+    safeSetValue('new-lr-area', '');
+    safeSetValue('new-lr-rem', '');
     renderEditManagers();
 };
 
-window.removeLandRecord = function(idx) {
+window.removeLandRecord = function(id) {
     if(confirm("શું તમે ખરેખર આ સરકારી જમીન રેકોર્ડ કાઢી નાખવા માંગો છો?")) {
-        currentActiveVillage.landRecords.splice(idx, 1);
-        if (editingLandRecordIdx === idx) editingLandRecordIdx = null;
+        currentActiveVillage.landRecords = currentActiveVillage.landRecords.filter(item => item.id !== id);
+        if (editingLandRecordId === id) {
+            editingLandRecordId = null;
+            safeSetValue('new-lr-survey', '');
+            safeSetValue('new-lr-area', '');
+            safeSetValue('new-lr-rem', '');
+        }
         renderEditManagers();
     }
 };
@@ -552,29 +584,41 @@ window.saveBookmarkEntry = function() {
     
     if(!sur) { showToast("કૃપા કરી સર્વે નંબર દાખલ કરો", "warning"); return; }
     
-    let bmObj = {
-        id: (editingBookmarkIdx !== null && currentActiveVillage.bookmarks[editingBookmarkIdx].id) ? currentActiveVillage.bookmarks[editingBookmarkIdx].id : Date.now().toString(),
-        tag: tag,
-        surveyNo: sur,
-        area: area,
-        note: note
-    };
-
-    if (editingBookmarkIdx !== null) {
-        currentActiveVillage.bookmarks[editingBookmarkIdx] = bmObj;
-        editingBookmarkIdx = null;
-        showToast("બુકમાર્ક સુધારી લેવાયો છે!");
+    if (editingBookmarkId !== null) {
+        let idx = currentActiveVillage.bookmarks.findIndex(b => b.id === editingBookmarkId);
+        if (idx !== -1) {
+            currentActiveVillage.bookmarks[idx] = {
+                id: editingBookmarkId,
+                tag: tag,
+                surveyNo: sur,
+                area: area,
+                note: note
+            };
+            showToast("બુકમાર્ક સુધારી લેવાયો છે!");
+        }
+        editingBookmarkId = null;
     } else {
+        let bmObj = {
+            id: 'bm_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+            tag: tag,
+            surveyNo: sur,
+            area: area,
+            note: note
+        };
         currentActiveVillage.bookmarks.push(bmObj);
         showToast("બુકમાર્ક ઉમેરાઈ ગયો!");
     }
+
+    safeSetValue('new-bm-survey', '');
+    safeSetValue('new-bm-area', '');
+    safeSetValue('new-bm-note', '');
     renderEditManagers();
 };
 
-window.editBookmark = function(idx) {
-    let b = currentActiveVillage.bookmarks[idx];
+window.editBookmark = function(id) {
+    let b = currentActiveVillage.bookmarks.find(item => item.id === id);
     if (!b) return;
-    editingBookmarkIdx = idx;
+    editingBookmarkId = id;
     renderEditManagers();
     safeSetValue('new-bm-tag', b.tag || 'કોર્ટ કેસ / તકરારી');
     safeSetValue('new-bm-survey', b.surveyNo || '');
@@ -585,21 +629,29 @@ window.editBookmark = function(idx) {
 };
 
 window.cancelBookmarkEdit = function() {
-    editingBookmarkIdx = null;
+    editingBookmarkId = null;
+    safeSetValue('new-bm-survey', '');
+    safeSetValue('new-bm-area', '');
+    safeSetValue('new-bm-note', '');
     renderEditManagers();
 };
 
-window.removeBookmark = function(idx) {
+window.removeBookmark = function(id) {
     if(confirm("શું તમે આ બુકમાર્ક કાઢી નાખવા માંગો છો?")) {
-        currentActiveVillage.bookmarks.splice(idx, 1);
-        if (editingBookmarkIdx === idx) editingBookmarkIdx = null;
+        currentActiveVillage.bookmarks = currentActiveVillage.bookmarks.filter(item => item.id !== id);
+        if (editingBookmarkId === id) {
+            editingBookmarkId = null;
+            safeSetValue('new-bm-survey', '');
+            safeSetValue('new-bm-area', '');
+            safeSetValue('new-bm-note', '');
+        }
         renderEditManagers();
     }
 };
 
 function closeEditVillageModal() {
-    editingLandRecordIdx = null;
-    editingBookmarkIdx = null;
+    editingLandRecordId = null;
+    editingBookmarkId = null;
     document.getElementById('modal-edit-village').style.display = 'none';
 }
 
@@ -624,25 +676,25 @@ function saveVillageEdits() {
         currentActiveVillage.formattedArea = converted.formattedEng;
     }
 
-    let docId = currentActiveVillage.villageId || currentActiveVillage.villageName.replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
+    let docId = String(currentActiveVillage.villageId || currentActiveVillage.villageName).trim().replace(/[^a-zA-Z0-9\u0A80-\u0AFF]/g, '_');
 
     db.collection("Village_Land_Records").doc(docId).set({
-        villageId: docId,
+        villageId: currentActiveVillage.villageId || docId,
         villageName: currentActiveVillage.villageName,
         sejaName: currentActiveSeja ? currentActiveSeja.sejaName : "",
         totalKhata: newKhata,
         totalSurvey: newSurvey,
-        population: currentActiveVillage.population,
-        areaSqMtr: currentActiveVillage.areaSqMtr,
-        formattedArea: currentActiveVillage.formattedArea,
-        landRecords: currentActiveVillage.landRecords,
-        bookmarks: currentActiveVillage.bookmarks,
+        population: currentActiveVillage.population || 0,
+        areaSqMtr: currentActiveVillage.areaSqMtr || 0,
+        formattedArea: currentActiveVillage.formattedArea || "",
+        landRecords: currentActiveVillage.landRecords || [],
+        bookmarks: currentActiveVillage.bookmarks || [],
         updatedBy: (currentUser && currentUser.name) ? currentUser.name : "Talati",
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true }).then(() => {
         if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check"></i> સેવ કરો'; }
         closeEditVillageModal();
-        openVillageProfile(currentActiveVillage.villageId, currentActivePanchayat ? currentActivePanchayat.panchayatName : "");
+        openVillageProfile(currentActiveVillage.villageId || docId, currentActivePanchayat ? currentActivePanchayat.panchayatName : "");
         showToast("ગામની માહિતી સફળતાપૂર્વક અપડેટ થઈ!");
     }).catch(err => {
         if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-check"></i> સેવ કરો'; }

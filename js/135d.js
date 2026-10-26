@@ -64,9 +64,9 @@ function getNoticeSubDate(item) {
     return item.Submitted_Date || item.SubmittedDate || item.submitted_date || '';
 }
 
-// નોટિસની સ્થિતિ અને દિવસોની ગણતરી કરતું સેન્ટ્રલ ફંક્શન (No Duplication)
+// નોટિસની સ્થિતિ અને દિવસોની ગણતરી કરતું સેન્ટ્રલ ફંક્શન
 function evaluateNoticeStatus(item, todayDate) {
-    var today = todayDate || new Date();
+    var today = todayDate ? new Date(todayDate) : new Date();
     today.setHours(0, 0, 0, 0);
 
     var servedD = getNoticeServedDate(item);
@@ -75,7 +75,7 @@ function evaluateNoticeStatus(item, todayDate) {
     var sDate = servedD ? parseUniversalDate(servedD) : null;
     var diffDays = null;
 
-    if (sDate) {
+    if (sDate && !isNaN(sDate.getTime())) {
         sDate.setHours(0, 0, 0, 0);
         diffDays = Math.floor((today - sDate) / (1000 * 60 * 60 * 24));
     }
@@ -83,7 +83,7 @@ function evaluateNoticeStatus(item, todayDate) {
     var state = 'pending';
     if (isSubmitted) {
         state = 'completed';
-    } else if (servedD) {
+    } else if (servedD && sDate) {
         state = (diffDays !== null && diffDays >= 30) ? 'ready' : 'active';
     }
 
@@ -97,7 +97,7 @@ function evaluateNoticeStatus(item, todayDate) {
 }
 
 // =========================================================
-// ૨. ૧૩૫-ડી ડેસ્ક લોડ કરવું (Central Data માંથી Instant Render)
+// ૨. ૧૩૫-ડી ડેસ્ક લોડ કરવું
 // =========================================================
 function loadNoticesDesk() {
     renderNoticeVillageFilters();
@@ -123,7 +123,6 @@ function renderNoticeVillageFilters() {
         return;
     }
 
-    // જો પસંદ કરેલું ગામ નવા સેજામાં ન હોય તો 'all' કરી દો
     if (currentVillageFilter !== 'all' && !currentVillages.some(function(v) { return isSameVillage(v, currentVillageFilter); })) {
         currentVillageFilter = 'all';
     }
@@ -186,6 +185,10 @@ function renderNoticeTypeFilters() {
             return nt && (nt.toLowerCase() === t.toLowerCase() || nt.includes(t) || t.includes(nt));
         }).length;
     });
+
+    if (currentTypeFilter !== 'all' && (!counts[currentTypeFilter] || counts[currentTypeFilter] === 0)) {
+        currentTypeFilter = 'all';
+    }
 
     var html = '<button class="type-filter-btn ' + (currentTypeFilter === 'all' ? 'active' : '') + '" onclick="switchNoticeType(\'all\', this)">' +
                'બધા પ્રકાર <span class="badge-count">' + toGujaratiDigits(counts.all) + '</span></button>';
@@ -315,7 +318,6 @@ function renderNoticeList(list, today) {
     var container = document.getElementById('notice-list-container');
     if (!container) return;
 
-    // જો ફાયરબેઝમાંથી હજુ ડેટા લોડ થઈ રહ્યો હોય તો શિમર બતાવો
     if (!isNoticesLoaded) {
         container.innerHTML = getSkeletonCardsHtml(3);
         return;
@@ -342,7 +344,7 @@ function renderNoticeList(list, today) {
         } else if (st.state === 'ready') {
             badgeHtml = '<span class="notice-badge-pill badge-pill-ready"><i class="bi bi-bell-fill"></i> ૩૦ દિવસ પૂર્ણ (' + toGujaratiDigits(st.diffDays) + ' દિવસ થયા)</span>';
         } else if (st.state === 'active') {
-            var remaining = 30 - (st.diffDays || 0);
+            var remaining = Math.max(0, 30 - (st.diffDays || 0));
             badgeHtml = '<span class="notice-badge-pill badge-pill-active"><i class="bi bi-hourglass-split"></i> મુદતમાં (' + toGujaratiDigits(remaining) + ' દિવસ બાકી)</span>';
         } else {
             badgeHtml = '<span class="notice-badge-pill badge-pill-pending"><i class="bi bi-exclamation-triangle-fill"></i> બજવણી બાકી</span>';
@@ -405,14 +407,17 @@ function openNewNoticeModal() {
     var vSel = document.getElementById('notice-village');
     if (vSel && typeof activeSeja !== 'undefined' && activeSeja && activeSeja.villages) {
         vSel.innerHTML = activeSeja.villages.map(function(v) { return '<option value="' + v + '">' + v + '</option>'; }).join('');
-        if (currentVillageFilter !== 'all') vSel.value = currentVillageFilter;
+        if (currentVillageFilter !== 'all' && activeSeja.villages.some(function(v) { return isSameVillage(v, currentVillageFilter); })) {
+            var matchedV = activeSeja.villages.find(function(v) { return isSameVillage(v, currentVillageFilter); });
+            if (matchedV) vSel.value = matchedV;
+        }
     }
 
     document.getElementById('modal-new-notice').style.display = 'flex';
 }
 
 function saveNewNotice() {
-    var mutationNo = safeGetValue('notice-mutation-no');
+    var mutationNo = toEnglishDigits(safeGetValue('notice-mutation-no'));
     var village = safeGetValue('notice-village');
     var khatedar = safeGetValue('notice-khatedar');
     var type = safeGetValue('notice-type');
@@ -425,6 +430,17 @@ function saveNewNotice() {
     if (!mutationNo) { alert("કૃપા કરી નોંધ નંબર દાખલ કરો."); return; }
     if (!village) { alert("કૃપા કરી ગામ પસંદ કરો."); return; }
     if (!khatedar) { alert("કૃપા કરી ખાતેદારનું નામ દાખલ કરો."); return; }
+
+    // ડુપ્લિકેટ એન્ટ્રી ચેકિંગ
+    var isDuplicate = noticesData.some(function(n) {
+        return isSameVillage(n.Village_Name || n.village, village) && 
+               String(n.Mutation_No || '').trim() === String(mutationNo).trim();
+    });
+    if (isDuplicate) {
+        if (!confirm("મોજે " + village + " માં નોંધ નં. " + toGujaratiDigits(mutationNo) + " પહેલેથી અસ્તિત્વમાં છે! શું તમે તેમ છતાં સેવ કરવા માંગો છો?")) {
+            return;
+        }
+    }
 
     var status = "બજાવવાની બાકી";
     if (subDate) status = "કચેરીએ જમા";
@@ -476,21 +492,30 @@ function openEditNoticeModal(id) {
     var vSel = document.getElementById('edit-notice-village');
     if (vSel && typeof activeSeja !== 'undefined' && activeSeja && activeSeja.villages) {
         var opts = activeSeja.villages.slice();
-        var curVill = item.Village_Name || item.village;
-        if (curVill && !opts.some(function(v) { return isSameVillage(v, curVill); })) {
+        var curVill = item.Village_Name || item.village || '';
+        var matchedOpt = opts.find(function(v) { return isSameVillage(v, curVill); });
+        
+        if (matchedOpt) {
+            vSel.innerHTML = opts.map(function(v) { return '<option value="' + v + '">' + v + '</option>'; }).join('');
+            vSel.value = matchedOpt;
+        } else if (curVill) {
             opts.push(curVill);
+            vSel.innerHTML = opts.map(function(v) { return '<option value="' + v + '">' + v + '</option>'; }).join('');
+            vSel.value = curVill;
         }
-        vSel.innerHTML = opts.map(function(v) { return '<option value="' + v + '">' + v + '</option>'; }).join('');
-        vSel.value = curVill;
     }
 
     var statusSel = document.getElementById('edit-notice-status');
     var subD = getNoticeSubDate(item);
     var servD = getNoticeServedDate(item);
     if (statusSel) {
-        if (subD || String(item.Current_Status).includes('જમા')) statusSel.value = 'કચેરીએ જમા';
-        else if (servD) statusSel.value = 'મુદતમાં';
-        else statusSel.value = 'બજાવવાની બાકી';
+        if (subD || String(item.Current_Status || '').includes('જમા')) {
+            statusSel.value = 'કચેરીએ જમા';
+        } else if (servD) {
+            statusSel.value = 'મુદતમાં';
+        } else {
+            statusSel.value = 'બજાવવાની બાકી';
+        }
     }
 
     toggleSubmittedDateInput();
@@ -500,15 +525,20 @@ function openEditNoticeModal(id) {
 function toggleSubmittedDateInput() {
     var sVal = safeGetValue('edit-notice-status');
     var grp = document.getElementById('grp-submitted-date');
+    var subInput = document.getElementById('edit-notice-submitted-date');
+    
     if (grp) {
         grp.style.display = (sVal === 'કચેરીએ જમા') ? 'block' : 'none';
+    }
+    if (sVal === 'કચેરીએ જમા' && subInput && !subInput.value) {
+        subInput.value = new Date().toISOString().split('T')[0];
     }
 }
 
 function submitNoticeUpdate() {
     if (!currentEditingNoticeId) return;
 
-    var mutationNo = safeGetValue('edit-notice-mutation-no');
+    var mutationNo = toEnglishDigits(safeGetValue('edit-notice-mutation-no'));
     var village = safeGetValue('edit-notice-village');
     var khatedar = safeGetValue('edit-notice-khatedar');
     var type = safeGetValue('edit-notice-type');
@@ -519,9 +549,21 @@ function submitNoticeUpdate() {
     var status = safeGetValue('edit-notice-status');
     var remarks = safeGetValue('edit-notice-remarks');
 
-    // જો 'કચેરીએ જમા' સિલેક્ટ કર્યું હોય અને તારીખ ખાલી હોય તો આજની તારીખ લઈ લો
-    if (status === 'કચેરીએ જમા' && !subDate) {
-        subDate = new Date().toISOString().split('T')[0];
+    if (!mutationNo) { alert("કૃપા કરી નોંધ નંબર દાખલ કરો."); return; }
+    if (!village) { alert("કૃપા કરી ગામ પસંદ કરો."); return; }
+    if (!khatedar) { alert("કૃપા કરી ખાતેદારનું નામ દાખલ કરો."); return; }
+
+    // સ્ટેટસ અને તારીખોનું તાર્કિક સિંક
+    if (status === 'કચેરીએ જમા') {
+        if (!subDate) subDate = new Date().toISOString().split('T')[0];
+    } else if (status === 'બજાવવાની બાકી') {
+        servedDate = '';
+        subDate = '';
+    } else { // 'મુદતમાં'
+        subDate = '';
+        if (!servedDate) {
+            servedDate = new Date().toISOString().split('T')[0];
+        }
     }
 
     var btn = document.getElementById('btn-update-notice');
@@ -536,7 +578,7 @@ function submitNoticeUpdate() {
         Notice_Date: genDate,
         Received_Date: recDate,
         Served_Date: servedDate,
-        Submitted_Date: (status === 'કચેરીએ જમા') ? subDate : '',
+        Submitted_Date: subDate,
         Current_Status: status,
         Remarks: remarks,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -552,10 +594,31 @@ function submitNoticeUpdate() {
 
 function deleteNoticeAction() {
     if (!currentEditingNoticeId) return;
-    if (!confirm("શું તમે આ ૧૩૫-ડી નોટિસ ખરેખર રદ (Delete) કરવા માંગો છો?")) return;
 
-    db.collection("Notices_135D").doc(currentEditingNoticeId).delete().then(function() {
-        document.getElementById('modal-edit-notice').style.display = 'none';
-        showToast("નોટિસ રદ થઈ ગઈ!");
-    }).catch(function(err) { alert("ડિલીટ એરર: " + err.message); });
+    var proceedDelete = function() {
+        db.collection("Notices_135D").doc(currentEditingNoticeId).delete().then(function() {
+            document.getElementById('modal-edit-notice').style.display = 'none';
+            showToast("નોટિસ રદ થઈ ગઈ!");
+        }).catch(function(err) { 
+            alert("ડિલીટ એરર: " + err.message); 
+        });
+    };
+
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            title: '૧૩૫-ડી નોટિસ રદ કરવી છે?',
+            text: 'આ નોટિસ કાયમ માટે રદ થઈ જશે.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            confirmButtonText: 'હા, રદ કરો',
+            cancelButtonText: 'ના'
+        }).then(function(result) { 
+            if (result.isConfirmed) proceedDelete(); 
+        });
+    } else {
+        if (confirm("શું તમે આ ૧૩૫-ડી નોટિસ ખરેખર રદ કરવા માંગો છો?")) {
+            proceedDelete();
+        }
+    }
 }

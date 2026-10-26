@@ -41,7 +41,7 @@
 body { 
     background-color: var(--bg-color); 
     color: var(--text-main); 
-    padding-bottom: 92px; /* ફ્લોટિંગ બોટમ બાર માટે પૂરતી જગ્યા */
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); 
     min-height: 100vh;
 }
 
@@ -428,12 +428,12 @@ body {
 /* ================= 3. MODERN FLOATING PILL NAVIGATION ================= */
 .bottom-nav { 
     position: fixed; 
-    bottom: 12px; 
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px)); 
     left: 12px;
     right: 12px;
     max-width: 500px;
     margin: 0 auto;
-    background: rgba(255, 255, 255, 0.9); 
+    background: rgba(255, 255, 255, 0.92); 
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     display: flex; 
@@ -767,10 +767,10 @@ body {
 .top-photo { width: 32mm; height: 42mm; }
 
 @media print {
-    @page { size: A4 portrait; margin: 0 !important; }
-    body, html { background: white !important; padding: 0 !important; margin: 0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-    .header, .bottom-nav, .container, .modal-backdrop, .no-print { display: none !important; }
-    #pedhinamu-page { display: block !important; visibility: visible !important; width: 210mm !important; margin: 0 auto !important; padding: 10mm 15mm !important; }
+    .page-break {
+        break-before: page;
+        page-break-before: always;
+    }
 }
 
 .pedhinamu-modal-card { width: 100%; max-width: 840px; height: 92vh; border-radius: 20px 20px 0 0 !important; background: white; display: flex; flex-direction: column; }
@@ -877,7 +877,7 @@ body {
 
 .modal-card::before {
     content: '';
-    display: none;
+    display: block; /* સુધારો: none ના બદલે block */
     width: 38px;
     height: 4px;
     background: #cbd5e1;
@@ -885,11 +885,14 @@ body {
     margin: 8px auto 4px auto;
     flex-shrink: 0;
 }
-/* સેન્ટરમાં ખૂલતા પોપ-અપ મોડલ્સ માટે ડ્રેગ હેન્ડલ પિલ છુપાવો */
+
+/* સેન્ટર્ડ મોડલ્સ માટે હેન્ડલ હાઇડ કરવું */
 #modal-login .modal-card::before,
 #modal-change-password .modal-card::before,
 #modal-seja-switch .modal-card::before,
 #modal-edit-village .modal-card::before,
+#modal-new-notice .modal-card::before,
+#modal-edit-notice .modal-card::before,
 #modal-add-posting .modal-card::before {
     display: none;
 }
