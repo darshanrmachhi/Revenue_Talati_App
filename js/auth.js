@@ -309,6 +309,10 @@ function initUserEnvironment() {
         });
     }
     
+    if (typeof loadInitialUserAvatar === 'function') {
+        loadInitialUserAvatar();
+    }
+    
     loadDashboardData();
 }
 
@@ -361,6 +365,7 @@ function changeUserPassword(newPass) {
 
 function userLogout() {
     if (!confirm("શું તમે લોગઆઉટ કરવા માંગો છો?")) return;
+    localStorage.removeItem('user_profile_avatar'); // આ લાઈન ઉમેરો
     if (typeof unsubscribeNotices === 'function' && unsubscribeNotices) { unsubscribeNotices(); unsubscribeNotices = null; }
     if (typeof unsubscribePedhinamu === 'function' && unsubscribePedhinamu) { unsubscribePedhinamu(); unsubscribePedhinamu = null; }
     if (typeof updateHeaderAvatar === 'function') updateHeaderAvatar('');

@@ -19,6 +19,30 @@ function updateHeaderAvatar(photoUrl) {
     }
 }
 
+// એપ ઓપન થતાં જ તાત્કાલિક ફોટો લોડ કરતું ફંક્શન (હવે પ્રોફાઈલ ટેબ ખોલવાની રાહ જોવી નહીં પડે)
+function loadInitialUserAvatar() {
+    // ૧. જો અગાઉથી કેશમાં ફોટો હોય તો તરત જ ડિસ્પ્લે કરો (Zero Delay)
+    let cachedPhoto = localStorage.getItem('user_profile_avatar');
+    if (cachedPhoto) {
+        updateHeaderAvatar(cachedPhoto);
+    }
+
+    // ૨. ફાયરબેઝમાંથી લેટેસ્ટ ફોટો બેકગ્રાઉન્ડમાં સિંક કરો
+    if (currentUser && (currentUser.docId || currentUser.mobile)) {
+        let userDocId = currentUser.docId || currentUser.mobile;
+        db.collection("Users").doc(userDocId).get().then((doc) => {
+            if (doc.exists) {
+                let d = doc.data();
+                let photo = d.photoBase64 || d.profilePicUrl || '';
+                if (photo) {
+                    localStorage.setItem('user_profile_avatar', photo);
+                    updateHeaderAvatar(photo);
+                }
+            }
+        }).catch(err => console.log("Avatar load info:", err));
+    }
+}
+
 // =========================================================
 // ૧. પ્રોફાઈલ ડેટા લોડ કરવો
 // =========================================================
@@ -75,6 +99,10 @@ function populateProfileFields(data) {
             let n = encodeURIComponent(currentUser.name || "Talati");
             imgEl.src = `https://ui-avatars.com/api/?name=${n}&background=0d47a1&color=fff&size=150`;
         }
+        // populateProfileFields માં આ લાઈન ઉમેરી દો:
+if (photoSrc) {
+    localStorage.setItem('user_profile_avatar', photoSrc);
+}
     }
     // હેડરનો મિની અવતાર અપડેટ કરો:
     updateHeaderAvatar(photoSrc);
