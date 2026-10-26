@@ -6,11 +6,11 @@ var currentEditingNoticeId = null;
 
 var STANDARD_NOTICE_TYPES = [
     'વારસાઈ',
-    'વેચાણ',
-    'વહેંચણી',
     'હયાતીમાં હક્ક દાખલ',
+    'વેચાણ',
     'બોજો દાખલ',
     'બોજો કમી',
+    'વહેંચણી',
     'અન્ય'
 ];
 
@@ -64,7 +64,6 @@ function getNoticeSubDate(item) {
     return item.Submitted_Date || item.SubmittedDate || item.submitted_date || '';
 }
 
-// નોટિસની સ્થિતિ અને દિવસોની ગણતરી કરતું સેન્ટ્રલ ફંક્શન
 function evaluateNoticeStatus(item, todayDate) {
     var today = todayDate ? new Date(todayDate) : new Date();
     today.setHours(0, 0, 0, 0);
@@ -97,7 +96,121 @@ function evaluateNoticeStatus(item, todayDate) {
 }
 
 // =========================================================
-// ૨. ૧૩૫-ડી ડેસ્ક લોડ કરવું
+// ૨. નોંધ પ્રકાર આધારિત ડાયનેમિક ફિલ્ડ્સ રેન્ડરર (UI BUILDER)
+// =========================================================
+function handleNoticeTypeChange(prefix, initialData) {
+    var typeSel = document.getElementById(prefix === 'new' ? 'notice-type' : 'edit-notice-type');
+    var container = document.getElementById(prefix === 'new' ? 'notice-dynamic-fields-new' : 'notice-dynamic-fields-edit');
+    if (!typeSel || !container) return;
+
+    var nType = typeSel.value;
+    var data = initialData || {};
+    var html = '';
+
+    if (nType === 'વારસાઈ') {
+        html = `
+            <div class="form-group" style="margin-bottom:8px;">
+                <label class="form-label" style="font-weight:700; color:#0d47a1;">મરનાર ખાતેદારનું નામ:</label>
+                <input type="text" class="form-control" id="${prefix}-dyn-deceased" placeholder="મરનારનું પૂરું નામ" value="${data.Deceased_Name || data.Khatedar_Name || ''}">
+            </div>
+            <div class="form-group">
+                <label class="form-label" style="font-weight:700; color:#0d47a1;">ઉમેરાતા વારસદારોની સંખ્યા:</label>
+                <input type="number" min="1" class="form-control" id="${prefix}-dyn-heirs-count" placeholder="દા.ત. 4" value="${data.Heirs_Count || ''}">
+            </div>
+        `;
+    } else if (nType === 'હયાતીમાં હક્ક દાખલ') {
+        html = `
+            <div class="form-group" style="margin-bottom:8px;">
+                <label class="form-label" style="font-weight:700; color:#0d47a1;">મૂળ ખાતેદારનું નામ (હક્ક આપનાર):</label>
+                <input type="text" class="form-control" id="${prefix}-dyn-giver" placeholder="હક્ક આપનાર ખાતેદારનું નામ" value="${data.Giver_Name || data.Khatedar_Name || ''}">
+            </div>
+            <div class="form-group">
+                <label class="form-label" style="font-weight:700; color:#0d47a1;">હક્ક મેળવનાર વારસદારોની સંખ્યા:</label>
+                <input type="number" min="1" class="form-control" id="${prefix}-dyn-takers-count" placeholder="દા.ત. 3" value="${data.Takers_Count || ''}">
+            </div>
+        `;
+    } else if (nType === 'વેચાણ') {
+        html = `
+            <div class="form-group" style="margin-bottom:8px;">
+                <label class="form-label" style="font-weight:700; color:#0d47a1;">વેચનારનું નામ (Seller):</label>
+                <input type="text" class="form-control" id="${prefix}-dyn-seller" placeholder="જમીન વેચનાર પક્ષકારનું નામ" value="${data.Seller_Name || ''}">
+            </div>
+            <div class="form-group">
+                <label class="form-label" style="font-weight:700; color:#0d47a1;">ખરીદનારનું નામ (Buyer):</label>
+                <input type="text" class="form-control" id="${prefix}-dyn-buyer" placeholder="જમીન ખરીદનાર પક્ષકારનું નામ" value="${data.Buyer_Name || ''}">
+            </div>
+        `;
+    } else if (nType === 'બોજો દાખલ') {
+        html = `
+            <div class="form-group" style="margin-bottom:8px;">
+                <label class="form-label" style="font-weight:700; color:#0d47a1;">ધિરાણ લેનાર ખાતેદારનું નામ:</label>
+                <input type="text" class="form-control" id="${prefix}-dyn-borrower" placeholder="ખાતેદારનું પૂરું નામ" value="${data.Borrower_Name || data.Khatedar_Name || ''}">
+            </div>
+            <div class="form-group">
+                <label class="form-label" style="font-weight:700; color:#0d47a1;">બેન્ક / મંડળીનું નામ:</label>
+                <input type="text" class="form-control" id="${prefix}-dyn-bank" placeholder="દા.ત. બેન્ક ઓફ બરોડા અથવા સેવા સહકારી મંડળી" value="${data.Bank_Name || ''}">
+            </div>
+        `;
+    } else if (nType === 'બોજો કમી') {
+        html = `
+            <div class="form-group" style="margin-bottom:8px;">
+                <label class="form-label" style="font-weight:700; color:#0d47a1;">ખાતેદારનું નામ:</label>
+                <input type="text" class="form-control" id="${prefix}-dyn-borrower-rel" placeholder="ખાતેદારનું પૂરું નામ" value="${data.Borrower_Name || data.Khatedar_Name || ''}">
+            </div>
+            <div class="form-group">
+                <label class="form-label" style="font-weight:700; color:#0d47a1;">બોજો કમી કરનાર બેન્કનું નામ:</label>
+                <input type="text" class="form-control" id="${prefix}-dyn-bank-rel" placeholder="દા.ત. સ્ટેટ બેન્ક ઓફ ઇન્ડિયા" value="${data.Bank_Name || ''}">
+            </div>
+        `;
+    } else if (nType === 'વહેંચણી') {
+        html = `
+            <div class="form-group">
+                <label class="form-label" style="font-weight:700; color:#0d47a1;">મુખ્ય ખાતેદારો / પક્ષકારોનાં નામ:</label>
+                <input type="text" class="form-control" id="${prefix}-dyn-share-parties" placeholder="દા.ત. રમેશભાઈ અને સુરેશભાઈ વિગેરે" value="${data.Khatedar_Name || ''}">
+            </div>
+        `;
+    } else { // અન્ય
+        html = `
+            <div class="form-group" style="margin-bottom:8px;">
+                <label class="form-label" style="font-weight:700; color:#0d47a1;">ખાતેદાર / પક્ષકારનું નામ:</label>
+                <input type="text" class="form-control" id="${prefix}-dyn-other-party" placeholder="પક્ષકારનું નામ" value="${data.Khatedar_Name || ''}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">વિષય / ટૂંકી વિગત:</label>
+                <input type="text" class="form-control" id="${prefix}-dyn-other-detail" placeholder="દા.ત. હક્ક કમી હુકમ" value="${data.Other_Detail || ''}">
+            </div>
+        `;
+    }
+
+    container.innerHTML = html;
+}
+
+// બજાવ્યા તારીખ પરથી લાઈવ ૩૦ દિવસ મુદત ગણતરી બતાવતું હેલ્પર
+function updateNoticeDueDatePreview(prefix) {
+    var sInput = document.getElementById(prefix === 'new' ? 'notice-served-date' : 'edit-notice-served-date');
+    var pDiv = document.getElementById(prefix === 'new' ? 'notice-due-preview-new' : 'notice-due-preview-edit');
+    if (!sInput || !pDiv) return;
+
+    var sVal = sInput.value;
+    if (!sVal) {
+        pDiv.style.display = 'none';
+        return;
+    }
+
+    var sDate = new Date(sVal);
+    if (isNaN(sDate.getTime())) {
+        pDiv.style.display = 'none';
+        return;
+    }
+
+    // +૩૦ દિવસ ગણતરી
+    var dueDate = new Date(sDate.getTime() + (30 * 24 * 60 * 60 * 1000));
+    pDiv.innerHTML = `<i class="bi bi-calendar-check-fill"></i> કાનૂની ૩૦ દિવસ પૂર્ણ તારીખ: ${formatDisplayDateGujarati(dueDate)}`;
+    pDiv.style.display = 'block';
+}
+
+// =========================================================
+// ૩. ૧૩૫-ડી ડેસ્ક લોડ કરવું & ફિલ્ટર્સ
 // =========================================================
 function loadNoticesDesk() {
     renderNoticeVillageFilters();
@@ -110,9 +223,6 @@ function loadNoticesDesk() {
     }
 }
 
-// =========================================================
-// ૩. ગામ ફિલ્ટર બટન્સ (Chips)
-// =========================================================
 function renderNoticeVillageFilters() {
     var cont = document.getElementById('notice-village-filters');
     if (!cont) return;
@@ -156,9 +266,6 @@ function switchNoticeVillage(vName, btnElem) {
     applyNoticeFilters();
 }
 
-// =========================================================
-// ૪. પ્રકાર ફિલ્ટર બટન્સ (Type Filter Chips)
-// =========================================================
 function renderNoticeTypeFilters() {
     var cont = document.getElementById('notice-type-filters');
     if (!cont) return;
@@ -214,9 +321,6 @@ function switchNoticeType(tName, btnElem) {
     applyNoticeFilters();
 }
 
-// =========================================================
-// ૫. સ્થિતિવાર ટેબ્સના કાઉન્ટ અને UI અપડેટ
-// =========================================================
 function updateStatusTabsUIAndCounts() {
     var baseList = noticesData.filter(function(item) {
         if (currentVillageFilter !== 'all') {
@@ -263,7 +367,7 @@ function switchNoticeTabAndShow(tabKey) {
 }
 
 // =========================================================
-// ૬. ફિલ્ટરિંગ અને કાર્ડ્સ રેન્ડરિંગ લોજિક
+// ૪. ફિલ્ટરિંગ અને કાર્ડ્સ રેન્ડરિંગ લોજિક (WITH SURVEY NUMBERS & DEEP SEARCH)
 // =========================================================
 function applyNoticeFilters() {
     var query = safeGetValue('notice-search-input').toLowerCase();
@@ -293,9 +397,17 @@ function applyNoticeFilters() {
 
         if (query) {
             var mNo = String(item.Mutation_No || '');
+            var surveysStr = Array.isArray(item.Survey_Numbers) ? item.Survey_Numbers.join(' ') : String(item.Survey_Numbers || '');
+            
             var match = mNo.includes(query) || 
                         toGujaratiDigits(mNo).includes(query) ||
+                        surveysStr.includes(query) ||
+                        toGujaratiDigits(surveysStr).includes(query) ||
                         matchesSmartSearch(item.Khatedar_Name, query) || 
+                        matchesSmartSearch(item.Seller_Name, query) || 
+                        matchesSmartSearch(item.Buyer_Name, query) || 
+                        matchesSmartSearch(item.Bank_Name, query) || 
+                        matchesSmartSearch(item.Deceased_Name, query) || 
                         matchesSmartSearch(item.Village_Name || item.village, query) || 
                         matchesSmartSearch(getNoticeType(item), query);
             if (!match) return false;
@@ -354,6 +466,14 @@ function renderNoticeList(list, today) {
         var recDateDisplay = formatDisplayDateGujarati(getNoticeRecDate(item));
         var noticeTypeDisplay = getNoticeType(item) || '-';
 
+        // સર્વે નંબરોનું ડિસ્પ્લે
+        var surveysText = '';
+        if (Array.isArray(item.Survey_Numbers) && item.Survey_Numbers.length > 0) {
+            surveysText = item.Survey_Numbers.map(function(s) { return toGujaratiDigits(s); }).join(', ');
+        } else if (item.Survey_Numbers) {
+            surveysText = toGujaratiDigits(String(item.Survey_Numbers));
+        }
+
         return `
             <div class="modern-notice-card ${stateClass}">
                 <div style="flex: 1; min-width: 0;">
@@ -365,9 +485,16 @@ function renderNoticeList(list, today) {
                             મળ્યા: ${recDateDisplay}
                         </span>
                     </div>
-                    <div style="font-size:13.5px; font-weight:700; color:#1e293b; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+
+                    <div style="font-size:13.5px; font-weight:700; color:#1e293b; margin-bottom:4px; line-height:1.4;">
                         ${item.Khatedar_Name || '-'}
                     </div>
+
+                    ${surveysText ? `
+                    <div style="font-size:11.5px; color:#0369a1; margin-bottom:4px; font-weight:600;">
+                        <i class="bi bi-geo"></i> સર્વે નં: <b>${surveysText}</b>
+                    </div>` : ''}
+
                     <div style="font-size:11.5px; color:#475569; margin-bottom:6px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                         <span style="color:#0284c7; font-weight:700;"><i class="bi bi-geo-alt-fill"></i> ${item.Village_Name || item.village || '-'}</span>
                         <span style="color:#cbd5e1;">•</span>
@@ -375,8 +502,10 @@ function renderNoticeList(list, today) {
                         <span style="color:#cbd5e1;">•</span>
                         <span>તા: ${genDateDisplay}</span>
                     </div>
+
                     <div>${badgeHtml}</div>
                 </div>
+
                 <div style="margin-left:12px; align-self:center;">
                     <button class="btn-icon-circle" onclick="openEditNoticeModal('${item.id}')" title="સુધારો કરો" style="background:#f1f5f9; border:none; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#1e3a8a; box-shadow:0 1px 3px rgba(0,0,0,0.06);">
                         <i class="bi bi-pencil-fill" style="font-size:13px;"></i>
@@ -390,19 +519,21 @@ function renderNoticeList(list, today) {
 }
 
 // =========================================================
-// ૭. નવી નોટિસ ઉમેરવી & એડિટિંગ
+// ૫. નવી નોટિસ ઉમેરવી (NEW NOTICE SAVE)
 // =========================================================
 function openNewNoticeModal() {
     var todayStr = new Date().toISOString().split('T')[0];
     
     safeSetValue('notice-mutation-no', '');
-    safeSetValue('notice-khatedar', '');
+    safeSetValue('notice-surveys', '');
     safeSetValue('notice-type', 'વારસાઈ');
     safeSetValue('notice-gen-date', todayStr);
     safeSetValue('notice-received-date', todayStr);
     safeSetValue('notice-served-date', '');
-    safeSetValue('notice-submitted-date', '');
     safeSetValue('notice-remarks', '');
+
+    var previewDiv = document.getElementById('notice-due-preview-new');
+    if (previewDiv) previewDiv.style.display = 'none';
 
     var vSel = document.getElementById('notice-village');
     if (vSel && typeof activeSeja !== 'undefined' && activeSeja && activeSeja.villages) {
@@ -413,25 +544,81 @@ function openNewNoticeModal() {
         }
     }
 
+    handleNoticeTypeChange('new');
     document.getElementById('modal-new-notice').style.display = 'flex';
 }
 
 function saveNewNotice() {
     var mutationNo = toEnglishDigits(safeGetValue('notice-mutation-no'));
     var village = safeGetValue('notice-village');
-    var khatedar = safeGetValue('notice-khatedar');
     var type = safeGetValue('notice-type');
+    var surveysRaw = safeGetValue('notice-surveys');
     var genDate = safeGetValue('notice-gen-date');
     var recDate = safeGetValue('notice-received-date');
     var servedDate = safeGetValue('notice-served-date');
-    var subDate = safeGetValue('notice-submitted-date');
     var remarks = safeGetValue('notice-remarks');
 
     if (!mutationNo) { alert("કૃપા કરી નોંધ નંબર દાખલ કરો."); return; }
     if (!village) { alert("કૃપા કરી ગામ પસંદ કરો."); return; }
-    if (!khatedar) { alert("કૃપા કરી ખાતેદારનું નામ દાખલ કરો."); return; }
 
-    // ડુપ્લિકેટ એન્ટ્રી ચેકિંગ
+    // સર્વે નંબરોનું એરેમાં રૂપાંતર
+    var surveyNumbers = [];
+    if (surveysRaw) {
+        surveyNumbers = surveysRaw.split(',').map(function(s) { return toEnglishDigits(s.trim()); }).filter(function(s) { return s !== ""; });
+    }
+
+    // નોંધ પ્રકાર મુજબ પક્ષકારો અને સમરી નામ નિર્માણ
+    var khatedarSummary = "";
+    var dynData = {};
+
+    if (type === 'વારસાઈ') {
+        var decName = safeGetValue('new-dyn-deceased');
+        var hCount = safeGetValue('new-dyn-heirs-count');
+        if (!decName) { alert("કૃપા કરી મરનાર ખાતેદારનું નામ દાખલ કરો."); return; }
+        dynData.Deceased_Name = decName;
+        dynData.Heirs_Count = hCount ? parseInt(toEnglishDigits(hCount), 10) : 0;
+        khatedarSummary = "મરનાર: " + decName + (dynData.Heirs_Count ? " (કુલ વારસદાર: " + toGujaratiDigits(dynData.Heirs_Count) + ")" : "");
+    } else if (type === 'હયાતીમાં હક્ક દાખલ') {
+        var giver = safeGetValue('new-dyn-giver');
+        var tCount = safeGetValue('new-dyn-takers-count');
+        if (!giver) { alert("કૃપા કરી મૂળ ખાતેદારનું નામ દાખલ કરો."); return; }
+        dynData.Giver_Name = giver;
+        dynData.Takers_Count = tCount ? parseInt(toEnglishDigits(tCount), 10) : 0;
+        khatedarSummary = "હયાતી વારસાઈ: " + giver + (dynData.Takers_Count ? " (વારસદાર: " + toGujaratiDigits(dynData.Takers_Count) + ")" : "");
+    } else if (type === 'વેચાણ') {
+        var seller = safeGetValue('new-dyn-seller');
+        var buyer = safeGetValue('new-dyn-buyer');
+        if (!seller || !buyer) { alert("કૃપા કરી વેચનાર અને ખરીદનાર બંનેનાં નામ દાખલ કરો."); return; }
+        dynData.Seller_Name = seller;
+        dynData.Buyer_Name = buyer;
+        khatedarSummary = "વેચનાર: " + seller + " ➔ ખરીદનાર: " + buyer;
+    } else if (type === 'બોજો દાખલ') {
+        var borrower = safeGetValue('new-dyn-borrower');
+        var bank = safeGetValue('new-dyn-bank');
+        if (!borrower) { alert("કૃપા કરી ખાતેદારનું નામ દાખલ કરો."); return; }
+        dynData.Borrower_Name = borrower;
+        dynData.Bank_Name = bank;
+        khatedarSummary = "ખાતેદાર: " + borrower + (bank ? " [" + bank + "]" : "");
+    } else if (type === 'બોજો કમી') {
+        var borrowerRel = safeGetValue('new-dyn-borrower-rel');
+        var bankRel = safeGetValue('new-dyn-bank-rel');
+        if (!borrowerRel) { alert("કૃપા કરી ખાતેદારનું નામ દાખલ કરો."); return; }
+        dynData.Borrower_Name = borrowerRel;
+        dynData.Bank_Name = bankRel;
+        khatedarSummary = "બોજો કમી: " + borrowerRel + (bankRel ? " [" + bankRel + "]" : "");
+    } else if (type === 'વહેંચણી') {
+        var parties = safeGetValue('new-dyn-share-parties');
+        if (!parties) { alert("કૃપા કરી ખાતેદારોનાં નામ દાખલ કરો."); return; }
+        khatedarSummary = "વહેંચણી: " + parties;
+    } else {
+        var otherParty = safeGetValue('new-dyn-other-party');
+        var otherDet = safeGetValue('new-dyn-other-detail');
+        if (!otherParty) { alert("કૃપા કરી ખાતેદાર/પક્ષકારનું નામ દાખલ કરો."); return; }
+        dynData.Other_Detail = otherDet;
+        khatedarSummary = otherParty + (otherDet ? " (" + otherDet + ")" : "");
+    }
+
+    // ડુપ્લિકેટ ચકાસણી
     var isDuplicate = noticesData.some(function(n) {
         return isSameVillage(n.Village_Name || n.village, village) && 
                String(n.Mutation_No || '').trim() === String(mutationNo).trim();
@@ -443,27 +630,30 @@ function saveNewNotice() {
     }
 
     var status = "બજાવવાની બાકી";
-    if (subDate) status = "કચેરીએ જમા";
-    else if (servedDate) status = "મુદતમાં";
+    if (servedDate) status = "મુદતમાં";
 
     var btn = document.getElementById('btn-save-notice');
     if (btn) { btn.disabled = true; btn.innerText = "સેવ થાય છે..."; }
 
-    db.collection("Notices_135D").add({
+    var payload = Object.assign({
         Mutation_No: mutationNo,
         Village_Name: village,
-        Khatedar_Name: khatedar,
         Notice_Type: type,
+        Survey_Numbers: surveyNumbers,
+        Khatedar_Name: khatedarSummary,
         Generated_Date: genDate,
         Notice_Date: genDate,
         Received_Date: recDate,
         Served_Date: servedDate,
-        Submitted_Date: subDate,
+        Submitted_Date: "",
         Remarks: remarks,
         Current_Status: status,
         Seja_Name: (typeof activeSeja !== 'undefined' && activeSeja) ? activeSeja.sejaName : "",
+        Created_By: (currentUser && currentUser.mobile) ? currentUser.mobile : "",
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(function() {
+    }, dynData);
+
+    db.collection("Notices_135D").add(payload).then(function() {
         if (btn) { btn.disabled = false; btn.innerText = "સેવ કરો"; }
         document.getElementById('modal-new-notice').style.display = 'none';
         showToast("નવી ૧૩૫-ડી નોટિસ ઉમેરાઈ ગઈ!");
@@ -473,6 +663,9 @@ function saveNewNotice() {
     });
 }
 
+// =========================================================
+// ૬. નોટિસ સુધારવી (EDIT NOTICE SAVE)
+// =========================================================
 function openEditNoticeModal(id) {
     var item = noticesData.find(function(n) { return n.id === id; });
     if (!item) return;
@@ -480,8 +673,16 @@ function openEditNoticeModal(id) {
     currentEditingNoticeId = id;
     safeSetValue('edit-notice-id', id);
     safeSetValue('edit-notice-mutation-no', item.Mutation_No);
-    safeSetValue('edit-notice-khatedar', item.Khatedar_Name);
     safeSetValue('edit-notice-type', getNoticeType(item) || 'વારસાઈ');
+
+    // સર્વે નંબરો પોપ્યુલેટ કરવા
+    var sVal = '';
+    if (Array.isArray(item.Survey_Numbers)) {
+        sVal = item.Survey_Numbers.join(', ');
+    } else if (item.Survey_Numbers) {
+        sVal = String(item.Survey_Numbers);
+    }
+    safeSetValue('edit-notice-surveys', sVal);
 
     safeSetValue('edit-notice-gen-date', formatForDateInput(getNoticeGenDate(item)));
     safeSetValue('edit-notice-received-date', formatForDateInput(getNoticeRecDate(item)));
@@ -518,6 +719,8 @@ function openEditNoticeModal(id) {
         }
     }
 
+    handleNoticeTypeChange('edit', item);
+    updateNoticeDueDatePreview('edit');
     toggleSubmittedDateInput();
     document.getElementById('modal-edit-notice').style.display = 'flex';
 }
@@ -540,8 +743,8 @@ function submitNoticeUpdate() {
 
     var mutationNo = toEnglishDigits(safeGetValue('edit-notice-mutation-no'));
     var village = safeGetValue('edit-notice-village');
-    var khatedar = safeGetValue('edit-notice-khatedar');
     var type = safeGetValue('edit-notice-type');
+    var surveysRaw = safeGetValue('edit-notice-surveys');
     var genDate = safeGetValue('edit-notice-gen-date');
     var recDate = safeGetValue('edit-notice-received-date');
     var servedDate = safeGetValue('edit-notice-served-date');
@@ -551,29 +754,81 @@ function submitNoticeUpdate() {
 
     if (!mutationNo) { alert("કૃપા કરી નોંધ નંબર દાખલ કરો."); return; }
     if (!village) { alert("કૃપા કરી ગામ પસંદ કરો."); return; }
-    if (!khatedar) { alert("કૃપા કરી ખાતેદારનું નામ દાખલ કરો."); return; }
 
-    // સ્ટેટસ અને તારીખોનું તાર્કિક સિંક
+    var surveyNumbers = [];
+    if (surveysRaw) {
+        surveyNumbers = surveysRaw.split(',').map(function(s) { return toEnglishDigits(s.trim()); }).filter(function(s) { return s !== ""; });
+    }
+
+    var khatedarSummary = "";
+    var dynData = {};
+
+    if (type === 'વારસાઈ') {
+        var decName = safeGetValue('edit-dyn-deceased');
+        var hCount = safeGetValue('edit-dyn-heirs-count');
+        if (!decName) { alert("કૃપા કરી મરનાર ખાતેદારનું નામ દાખલ કરો."); return; }
+        dynData.Deceased_Name = decName;
+        dynData.Heirs_Count = hCount ? parseInt(toEnglishDigits(hCount), 10) : 0;
+        khatedarSummary = "મરનાર: " + decName + (dynData.Heirs_Count ? " (કુલ વારસદાર: " + toGujaratiDigits(dynData.Heirs_Count) + ")" : "");
+    } else if (type === 'હયાતીમાં હક્ક દાખલ') {
+        var giver = safeGetValue('edit-dyn-giver');
+        var tCount = safeGetValue('edit-dyn-takers-count');
+        if (!giver) { alert("કૃપા કરી મૂળ ખાતેદારનું નામ દાખલ કરો."); return; }
+        dynData.Giver_Name = giver;
+        dynData.Takers_Count = tCount ? parseInt(toEnglishDigits(tCount), 10) : 0;
+        khatedarSummary = "હયાતી વારસાઈ: " + giver + (dynData.Takers_Count ? " (વારસદાર: " + toGujaratiDigits(dynData.Takers_Count) + ")" : "");
+    } else if (type === 'વેચાણ') {
+        var seller = safeGetValue('edit-dyn-seller');
+        var buyer = safeGetValue('edit-dyn-buyer');
+        if (!seller || !buyer) { alert("કૃપા કરી વેચનાર અને ખરીદનાર બંનેનાં નામ દાખલ કરો."); return; }
+        dynData.Seller_Name = seller;
+        dynData.Buyer_Name = buyer;
+        khatedarSummary = "વેચનાર: " + seller + " ➔ ખરીદનાર: " + buyer;
+    } else if (type === 'બોજો દાખલ') {
+        var borrower = safeGetValue('edit-dyn-borrower');
+        var bank = safeGetValue('edit-dyn-bank');
+        if (!borrower) { alert("કૃપા કરી ખાતેદારનું નામ દાખલ કરો."); return; }
+        dynData.Borrower_Name = borrower;
+        dynData.Bank_Name = bank;
+        khatedarSummary = "ખાતેદાર: " + borrower + (bank ? " [" + bank + "]" : "");
+    } else if (type === 'બોજો કમી') {
+        var borrowerRel = safeGetValue('edit-dyn-borrower-rel');
+        var bankRel = safeGetValue('edit-dyn-bank-rel');
+        if (!borrowerRel) { alert("કૃપા કરી ખાતેદારનું નામ દાખલ કરો."); return; }
+        dynData.Borrower_Name = borrowerRel;
+        dynData.Bank_Name = bankRel;
+        khatedarSummary = "બોજો કમી: " + borrowerRel + (bankRel ? " [" + bankRel + "]" : "");
+    } else if (type === 'વહેંચણી') {
+        var parties = safeGetValue('edit-dyn-share-parties');
+        if (!parties) { alert("કૃપા કરી ખાતેદારોનાં નામ દાખલ કરો."); return; }
+        khatedarSummary = "વહેંચણી: " + parties;
+    } else {
+        var otherParty = safeGetValue('edit-dyn-other-party');
+        var otherDet = safeGetValue('edit-dyn-other-detail');
+        if (!otherParty) { alert("કૃપા કરી ખાતેદાર/પક્ષકારનું નામ દાખલ કરો."); return; }
+        dynData.Other_Detail = otherDet;
+        khatedarSummary = otherParty + (otherDet ? " (" + otherDet + ")" : "");
+    }
+
     if (status === 'કચેરીએ જમા') {
         if (!subDate) subDate = new Date().toISOString().split('T')[0];
     } else if (status === 'બજાવવાની બાકી') {
         servedDate = '';
         subDate = '';
-    } else { // 'મુદતમાં'
+    } else {
         subDate = '';
-        if (!servedDate) {
-            servedDate = new Date().toISOString().split('T')[0];
-        }
+        if (!servedDate) servedDate = new Date().toISOString().split('T')[0];
     }
 
     var btn = document.getElementById('btn-update-notice');
     if (btn) { btn.disabled = true; btn.innerText = "અપડેટ થાય છે..."; }
 
-    db.collection("Notices_135D").doc(currentEditingNoticeId).update({
+    var updatePayload = Object.assign({
         Mutation_No: mutationNo,
         Village_Name: village,
-        Khatedar_Name: khatedar,
         Notice_Type: type,
+        Survey_Numbers: surveyNumbers,
+        Khatedar_Name: khatedarSummary,
         Generated_Date: genDate,
         Notice_Date: genDate,
         Received_Date: recDate,
@@ -582,7 +837,9 @@ function submitNoticeUpdate() {
         Current_Status: status,
         Remarks: remarks,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(function() {
+    }, dynData);
+
+    db.collection("Notices_135D").doc(currentEditingNoticeId).update(updatePayload).then(function() {
         if (btn) { btn.disabled = false; btn.innerText = "સુધારો સેવ કરો"; }
         document.getElementById('modal-edit-notice').style.display = 'none';
         showToast("નોટિસ સફળતાપૂર્વક અપડેટ થઈ!");

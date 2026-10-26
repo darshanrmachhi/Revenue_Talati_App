@@ -824,14 +824,15 @@
     </div>
 
     <!-- 5. MODALS: NEW NOTICE & EDIT NOTICE -->
-    <div id="modal-new-notice" class="modal-backdrop" style="display: none; align-items: center;">
+    <!-- NEW NOTICE MODAL -->
+    <div id="modal-new-notice" class="modal-backdrop" style="display: none; align-items: center; z-index: 280;">
         <div class="modal-card" style="border-radius: 12px; padding: 20px; max-height: 90vh; overflow-y: auto;">
-            <div class="modal-header" style="padding: 0 0 15px 0;">
-                <h3 style="color: var(--primary-blue); margin: 0;">નવી ૧૩૫-ડી નોટિસ ઉમેરો</h3>
+            <div class="modal-header" style="padding: 0 0 12px 0; border-bottom: 1px solid var(--border-color);">
+                <h3 style="color: var(--primary-blue); margin: 0; font-size: 16px;"><i class="bi bi-file-earmark-plus-fill"></i> નવી ૧૩૫-ડી નોટિસ ઉમેરો</h3>
                 <button class="modal-close-btn" onclick="document.getElementById('modal-new-notice').style.display='none'"><i class="fa-solid fa-xmark"></i></button>
             </div>
             
-            <div style="display: flex; gap: 10px; margin-top: 8px;">
+            <div style="display: flex; gap: 10px; margin-top: 12px;">
                 <div class="form-group" style="flex: 1;">
                     <label class="form-label">ગામ:</label>
                     <select class="form-control" id="notice-village"></select>
@@ -841,26 +842,33 @@
                     <input type="number" class="form-control" id="notice-mutation-no" placeholder="દા.ત. 1452">
                 </div>
             </div>
-            
-            <div class="form-group" style="margin-top:8px;">
-                <label class="form-label">ખાતેદાર / પક્ષકારનું નામ:</label>
-                <input type="text" class="form-control" id="notice-khatedar" placeholder="મુખ્ય ખાતેદાર / પક્ષકારનું નામ">
-            </div>
 
-            <div class="form-group" style="margin-top:8px;">
+            <!-- નોંધનો પ્રકાર -->
+            <div class="form-group" style="margin-top: 10px;">
                 <label class="form-label">નોંધનો પ્રકાર:</label>
-                <select class="form-control" id="notice-type">
-                    <option value="વારસાઈ">વારસાઈ</option>
-                    <option value="વેચાણ">વેચાણ</option>
-                    <option value="વહેંચણી">વહેંચણી</option>
-                    <option value="હયાતીમાં હક્ક દાખલ">હયાતીમાં હક્ક દાખલ</option>
-                    <option value="બોજો દાખલ">બોજો દાખલ</option>
-                    <option value="બોજો કમી">બોજો કમી</option>
-                    <option value="અન્ય">અન્ય</option>
+                <select class="form-control" id="notice-type" onchange="handleNoticeTypeChange('new')">
+                    <option value="વારસાઈ">૧. વારસાઈ</option>
+                    <option value="હયાતીમાં હક્ક દાખલ">૨. હયાતીમાં હક્ક દાખલ</option>
+                    <option value="વેચાણ">૩. વેચાણ</option>
+                    <option value="બોજો દાખલ">૪. બોજો દાખલ</option>
+                    <option value="બોજો કમી">૫. બોજો કમી</option>
+                    <option value="વહેંચણી">૬. વહેંચણી</option>
+                    <option value="અન્ય">૭. અન્ય / હક્ક કમી</option>
                 </select>
             </div>
 
-            <div style="display: flex; gap: 10px; margin-top: 8px;">
+            <!-- મલ્ટિપલ સર્વે નંબરો -->
+            <div class="form-group" style="margin-top: 10px;">
+                <label class="form-label">સર્વે / બ્લોક નંબરો (અલ્પવિરામ કરી લખો):</label>
+                <input type="text" class="form-control" id="notice-surveys" placeholder="દા.ત. 25, 26/1, 32">
+            </div>
+
+            <!-- ડાયનેમિક પક્ષકારોનું કન્ટેનર -->
+            <div id="notice-dynamic-fields-new" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; margin-top:10px;">
+                <!-- Type-Specific Dynamic Fields Will Render Here -->
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
                 <div class="form-group" style="flex: 1;">
                     <label class="form-label">૧. નોટિસ તારીખ:</label>
                     <input type="date" class="form-control" id="notice-gen-date">
@@ -871,35 +879,33 @@
                 </div>
             </div>
 
-            <div style="display: flex; gap: 10px; margin-top: 8px;">
-                <div class="form-group" style="flex: 1;">
-                    <label class="form-label">૩. બજાવ્યા તારીખ:</label>
-                    <input type="date" class="form-control" id="notice-served-date">
+            <div style="margin-top: 10px;">
+                <div class="form-group">
+                    <label class="form-label">૩. બજાવ્યા તારીખ (Served Date):</label>
+                    <input type="date" class="form-control" id="notice-served-date" onchange="updateNoticeDueDatePreview('new')">
                 </div>
-                <div class="form-group" style="flex: 1;">
-                    <label class="form-label">૪. ઈ-ધરામાં પરત કર્યા તારીખ:</label>
-                    <input type="date" class="form-control" id="notice-submitted-date">
-                </div>
+                <div id="notice-due-preview-new" style="display:none; font-size:11.5px; color:#15803d; font-weight:700; margin-top:4px;"></div>
             </div>
 
-            <div class="form-group" style="margin-top:8px;">
+            <div class="form-group" style="margin-top: 10px;">
                 <label class="form-label">શેરો (Remarks):</label>
-                <input type="text" class="form-control" id="notice-remarks" placeholder="કોઈ વિશેષ વિગત">
+                <input type="text" class="form-control" id="notice-remarks" placeholder="કોઈ વિશેષ વિગત / નોંધ">
             </div>
-            <button class="btn btn-primary" style="width:100%; margin-top:18px;" id="btn-save-notice" onclick="saveNewNotice()">સેવ કરો</button>
+
+            <button class="btn btn-primary" style="width:100%; margin-top:16px;" id="btn-save-notice" onclick="saveNewNotice()">સેવ કરો</button>
         </div>
     </div>
 
-    <!-- Edit Notice Modal -->
-    <div id="modal-edit-notice" class="modal-backdrop" style="display: none; align-items: center;">
+    <!-- EDIT NOTICE MODAL -->
+    <div id="modal-edit-notice" class="modal-backdrop" style="display: none; align-items: center; z-index: 280;">
         <div class="modal-card" style="border-radius: 12px; padding: 20px; max-height: 90vh; overflow-y: auto;">
-            <div class="modal-header" style="padding: 0 0 15px 0;">
-                <h3 style="color: var(--primary-blue); margin: 0;">નોટિસની વિગતો સુધારો (Edit)</h3>
+            <div class="modal-header" style="padding: 0 0 12px 0; border-bottom: 1px solid var(--border-color);">
+                <h3 style="color: var(--primary-blue); margin: 0; font-size: 16px;"><i class="bi bi-pencil-square"></i> નોટિસની વિગતો સુધારો (Edit)</h3>
                 <button class="modal-close-btn" onclick="document.getElementById('modal-edit-notice').style.display='none'"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <input type="hidden" id="edit-notice-id">
             
-            <div style="display: flex; gap: 10px; margin-top: 8px;">
+            <div style="display: flex; gap: 10px; margin-top: 12px;">
                 <div class="form-group" style="flex: 1;">
                     <label class="form-label">ગામ:</label>
                     <select class="form-control" id="edit-notice-village"></select>
@@ -909,26 +915,33 @@
                     <input type="number" class="form-control" id="edit-notice-mutation-no">
                 </div>
             </div>
-            
-            <div class="form-group" style="margin-top:8px;">
-                <label class="form-label">ખાતેદાર / પક્ષકારનું નામ:</label>
-                <input type="text" class="form-control" id="edit-notice-khatedar" placeholder="ખાતેદારનું નામ">
-            </div>
 
-            <div class="form-group" style="margin-top:8px;">
+            <!-- નોંધનો પ્રકાર -->
+            <div class="form-group" style="margin-top: 10px;">
                 <label class="form-label">નોંધનો પ્રકાર:</label>
-                <select class="form-control" id="edit-notice-type">
-                    <option value="વારસાઈ">વારસાઈ</option>
-                    <option value="વેચાણ">વેચાણ</option>
-                    <option value="વહેંચણી">વહેંચણી</option>
-                    <option value="હયાતીમાં હક્ક દાખલ">હયાતીમાં હક્ક દાખલ</option>
-                    <option value="બોજો દાખલ">બોજો દાખલ</option>
-                    <option value="બોજો કમી">બોજો કમી</option>
-                    <option value="અન્ય">અન્ય</option>
+                <select class="form-control" id="edit-notice-type" onchange="handleNoticeTypeChange('edit')">
+                    <option value="વારસાઈ">૧. વારસાઈ</option>
+                    <option value="હયાતીમાં હક્ક દાખલ">૨. હયાતીમાં હક્ક દાખલ</option>
+                    <option value="વેચાણ">૩. વેચાણ</option>
+                    <option value="બોજો દાખલ">૪. બોજો દાખલ</option>
+                    <option value="બોજો કમી">૫. બોજો કમી</option>
+                    <option value="વહેંચણી">૬. વહેંચણી</option>
+                    <option value="અન્ય">૭. અન્ય / હક્ક કમી</option>
                 </select>
             </div>
 
-            <div style="display: flex; gap: 10px; margin-top: 8px;">
+            <!-- મલ્ટિપલ સર્વે નંબરો -->
+            <div class="form-group" style="margin-top: 10px;">
+                <label class="form-label">સર્વે / બ્લોક નંબરો (અલ્પવિરામ કરી લખો):</label>
+                <input type="text" class="form-control" id="edit-notice-surveys" placeholder="દા.ત. 25, 26/1, 32">
+            </div>
+
+            <!-- ડાયનેમિક પક્ષકારોનું કન્ટેનર -->
+            <div id="notice-dynamic-fields-edit" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:12px; margin-top:10px;">
+                <!-- Type-Specific Dynamic Fields Will Render Here -->
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
                 <div class="form-group" style="flex: 1;">
                     <label class="form-label">૧. નોટિસ તારીખ:</label>
                     <input type="date" class="form-control" id="edit-notice-gen-date">
@@ -939,12 +952,15 @@
                 </div>
             </div>
 
-            <div class="form-group" style="margin-top:8px;">
-                <label class="form-label">૩. બજાવ્યા તારીખ (Served Date):</label>
-                <input type="date" class="form-control" id="edit-notice-served-date">
+            <div style="margin-top: 10px;">
+                <div class="form-group">
+                    <label class="form-label">૩. બજાવ્યા તારીખ (Served Date):</label>
+                    <input type="date" class="form-control" id="edit-notice-served-date" onchange="updateNoticeDueDatePreview('edit')">
+                </div>
+                <div id="notice-due-preview-edit" style="display:none; font-size:11.5px; color:#15803d; font-weight:700; margin-top:4px;"></div>
             </div>
 
-            <div class="form-group" style="margin-top:8px;">
+            <div class="form-group" style="margin-top: 10px;">
                 <label class="form-label">હાલની સ્થિતિ (Current Status):</label>
                 <select class="form-control" id="edit-notice-status" onchange="toggleSubmittedDateInput()">
                     <option value="બજાવવાની બાકી">૧. બજાવવાની બાકી</option>
@@ -953,12 +969,12 @@
                 </select>
             </div>
 
-            <div class="form-group" id="grp-submitted-date" style="margin-top:8px; display:none;">
+            <div class="form-group" id="grp-submitted-date" style="margin-top: 10px; display:none;">
                 <label class="form-label" style="color: #047857; font-weight: bold;">૪. ઈ-ધરામાં પરત કર્યા તારીખ (Submitted Date):</label>
                 <input type="date" class="form-control" id="edit-notice-submitted-date">
             </div>
 
-            <div class="form-group" style="margin-top:8px;">
+            <div class="form-group" style="margin-top: 10px;">
                 <label class="form-label">શેરો / શેડ્યૂલ (Remarks):</label>
                 <input type="text" class="form-control" id="edit-notice-remarks" placeholder="કોઈ ખાસ નોંધ">
             </div>
