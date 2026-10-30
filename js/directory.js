@@ -4,10 +4,12 @@ var talukaDirectoryData = null;
 let currentActiveSeja = null; 
 let currentActivePanchayat = null;
 let currentActiveVillage = null;
-let editingLandRecordId = null; // સુધારો: Index ના બદલે અનન્ય ID વડે ટ્રેકિંગ
-let editingBookmarkId = null;   // સુધારો: Index ના બદલે અનન્ય ID વડે ટ્રેકિંગ
+let editingLandRecordId = null; 
+let editingBookmarkId = null;   
 
-// Call, WhatsApp અને Copy નું ૩-બટન ગ્રુપ બનાવતું હેલ્પર ફંક્શન
+// =========================================================
+// હેલ્પર ફંક્શન્સ
+// =========================================================
 function buildContactActionButtons(rawMobile) {
     if (!rawMobile || rawMobile === "-") {
         return '<span style="font-size:11px; color:#94a3b8;">સંપર્ક ઉપલબ્ધ નથી</span>';
@@ -32,6 +34,9 @@ function buildContactActionButtons(rawMobile) {
     `;
 }
 
+// =========================================================
+// માસ્ટર ડેટા લોડિંગ
+// =========================================================
 function loadDirectoryData() {
     if (talukaDirectoryData) { renderSejasGrid(talukaDirectoryData.sejas); return; }
     
@@ -80,13 +85,27 @@ function processDirectoryData(response, mySejaName, container) {
     }
 }
 
+// =========================================================
+// સેજા ગ્રીડ રેન્ડરિંગ (Compact Layout)
+// =========================================================
 function renderSejasGrid(sejasList) {
     const list = sejasList || (talukaDirectoryData ? talukaDirectoryData.sejas : []);
     const container = document.getElementById('directory-grid-container');
+    const panchContainer = document.getElementById('panchayat-view-container');
     if (!container) return;
     
+    // ગ્રીડ કન્ટેનર બતાવો અને પંચાયત વ્યુ છુપાવો
+    container.style.display = 'flex';
+    if (panchContainer) panchContainer.style.display = 'none';
+
+    // સર્ચ બાર અને સમરી સ્ટ્રીપ પુનઃ દર્શાવો
+    let searchBox = document.querySelector('#view-directory .search-box');
+    let summaryStrip = document.querySelector('#view-directory .dir-summary-strip');
+    if (searchBox) searchBox.style.display = 'flex';
+    if (summaryStrip) summaryStrip.style.display = 'flex';
+
     let bc = document.getElementById('dir-breadcrumbs');
-    if (bc) bc.innerHTML = `<span class="crumb-link" onclick="renderSejasGrid()"><i class="fa-solid fa-house"></i> લુણાવાડા</span>`;
+    if (bc) bc.innerHTML = `<span class="crumb-link" onclick="restoreSejasGrid()"><i class="fa-solid fa-house"></i> લુણાવાડા</span>`;
     
     if (!list || list.length === 0) { 
         container.innerHTML = `<p style="grid-column: 1/-1; text-align:center; padding:30px; color:#94a3b8;">કોઈ સેજો મળ્યો નથી.</p>`; 
@@ -101,7 +120,6 @@ function renderSejasGrid(sejasList) {
         const chargeClass = (seja.chargeType === "કાયમી") ? "permanent" : "additional";
         const cm = seja.talatiMobile && seja.talatiMobile !== "-" ? toEnglishDigits(seja.talatiMobile).replace(/[^0-9]/g, '') : '';
         
-        // પ્રોફાઇલ ફોટો હેન્ડલર (પોતાનો સેજો હોય તો સિંક ફોટો, નહીંતર ડાયરેક્ટરી ફોટો કે સ્માર્ટ અવતાર)
         let photoSrc = (isMySeja && myCachedPhoto) ? myCachedPhoto : (seja.photoUrl || seja.photo || '');
         if (!photoSrc) {
             let encName = encodeURIComponent(seja.talatiName || 'તલાટી');
@@ -151,6 +169,9 @@ function renderSejasGrid(sejasList) {
     }).join('');
 }
 
+// =========================================================
+// સર્ચ અને ફિલ્ટરિંગ
+// =========================================================
 function filterDirectory(query) {
     let qStr = String(query || '').trim();
     const clearBtn = document.getElementById('clear-search'); 
@@ -186,15 +207,25 @@ function clearSearchInput() {
     if (talukaDirectoryData) renderSejasGrid(talukaDirectoryData.sejas); 
 }
 
+// =========================================================
+// પંચાયત અને ગામ વ્યુ રેન્ડરિંગ (Blue Banner & Clean Search)
+// =========================================================
 function renderPanchayatsView(sejaName, pushHistory = true) {
     currentActiveSeja = talukaDirectoryData.sejas.find(s => s.sejaName === sejaName); 
     if (!currentActiveSeja) return;
     
     document.getElementById('directory-grid-container').style.display = 'none'; 
     document.getElementById('panchayat-view-container').style.display = 'block';
+
+    // સેજા પ્રોફાઇલમાં સર્ચ બાર અને સમરી સ્ટ્રીપ હાઇડ કરો
+    let searchBox = document.querySelector('#view-directory .search-box');
+    let summaryStrip = document.querySelector('#view-directory .dir-summary-strip');
+    if (searchBox) searchBox.style.display = 'none';
+    if (summaryStrip) summaryStrip.style.display = 'none';
+
     document.getElementById('dir-breadcrumbs').innerHTML = `<span class="crumb-link" onclick="restoreSejasGrid()"><i class="fa-solid fa-house"></i> લુણાવાડા</span><i class="fa-solid fa-chevron-right" style="font-size:10px;"></i><span>${currentActiveSeja.sejaName} સેજો</span>`;
     
-    // સુધારેલું બ્લૂ બેનર: રેવન્યુ તલાટીના કોલ, વોટ્સએપ અને કોપી બટન્સ સાથે
+    // બ્લૂ બેનર: રેવન્યુ તલાટીના કોલ, વોટ્સએપ અને કોપી બટન્સ સાથે
     document.getElementById('seja-detail-header').innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
             <div>
@@ -223,7 +254,24 @@ function renderPanchayatsView(sejaName, pushHistory = true) {
         </div>
     `;
     
-    document.getElementById('panchayats-list').innerHTML = currentActiveSeja.panchayats.map(p => {
+    // પંચાયતોની યાદી રેન્ડર કરો
+    renderFilteredPanchayatsList(currentActiveSeja.panchayats);
+
+    if (pushHistory) { window.history.pushState({ view: 'directory-panchayat', seja: sejaName }, '', '#panchayat'); }
+}
+
+function renderFilteredPanchayatsList(panchayatsList) {
+    const container = document.getElementById('panchayats-list');
+    if (!container) return;
+
+    const list = panchayatsList || (currentActiveSeja ? currentActiveSeja.panchayats : []);
+
+    if (!list || list.length === 0) {
+        container.innerHTML = `<div style="text-align:center; padding:25px; color:#94a3b8; font-size:13px;">કોઈ પંચાયત કે ગામ મળ્યું નથી.</div>`;
+        return;
+    }
+
+    container.innerHTML = list.map(p => {
         return `
             <div class="panchayat-card">
                 <div class="panchayat-header">
@@ -254,14 +302,14 @@ function renderPanchayatsView(sejaName, pushHistory = true) {
             </div>
         `;
     }).join('');
-
-    if (pushHistory) { window.history.pushState({ view: 'directory-panchayat', seja: sejaName }, '', '#panchayat'); }
 }
 
-function restoreSejasGrid() { window.history.back(); }
+function restoreSejasGrid() { 
+    window.history.back(); 
+}
 
 // =========================================================
-// ગામની પ્રોફાઈલ ખોલવાનું મુખ્ય ફંક્શન (VIEW MODE)
+// ગામની પ્રોફાઈલ ખોલવાનું ફંક્શન
 // =========================================================
 function openVillageProfile(vid, pname) {
     if (!currentActiveSeja) return;
@@ -443,7 +491,6 @@ function openEditVillageForm() {
     if (!currentActiveVillage.landRecords) currentActiveVillage.landRecords = [];
     if (!currentActiveVillage.bookmarks) currentActiveVillage.bookmarks = [];
 
-    // દરેક જૂના રેકોર્ડને અનન્ય ID આપવું (જો ન હોય તો)
     currentActiveVillage.landRecords.forEach((r, idx) => {
         if (!r.id) r.id = 'lr_' + Date.now() + '_' + idx;
     });
