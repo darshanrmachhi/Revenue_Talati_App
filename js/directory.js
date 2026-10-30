@@ -193,7 +193,35 @@ function renderPanchayatsView(sejaName, pushHistory = true) {
     document.getElementById('directory-grid-container').style.display = 'none'; 
     document.getElementById('panchayat-view-container').style.display = 'block';
     document.getElementById('dir-breadcrumbs').innerHTML = `<span class="crumb-link" onclick="restoreSejasGrid()"><i class="fa-solid fa-house"></i> લુણાવાડા</span><i class="fa-solid fa-chevron-right" style="font-size:10px;"></i><span>${currentActiveSeja.sejaName} સેજો</span>`;
-    document.getElementById('seja-detail-header').innerHTML = `<div style="display:flex; justify-content:space-between; align-items:flex-start;"><div><h2>${currentActiveSeja.sejaName} સેજો (${currentActiveSeja.chargeType})</h2><p><i class="fa-solid fa-user-tie"></i> તલાટી: <b>${currentActiveSeja.talatiName}</b></p></div><div style="text-align:right;"><p style="font-size:12px;"><i class="fa-solid fa-users"></i> વસ્તી: <b>${toGujaratiDigits(currentActiveSeja.totalPopulation)}</b></p><p style="font-size:12px;"><i class="fa-solid fa-vector-square"></i> ક્ષેત્રફળ: <b>${toGujaratiDigits(currentActiveSeja.totalAreaSqMtr)} ચો.મી.</b></p></div></div>`;
+    
+    // સુધારેલું બ્લૂ બેનર: રેવન્યુ તલાટીના કોલ, વોટ્સએપ અને કોપી બટન્સ સાથે
+    document.getElementById('seja-detail-header').innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+            <div>
+                <h2 style="font-size:18px; margin:0 0 2px 0;">
+                    ${currentActiveSeja.sejaName} સેજો 
+                    <span style="font-size:11px; background:rgba(255,255,255,0.22); padding:2px 8px; border-radius:12px; font-weight:600; vertical-align:middle; border:1px solid rgba(255,255,255,0.3);">
+                        ${currentActiveSeja.chargeType}
+                    </span>
+                </h2>
+            </div>
+            <div style="text-align:right; font-size:12px; opacity:0.95; line-height:1.4;">
+                <div><i class="fa-solid fa-users"></i> વસ્તી: <b>${toGujaratiDigits(currentActiveSeja.totalPopulation)}</b></div>
+                <div><i class="fa-solid fa-vector-square"></i> ક્ષેત્રફળ: <b>${toGujaratiDigits(currentActiveSeja.totalAreaSqMtr)} ચો.મી.</b></div>
+            </div>
+        </div>
+
+        <!-- રેવન્યુ તલાટી સંપર્ક પટ્ટી -->
+        <div style="background:rgba(255,255,255,0.15); border-radius:10px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; border:1px solid rgba(255,255,255,0.22); backdrop-filter:blur(4px);">
+            <div style="font-size:13.5px; display:flex; align-items:center; gap:8px;">
+                <i class="fa-solid fa-user-tie" style="font-size:15px; opacity:0.9;"></i>
+                <span>તલાટી: <b>${currentActiveSeja.talatiName}</b></span>
+            </div>
+            <div>
+                ${buildContactActionButtons(currentActiveSeja.talatiMobile)}
+            </div>
+        </div>
+    `;
     
     document.getElementById('panchayats-list').innerHTML = currentActiveSeja.panchayats.map(p => {
         return `
