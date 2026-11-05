@@ -1,18 +1,18 @@
 // sw.js
-const CACHE_NAME = 'talati-app-v6';
+const CACHE_NAME = 'talati-app-v7';
 
 const assetsToCache = [
   './',
   './index.html',
-  './css/styles.css?v=6',
-  './js/config.js?v=6',
-  './js/auth.js?v=6',
-  './js/ui-logic.js?v=6',
-  './js/135d.js?v=6',
-  './js/pedhinamu.js?v=6',
-  './js/area-calc.js?v=6',
-  './js/directory.js?v=6',
-  './js/profile.js?v=6',
+  './css/styles.css',
+  './js/config.js',
+  './js/auth.js',
+  './js/ui-logic.js',
+  './js/135d.js',
+  './js/pedhinamu.js',
+  './js/area-calc.js',
+  './js/directory.js',
+  './js/profile.js',
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
@@ -22,9 +22,13 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      // સુરક્ષિત રીતે કેશિંગ (એક ફાઈલ મિસિંગ હોય તો પણ SW ફેઈલ ન થાય)
+      // Use Promise.allSettled so one missing file won't abort the entire install
       return Promise.allSettled(
-        assetsToCache.map(url => cache.add(url))
+        assetsToCache.map((url) =>
+          cache.add(url).catch((err) => {
+            console.warn(`[SW] Pre-cache failed for ${url}:`, err);
+          })
+        )
       );
     })
   );
@@ -34,9 +38,9 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.map((cache) => {
-          if (cache !== CACHE_NAME) {
-            return caches.delete(cache);
+        cacheNames.map((name) => {
+          if (name !== CACHE_NAME) {
+            return caches.delete(name);
           }
         })
       );
@@ -45,18 +49,19 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Network-First with Fallback
+// Network-first with fallback to cache
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET' || !event.request.url.startsWith('http')) {
     return;
   }
 
-  const requestUrl = event.request.url;
-  // ફાયરબેઝ અને ડેટાબેઝ કોલ્સ કેશ ન કરવા
+  const url = event.request.url;
+
+  // Never cache Firebase / Google auth / Firestore traffic
   if (
-    requestUrl.includes('firestore.googleapis.com') ||
-    requestUrl.includes('firebase') ||
-    requestUrl.includes('identitytoolkit')
+    url.includes('firestore.googleapis.com') ||
+    url.includes('firebase') ||
+    url.includes('identitytoolkit')
   ) {
     return;
   }
@@ -64,7 +69,7 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {
-        // status 200 અથવા opaque (status 0) બંને સેવ કરો
+        // Cache valid responses including opaque CDN assets
         if (networkResponse && (networkResponse.status === 200 || networkResponse.type === 'opaque')) {
           const responseClone = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -74,8 +79,9 @@ self.addEventListener('fetch', (event) => {
         return networkResponse;
       })
       .catch(() => {
-        return caches.match(event.request, { ignoreSearch: true }).then(cached => {
-          return cached || caches.match('./index.html');
+        // Ignore query string mismatch when offline
+        return caches.match(event.request, { ignoreSearch: true }).then((cached) => {
+          return cached || caches.match('./index.html', { ignoreSearch: true });
         });
       })
   );
