@@ -367,10 +367,18 @@ function updatePanchListDisplay() {
 // =========================================================
 // ૪. પેઢી આંબો અને A4 પ્રિન્ટ જનરેશન (With Table Header Fix)
 // =========================================================
+// =========================================================
+// ૧. પેઢી આંબો જનરેટર (નવા મહેસૂલી નિયમો અને કસ્ટમ સ્ટાઈલ મુજબ)
+// =========================================================
 function buildTreeHTML(pId) {
     let ch = heirsArray.filter(h => h.parentId === pId);
+    
+    // જો આ વ્યક્તિના કોઈ વારસદારો ઉમેર્યા ન હોય અને આ મુખ્ય ગુજરનાર (root) ન હોય, 
+    // તો ખાલી સ્ટ્રિંગ પરત કરો (જેથી બિનજરૂરી લાઈનો ન દોરાય).
     if (ch.length === 0 && pId !== 'root') return ''; 
+    
     let html = `<ul>`;
+    
     ch.forEach(c => {
         let boxClass = c.gender === 'સ્ત્રી' ? 'female-box' : 'male-box'; 
         if (c.status === 'મરણ') boxClass += ' deceased-box';
@@ -378,16 +386,37 @@ function buildTreeHTML(pId) {
         if (c.status === 'હયાત' && ageNum < 18 && ageNum > 0) boxClass += ' minor-box';
         if (c.wrap) boxClass += ' wrapped-box';
         
-        let stat = c.status === 'મરણ' ? `<br><span style="font-size:12px;">(મરણ તા. ${formatDisplayDateGujarati(c.deathDate)})</span>` : `<br><span>ઉ.વ. ${toGujaratiDigits(c.age)}</span>`;
+        let stat = c.status === 'મરણ' 
+            ? `<br><span style="font-size:11.5px;">(મરણ તા. ${formatDisplayDateGujarati(c.deathDate)})</span>` 
+            : `<br><span>ઉ.વ. ${toGujaratiDigits(c.age)}</span>`;
+            
         html += `<li><div class="heir-box ${boxClass}"><span class="bold">${c.name}</span><br>(${c.relation})${stat}</div>`;
         
         let childHTML = buildTreeHTML(c.id);
+        
+        // વિકલ્પ ૧: જો વ્યક્તિ નિર્વંશ હોય, તો તેની નીચે માત્ર [નિર્વંશ] લખાશે (અન્ય કોઈ લાઈન નહીં આવે).
         if (c.nirvansh && childHTML === '') {
-            childHTML = `<ul><li><div class="heir-box male-box" style="border:none;background:transparent;"><span class="bold" style="font-size:13px;color:#555;">નિર્વંશ</span></div></li></ul>`;
+            childHTML = `<ul><li>
+                <div style="border:none; background:transparent; padding:6px 2px;">
+                    <span class="bold" style="font-size:13px; color:#475569;">[નિર્વંશ]</span>
+                </div>
+            </li></ul>`;
         }
+        
         html += childHTML + `</li>`;
     });
-    html += `<li><div class="heir-box male-box" style="border:none;background:transparent;"><span class="bold underline" style="font-size:12px;">આ સિવાય અન્ય<br>કોઈ વારસ નથી.</span></div></li></ul>`;
+
+    // વિકલ્પ ૨ અને ૩: દરેક શાખા (જેમાં સંતાનો હોય) અથવા મુખ્ય ગુજરનાર (root) ના અંતે,
+    // કોમ્પેક્ટ અને ફ્લેટ સ્ટાઈલમાં અંડરલાઇન સાથે આ લાઈન ઉમેરાશે.
+    if (pId === 'root' || ch.length > 0) {
+        html += `<li>
+            <div style="border:none; background:transparent; padding:6px 2px; max-width:85px; white-space:normal; display:inline-block; vertical-align:top;">
+                <span class="bold underline" style="font-size:11.5px; line-height:1.4; color:#0f172a;">આ સિવાય અન્ય<br>કોઈ વારસ નથી.</span>
+            </div>
+        </li>`;
+    }
+
+    html += `</ul>`;
     return html;
 }
 
@@ -399,6 +428,9 @@ function formatNameThreeRows(fullName) {
     return fullName;
 }
 
+// =========================================================
+// ૨. પેઢીનામું PDF / પ્રિન્ટ જનરેટર (WITH A4 AUTO-FIT SCALER)
+// =========================================================
 function generatePDF() {
     let type = safeGetValue('inp-type') || 'મરણ';
     let app = safeGetValue('inp-applicant') || "__________";
@@ -419,7 +451,6 @@ function generatePDF() {
     safeSetText('tree-deceased-name', dec);
     safeSetHTML('out-purpose-str', `<span class="bold underline">${getVal('inp-purpose', 'inp-purpose-custom') || "જમીન વારસાઈ"}</span>`);
     
-    // જો જૂનું પેઢીનામું હોય તો તેનો મૂળ જાવક નંબર જ બતાવો, નહીંતર નવો ગણો
     if (currentActiveJavakNo) {
         safeSetText('out-javak-no', currentActiveJavakNo);
     } else {
@@ -443,11 +474,32 @@ function generatePDF() {
         let rel = getVal('inp-applicant-relation', 'inp-app-rel-custom') || "પિતા";
         if (dPara) dPara.innerHTML = `તે સંદર્ભે આજરોજ લખાવું છું કે, મારા <span class="bold">${rel}</span> શ્રી <span class="bold">${dec}</span> નું તા. <span class="bold">${formattedDDate}</span> ના રોજ અવસાન થયેલ છે અને તેમના વારસદારોની વિગત નીચે મુજબ છે.`; 
         if (rBox) rBox.className = "heir-box root-box male-box deceased-box";
-        if (rStat) rStat.innerHTML = `<span class="bold" style="font-size:13px;">(મરણ તા. ${formattedDDate})</span>`; 
+        if (rStat) rStat.innerHTML = `<span class="bold" style="font-size:12.5px;">(મરણ તા. ${formattedDDate})</span>`; 
     }
+
+    // ૧. આંબો (Tree) રેન્ડર કરો
     safeSetHTML('dynamic-tree-children', buildTreeHTML('root'));
 
-    // BUG FIXED: pdf-panch-table ને બદલે pdf-panch-body માં જ પંચોની રો ઉમેરાશે જેથી <thead> સુરક્ષિત રહે!
+    // ૨. ADVANCED AUTO-FIT SCALING LOGIC (A4 સાઈઝ માટે)
+    setTimeout(() => {
+        let treeEl = document.getElementById('main-tree');
+        if (treeEl) {
+            treeEl.style.transform = 'none'; // પહેલાં જૂનું સ્કેલિંગ રીસેટ કરો
+            
+            // A4 પોર્ટ્રેટ પેજની પ્રિન્ટિંગ પહોળાઈ આશરે 720px જેટલી હોય છે (માર્જિન બાદ કરતા)
+            let maxA4Width = 720; 
+            let actualTreeWidth = treeEl.scrollWidth;
+
+            // જો ઝાડવું કાગળ કરતાં પહોળું હોય, તો જ તેને નાનું (Scale Down) કરો
+            if (actualTreeWidth > maxA4Width) {
+                let scaleRatio = (maxA4Width / actualTreeWidth) - 0.02; // 2% બોર્ડર માટે જગ્યા
+                treeEl.style.transform = `scale(${scaleRatio.toFixed(2)})`;
+                treeEl.style.transformOrigin = 'top center'; // ઉપરથી કેન્દ્રમાં નાનું કરો
+            }
+        }
+    }, 100); // DOM માં HTML બને તે માટે 100ms નો સમય
+
+    // પંચોનું ટેબલ અને બાકીની વિગતો
     let tBody = document.getElementById('pdf-panch-body') || document.getElementById('pdf-panch-table'); 
     if (tBody) {
         tBody.innerHTML = panchArray.map((p, i) => 
