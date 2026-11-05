@@ -3,6 +3,8 @@
 let editHeirId = null;
 let editPanchId = null;
 let currentActiveJavakNo = ""; // જૂના પેઢીનામાનો મૂળ જાવક નંબર સાચવવા માટે
+let treeScale = 1.0;
+let treeSpacing = 18;
 
 // =========================================================
 // ૧. પેઢીનામું રજીસ્ટર લિસ્ટ અને સર્ચ (Central Sync)
@@ -477,8 +479,16 @@ function generatePDF() {
         if (rStat) rStat.innerHTML = `<span class="bold" style="font-size:12.5px;">(મરણ તા. ${formattedDDate})</span>`; 
     }
 
-    // ૧. આંબો (Tree) રેન્ડર કરો
+    // આંબો રેન્ડર કરવો
     safeSetHTML('dynamic-tree-children', buildTreeHTML('root'));
+
+    // પ્રિન્ટ થનારા મેઈન ઝાડવા પર યુઝરે નક્કી કરેલી સાઈઝ અને સ્પેસિંગ લાગુ કરો
+    let treeEl = document.getElementById('main-tree');
+    if (treeEl) {
+        treeEl.style.setProperty('--tree-space', `${treeSpacing}px`);
+        treeEl.style.transform = `scale(${treeScale})`;
+        treeEl.style.transformOrigin = 'top center';
+    }
 
     // ૨. ADVANCED AUTO-FIT SCALING LOGIC (A4 સાઈઝ માટે)
     setTimeout(() => {
@@ -791,6 +801,10 @@ function changeStep(step) {
     if (ind) ind.classList.add('active');
     if (cnt) cnt.classList.add('active');
     if (step === 2) updateRootName();
+    
+    // નવો ઉમેરેલો ભાગ: Step 3 માં આવે એટલે ઓટો-ફિટ અને પ્રિવ્યૂ રન થશે
+    if (step === 3) applyAutoFitScale(); 
+    
     generatePDF(); 
 }
 
@@ -841,4 +855,79 @@ function toggleStatusInputs() {
     let s = safeGetValue('heir-status');
     document.getElementById('age-group').style.display = (s === 'હયાત') ? 'flex' : 'none';
     document.getElementById('deathdate-group').style.display = (s === 'મરણ') ? 'flex' : 'none';
+}
+
+
+// =========================================================
+// SIZE & SPACING CONTROLS (LIVE PREVIEW & AUTO-FIT)
+// =========================================================
+
+function changeTreeScale(diff) {
+    treeScale += diff;
+    if (treeScale < 0.3) treeScale = 0.3; 
+    if (treeScale > 2.0) treeScale = 2.0; 
+    document.getElementById('val-scale').innerText = Math.round(treeScale * 100) + '%';
+    renderLivePreview();
+}
+
+function changeTreeSpacing(diff) {
+    treeSpacing += diff;
+    if (treeSpacing < 6) treeSpacing = 6; 
+    if (treeSpacing > 40) treeSpacing = 40; 
+    document.getElementById('val-spacing').innerText = treeSpacing + 'px';
+    renderLivePreview();
+}
+
+function renderLivePreview() {
+    let previewContainer = document.getElementById('live-tree-preview');
+    if (!previewContainer) return;
+    
+    let html = buildTreeHTML('root');
+    let type = safeGetValue('inp-type') || 'મરણ';
+    let app = safeGetValue('inp-applicant') || "__________";
+    let dec = type === 'હયાત' ? app : (safeGetValue('inp-deceased') || "__________");
+    let age = toGujaratiDigits(safeGetValue('inp-age')) || "____";
+    let rootClass = type === 'હયાત' ? "heir-box root-box male-box" : "heir-box root-box male-box deceased-box";
+    let formattedDDate = formatDisplayDateGujarati(safeGetValue('inp-deathdate'));
+    let rootStat = type === 'હયાત' ? `<span class='bold'>ઉ.વ. ${age}</span><br>(હયાત)` : `<span class="bold" style="font-size:12.5px;">(મરણ તા. ${formattedDDate})</span>`;
+    
+    let finalHtml = `
+    <div class="tree-wrapper" style="margin:0; padding:0; overflow:visible;">
+        <div class="tree" id="preview-tree-element" style="--tree-space: ${treeSpacing}px; transform: scale(${treeScale}); transform-origin: top center; transition: all 0.2s ease;">
+            <ul style="padding-top:0 !important;">
+                <li>
+                    <div class="${rootClass}">
+                        <span class="bold">${dec}</span><br>${rootStat}
+                    </div>
+                    ${html}
+                </li>
+            </ul>
+        </div>
+    </div>`;
+    
+    previewContainer.innerHTML = finalHtml;
+}
+
+function applyAutoFitScale() {
+    treeScale = 1.0;
+    treeSpacing = 18;
+    document.getElementById('val-scale').innerText = '100%';
+    document.getElementById('val-spacing').innerText = '18px';
+    
+    renderLivePreview();
+    
+    setTimeout(() => {
+        let treeEl = document.getElementById('preview-tree-element');
+        if (treeEl) {
+            let actualWidth = treeEl.scrollWidth;
+            let maxA4Width = 720; 
+            if (actualWidth > maxA4Width) {
+                treeScale = (maxA4Width / actualWidth) - 0.02;
+                treeSpacing = 10; // મોટા આંબા માટે સ્પેસિંગ આપોઆપ ઘટાડી દો
+                document.getElementById('val-scale').innerText = Math.round(treeScale * 100) + '%';
+                document.getElementById('val-spacing').innerText = treeSpacing + 'px';
+                renderLivePreview();
+            }
+        }
+    }, 50);
 }

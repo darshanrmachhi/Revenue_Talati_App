@@ -704,7 +704,31 @@
 
                 <!-- Step 3 -->
                 <div id="step-content-3" class="step-content">
+                    <!-- નવું: સાઈઝ અને સ્પેસિંગ કંટ્રોલ્સ -->
+                    <div class="tree-controls-panel">
+                        <div class="control-group">
+                            <span class="control-label" style="color:#1d4ed8;"><i class="bi bi-zoom-in"></i> સાઈઝ કંટ્રોલ:</span>
+                            <button class="btn-ctrl" onclick="changeTreeScale(-0.05)">-</button>
+                            <span class="ctrl-value" id="val-scale">100%</span>
+                            <button class="btn-ctrl" onclick="changeTreeScale(0.05)">+</button>
+                        </div>
+                        <div class="control-group">
+                            <span class="control-label" style="color:#047857;"><i class="bi bi-arrows-expand"></i> લાઈન સ્પેસિંગ:</span>
+                            <button class="btn-ctrl" onclick="changeTreeSpacing(-2)">-</button>
+                            <span class="ctrl-value" id="val-spacing">18px</span>
+                            <button class="btn-ctrl" onclick="changeTreeSpacing(2)">+</button>
+                        </div>
+                    </div>
+
+                    <!-- નવું: લાઈવ પ્રિવ્યૂ બોક્સ -->
+                    <div class="section-title" style="margin-top:0; border:none; font-size:13px; color:#475569;"><i class="bi bi-eye-fill"></i> લાઈવ પેઢીઆંબો પ્રિવ્યૂ (ફક્ત આંબો જોવા માટે)</div>
+                    <div class="live-preview-box" id="live-tree-preview">
+                        <!-- લાઈવ ટ્રી અહીં દેખાશે -->
+                    </div>
+
+                    <!-- જૂની પંચની વિગતો -->
                     <div style="background: #f8fafc; border: 1px solid #e2e8f0; padding: 14px; border-radius: 8px; margin-bottom: 16px;">
+                        <div class="section-title" style="margin-top:0; padding-top:0; border:none; font-size:13px; color:#b45309;"><i class="fa-solid fa-users"></i> પંચોની વિગત ઉમેરો</div>
                         <div class="form-grid-3">
                             <div class="form-group"><label class="form-label">પંચનું નામ:</label><input type="text" class="form-control" id="panch-name"></div>
                             <div class="form-group"><label class="form-label">ઉંમર:</label><input type="number" class="form-control" id="panch-age"></div>
