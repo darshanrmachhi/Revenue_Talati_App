@@ -2,6 +2,7 @@
   "id": "/Revenue_Talati_App/",
   "name": "મહેસૂલી તલાટી દફતર - લુણાવાડા",
   "short_name": "તલાટી દફતર",
+  "description": "મહેસૂલી તલાટીઓ માટે ૧૩૫-ડી નોટિસ, પેઢીનામું અને ક્ષેત્રફળ ગણતરી માટેની ડિજિટલ એપ.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -20,6 +21,14 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+"screenshots": [
+    {
+      "src": "screenshot1.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow"
     }
   ]
 }

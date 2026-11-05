@@ -557,42 +557,39 @@ function populatePedhinamuFormFromRecord(rec) {
     }
 }
 
+// =========================================================
+// પ્રિન્ટિંગ કંટ્રોલર ફંક્શન્સ (સ્મૂથ ડાયલોગ અને ક્લીનઅપ સાથે)
+// =========================================================
+
+// ૧. જૂનું સેવ કરેલું પેઢીનામું પ્રિન્ટ કરવા માટે
 function viewAndPrintExisting(pid) {
     let rec = allPedhinamuList.find(i => String(i.Pedhinamu_ID).trim() === String(pid).trim());
     if (!rec) return alert('પેઢીનામું રેકોર્ડ મળ્યો નથી.');
     
+    // ડેટા ફોર્મમાં લોડ કરી PDF લેઆઉટ તૈયાર કરો
     populatePedhinamuFormFromRecord(rec);
     updateRootName();
     generatePDF();
     
     let page = document.getElementById('pedhinamu-page');
     if (page) page.style.display = 'block';
+
+    // DOM રેન્ડરિંગ પૂર્ણ થાય તે માટે થોડો સમય આપી પ્રિન્ટ ડાયલોગ ખોલો
     setTimeout(() => {
         window.print();
-        setTimeout(() => { if (page) page.style.display = 'none'; }, 500);
-    }, 250);
+        setTimeout(() => {
+            if (page) page.style.display = 'none';
+        }, 500);
+    }, 300);
 }
 
-function loadPedhinamuForEditing(pid) {
-    let rec = allPedhinamuList.find(i => String(i.Pedhinamu_ID).trim() === String(pid).trim());
-    if (!rec) return alert('પેઢીનામું રેકોર્ડ મળ્યો નથી.');
-    
-    currentEditingPedhinamuId = pid;
-    openPedhinamuModal(true);
-    populatePedhinamuFormFromRecord(rec);
-    
-    updateParentDropdown();
-    updateHeirListDisplay();
-    updatePanchListDisplay();
-    toggleTypeSpecificInputs();
-    updateRootName();
-    changeStep(1);
-    showToast("✏️ વિગતો ફોર્મમાં લોડ થઈ ગઈ છે.");
-}
-
+// ૨. નવું પેઢીનામું સેવ કરી તાત્કાલિક પ્રિન્ટ કરવા માટે
 function saveAndPrint() {
     let btn = document.getElementById('print-btn');
-    if (btn) { btn.innerHTML = "⏳ સેવ થાય છે..."; btn.disabled = true; }
+    if (btn) { 
+        btn.innerHTML = "⏳ સેવ થાય છે..."; 
+        btn.disabled = true; 
+    }
     
     let type = safeGetValue('inp-type') || "મરણ";
     let app = safeGetValue('inp-applicant') || "-";
@@ -641,9 +638,14 @@ function saveAndPrint() {
     };
 
     let afterSuccess = function() {
-        if (btn) { btn.innerHTML = "<i class='bi bi-printer-fill'></i> પ્રિન્ટ અને સેવ કરો"; btn.disabled = false; }
+        if (btn) { 
+            btn.innerHTML = "<i class='bi bi-printer-fill'></i> પ્રિન્ટ અને સેવ કરો"; 
+            btn.disabled = false; 
+        }
+        
         let page = document.getElementById('pedhinamu-page');
         if (page) page.style.display = 'block';
+
         setTimeout(() => {
             window.print();
             setTimeout(() => {
@@ -652,11 +654,14 @@ function saveAndPrint() {
                 closePedhinamuModal();
                 showToast(isEditing ? "✅ પેઢીનામું સુધારી લેવાયું છે!" : "✅ નવું પેઢીનામું સેવ થઈ ગયું!");
             }, 500);
-        }, 250);
+        }, 300);
     };
 
     let afterFailure = function(error) {
-        if (btn) { btn.innerHTML = "<i class='bi bi-printer-fill'></i> પ્રિન્ટ અને સેવ કરો"; btn.disabled = false; }
+        if (btn) { 
+            btn.innerHTML = "<i class='bi bi-printer-fill'></i> પ્રિન્ટ અને સેવ કરો"; 
+            btn.disabled = false; 
+        }
         alert("ફાયરબેઝ એરર: " + error.message);
     };
 
@@ -666,6 +671,23 @@ function saveAndPrint() {
         payload.timestamp = firebase.firestore.FieldValue.serverTimestamp();
         db.collection("Pedhinamu_Register").add(payload).then(afterSuccess).catch(afterFailure);
     }
+}
+
+function loadPedhinamuForEditing(pid) {
+    let rec = allPedhinamuList.find(i => String(i.Pedhinamu_ID).trim() === String(pid).trim());
+    if (!rec) return alert('પેઢીનામું રેકોર્ડ મળ્યો નથી.');
+    
+    currentEditingPedhinamuId = pid;
+    openPedhinamuModal(true);
+    populatePedhinamuFormFromRecord(rec);
+    
+    updateParentDropdown();
+    updateHeirListDisplay();
+    updatePanchListDisplay();
+    toggleTypeSpecificInputs();
+    updateRootName();
+    changeStep(1);
+    showToast("✏️ વિગતો ફોર્મમાં લોડ થઈ ગઈ છે.");
 }
 
 function deletePedhinamuAction(pid, decName) {

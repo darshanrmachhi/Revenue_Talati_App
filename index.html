@@ -1212,12 +1212,15 @@
 
     <!-- SERVICE WORKER REGISTRATION -->
     <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW Reg Failed:', err));
-            });
-        }
-    </script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            // સ્કોપ સ્પષ્ટ કરવો જરૂરી છે
+            navigator.serviceWorker.register('sw.js', { scope: './' })
+            .then(reg => console.log('SW Registered with scope:', reg.scope))
+            .catch(err => console.log('SW Reg Failed:', err));
+        });
+    }
+</script>
 
 
 

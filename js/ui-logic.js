@@ -494,27 +494,10 @@ window.addEventListener('beforeinstallprompt', (e) => {
 });
 
 function installPWAApp() {
-    // 1. Handling for iPhone (iOS Chrome or Safari)
     if (isIOS()) {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                title: 'iPhone માં ઇન્સ્ટોલ કરો',
-                html: `
-                    <div style="text-align:left; font-size:13px; line-height:1.6; color:#334155;">
-                        <b>Safari માં:</b><br>
-                        ૧. નીચે રહેલ <b>Share</b> બટન ( <i class="fa-solid fa-arrow-up-from-bracket"></i> ) દબાવો.<br>
-                        ૨. નીચે સ્ક્રોલ કરી <b>'Add to Home Screen'</b> પસંદ કરો.<br><br>
-                        <b>Chrome માં:</b><br>
-                        ૧. ઉપર/નીચે જમણી બાજુના <b>Share</b> આઈકન પર ક્લિક કરો.<br>
-                        ૨. <b>'Add to Home Screen'</b> પસંદ કરો.
-                    </div>
-                `,
-                icon: 'info',
-                confirmButtonText: 'સમજાઈ ગયું'
-            });
-        } else {
-            alert("iPhone માં ઇન્સ્ટોલ કરવા માટે બ્રાઉઝરના 'Share' બટન પર ક્લિક કરી 'Add to Home Screen' પસંદ કરો.");
-        }
+        // SweetAlert ની જગ્યાએ તમારું બનાવેલું કસ્ટમ મોડલ ખોલો
+        let iosModal = document.getElementById('modal-ios-install');
+        if(iosModal) iosModal.style.display = 'flex';
         return;
     }
 
@@ -531,6 +514,10 @@ function installPWAApp() {
     } else {
         showToast("બ્રાઉઝર મેનૂ (⋮) માંથી 'Install app' અથવા 'Add to Home screen' પસંદ કરો.", "info");
     }
+}
+function closeIOSInstallModal() {
+    let iosModal = document.getElementById('modal-ios-install');
+    if(iosModal) iosModal.style.display = 'none';
 }
 
 window.addEventListener('appinstalled', () => {

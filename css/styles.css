@@ -941,12 +941,90 @@ body {
 .photo-box { border: 1px dashed black; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 12px; background: white; }
 .top-photo { width: 32mm; height: 42mm; }
 
+/* =========================================================
+   A4 PRINT STYLES - પેઢીનામું પ્રિન્ટિંગ સેટિંગ્સ
+   ========================================================= */
 @media print {
+    /* ૧. બ્રાઉઝર અને પેજ માર્જિન સેટિંગ */
+    @page {
+        size: A4 portrait;
+        margin: 10mm 15mm;
+    }
+
+    /* ૨. પ્રિન્ટ વખતે ન છાપવાની તમામ ચીજો હાઇડ કરો */
+    .no-print,
+    .header,
+    .bottom-nav,
+    .modal-backdrop,
+    .container,
+    #toast,
+    button {
+        display: none !important;
+    }
+
+    /* ૩. બોડી સેટિંગ્સ - સ્ક્રોલ અને બેકગ્રાઉન્ડ દૂર કરવા */
+    body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        min-height: auto !important;
+    }
+
+    /* ૪. પેઢીનામું A4 કન્ટેનર ફક્ત પ્રિન્ટ વખતે જ દેખાશે */
+    #pedhinamu-page {
+        display: block !important;
+        width: 100% !important;
+        min-height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
+        font-size: 14px !important;
+        line-height: 1.6 !important;
+    }
+
+    /* ૫. પેજ બ્રેક - પાનું ૨ (પંચનામું) આપોઆપ નવા પાને જાય */
     .page-break {
-        break-before: page;
-        page-break-before: always;
+        break-before: page !important;
+        page-break-before: always !important;
+    }
+
+    /* ૬. પેઢી આંબો કટ ન થાય તે માટે */
+    .tree-wrapper {
+        width: 100% !important;
+        overflow: visible !important;
+        display: flex !important;
+        justify-content: center !important;
+    }
+
+    .tree {
+        width: 100% !important;
+    }
+
+    /* ૭. પંચોના ટેબલનું ફોર્મેટિંગ અને પેજ સ્પ્લિટ અટકાવવું */
+    #pdf-panch-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        page-break-inside: avoid !important;
+    }
+
+    #pdf-panch-table th,
+    #pdf-panch-table td {
+        border: 1px solid #000000 !important;
+        padding: 4px 2px !important;
+        color: #000000 !important;
+    }
+
+    /* પ્રિન્ટ વખતે ગ્રે બેકગ્રાઉન્ડ કલર છાપવા માટે */
+    .deceased-box {
+        background-color: #e2e8f0 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
 }
+
+
+
 
 .pedhinamu-modal-card { width: 100%; max-width: 840px; height: 92vh; border-radius: 20px 20px 0 0 !important; background: white; display: flex; flex-direction: column; }
 @media (min-width: 841px) { .pedhinamu-modal-card { border-radius: 16px !important; height: 88vh; margin-bottom: 20px; } }
