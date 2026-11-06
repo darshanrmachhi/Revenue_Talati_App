@@ -296,8 +296,20 @@ function deleteHeir(id) {
 function updateParentDropdown() { 
     let s = document.getElementById('heir-parent');
     if (!s) return;
+    
     let rootText = s.options.length > 0 ? s.options[0].text : "મુખ્ય ગુજરનાર";
+    
+    // ૧. ડ્રોપડાઉન નવેસરથી બને તે પહેલાં અત્યારનો સિલેક્ટ કરેલો વિકલ્પ સાચવી લો
+    let currentSelection = s.value;
+
+    // ૨. વારસદારોનું નવું લિસ્ટ બનાવો
     s.innerHTML = `<option value="root">${rootText}</option>` + heirsArray.map(h => `<option value="${h.id}">${h.name} (${h.relation})</option>`).join(''); 
+    
+    // ૩. જો જૂનો વિકલ્પ હજુ પણ નવા લિસ્ટમાં મોજૂદ હોય, તો તેને જ ફરીથી સિલેક્ટ કરી દો
+    // (આનાથી સળંગ ભાઈ-બહેનો ઉમેરતી વખતે વારંવાર પિતાનું નામ સિલેક્ટ નહીં કરવું પડે)
+    if (currentSelection && Array.from(s.options).some(opt => opt.value === currentSelection)) {
+        s.value = currentSelection;
+    }
 }
 
 function updateHeirListDisplay() { 
@@ -890,12 +902,27 @@ function renderLivePreview() {
     
     let html = buildTreeHTML('root');
     let type = safeGetValue('inp-type') || 'મરણ';
+    let otherStatus = safeGetValue('inp-other-status') || 'હયાત'; // નવું ઉમેરેલ
+    
     let app = safeGetValue('inp-applicant') || "__________";
     let dec = type === 'હયાત' ? app : (safeGetValue('inp-deceased') || "__________");
+    
     let age = toGujaratiDigits(safeGetValue('inp-age')) || "____";
-    let rootClass = type === 'હયાત' ? "heir-box root-box male-box" : "heir-box root-box male-box deceased-box";
+    let mainAge = toGujaratiDigits(safeGetValue('inp-main-age')) || "____"; // નવું ઉમેરેલ
     let formattedDDate = formatDisplayDateGujarati(safeGetValue('inp-deathdate'));
-    let rootStat = type === 'હયાત' ? `<span class='bold'>ઉ.વ. ${age}</span><br>(હયાત)` : `<span class="bold" style="font-size:12.5px;">(મરણ તા. ${formattedDDate})</span>`;
+    
+    let rootClass = "heir-box root-box male-box";
+    let rootStat = "";
+    
+    // લાઈવ પ્રિવ્યૂ માટે નવું લોજિક
+    if (type === 'હયાત') {
+        rootStat = `<span class='bold'>ઉ.વ. ${age}</span><br>(હયાત)`;
+    } else if (type === 'અન્ય' && otherStatus === 'હયાત') {
+        rootStat = `<span class='bold'>ઉ.વ. ${mainAge}</span><br>(હયાત)`;
+    } else {
+        rootClass += " deceased-box";
+        rootStat = `<span class="bold" style="font-size:12.5px;">(મરણ તા. ${formattedDDate})</span>`;
+    }
     
     let finalHtml = `
     <div class="tree-wrapper" style="margin:0; padding:0; overflow:visible;">
