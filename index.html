@@ -774,6 +774,25 @@
                         <div style="text-align: right; margin-top: 10px;"><button class="btn btn-primary" id="add-panch-btn" onclick="addOrUpdatePanch()">+ પંચ ઉમેરો</button></div>
                     </div>
                     <div class="list-box" id="panch-list-display"><span style="color:#777;">ઉમેરાયેલા પંચો અહીં દેખાશે...</span></div>
+
+<!-- નવું: પ્રિન્ટ સેટિંગ્સ (આધાર અને ફોટો ઓપ્શનલ કરવા માટે) -->
+                    <div style="margin-bottom: 15px; padding: 10px 14px; background: #e0f2fe; border: 1px dashed #7dd3fc; border-radius: 8px;">
+                        <span style="font-size: 13px; font-weight: 700; color: #0369a1; display: block; margin-bottom: 8px;">
+                            <i class="bi bi-gear-fill"></i> પંચનામા પ્રિન્ટ સેટિંગ્સ:
+                        </span>
+                        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                            <label style="font-size: 13.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                                <input type="checkbox" id="chk-show-aadhar" checked onchange="generatePDF()" style="width: 16px; height: 16px; cursor: pointer;"> 
+                                આધાર નંબર કોલમ પ્રિન્ટ કરો
+                            </label>
+                            <label style="font-size: 13.5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                                <input type="checkbox" id="chk-show-photo" checked onchange="generatePDF()" style="width: 16px; height: 16px; cursor: pointer;"> 
+                                ફોટો કોલમ પ્રિન્ટ કરો
+                            </label>
+                        </div>
+                    </div>
+
+
                     <div class="action-btns" style="display: flex; justify-content: space-between;">
                         <button class="btn btn-secondary" onclick="changeStep(2)">⬅ પાછા જાવ</button>
                         <button class="btn btn-success" id="print-btn" onclick="saveAndPrint()"><i class="bi bi-printer-fill"></i> પ્રિન્ટ અને સેવ કરો</button>
@@ -847,17 +866,8 @@
         </p>
 
         <table id="pdf-panch-table" border="1">
-            <thead>
-                <tr style="background: #f8fafc;">
-                    <th style="width: 5%;">અ.નં</th>
-                    <th style="width: 17%;">પંચનું નામ</th>
-                    <th style="width: 6%;">ઉ.વ.</th>
-                    <th style="width: 8%;">ધંધો</th>
-                    <th style="width: 17%;">રહેવાસી</th>
-                    <th style="width: 15%;">આધાર કાર્ડ નંબર</th>
-                    <th style="width: 18%;">રૂબરૂ સહી</th>
-                    <th style="width: 14%;">ફોટો</th>
-                </tr>
+            <thead id="pdf-panch-head">
+                <!-- Javascript દ્વારા હેડર ડાયનેમિકલી આવશે -->
             </thead>
             <tbody id="pdf-panch-body"></tbody>
         </table>

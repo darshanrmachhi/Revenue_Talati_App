@@ -512,20 +512,45 @@ function generatePDF() {
         treeEl.style.transformOrigin = 'top center';
     }
 
+    // ---------------------------------------------------------
+    // પંચોનું ટેબલ (આધાર અને ફોટો ના ચેકબોક્સ મુજબ ડાયનેમિક)
+    // ---------------------------------------------------------
+    let showAadhar = document.getElementById('chk-show-aadhar') ? document.getElementById('chk-show-aadhar').checked : true;
+    let showPhoto = document.getElementById('chk-show-photo') ? document.getElementById('chk-show-photo').checked : true;
+
+    let tHead = document.getElementById('pdf-panch-head');
     let tBody = document.getElementById('pdf-panch-body') || document.getElementById('pdf-panch-table'); 
-    if (tBody) {
-        tBody.innerHTML = panchArray.map((p, i) => 
-            `<tr style="height: 34mm;">
+    
+    if (tHead && tBody) {
+        // ૧. હેડર (TH) ડાયનેમિકલી બનાવો
+        let headHtml = `<tr style="background: #f8fafc;">
+            <th style="width: 5%;">અ.નં</th>
+            <th style="width: ${showAadhar ? '17%' : '20%'};">પંચનું નામ</th>
+            <th style="width: 6%;">ઉ.વ.</th>
+            <th style="width: ${showAadhar ? '8%' : '12%'};">ધંધો</th>
+            <th style="width: ${showAadhar ? '17%' : '25%'};">રહેવાસી</th>
+            ${showAadhar ? `<th style="width: 15%;">આધાર કાર્ડ નંબર</th>` : ''}
+            <th style="width: ${showPhoto ? '18%' : '22%'};">રૂબરૂ સહી</th>
+            ${showPhoto ? `<th style="width: 14%;">ફોટો</th>` : ''}
+        </tr>`;
+        tHead.innerHTML = headHtml;
+
+        // ૨. બોડી (TD) ડાયનેમિકલી બનાવો
+        tBody.innerHTML = panchArray.map((p, i) => {
+            let aadharTd = showAadhar ? `<td style="line-height: 1.25; font-weight: 600; letter-spacing: 0.5px;">${formatAadharThreeRows(p.aadhar)}</td>` : '';
+            let photoTd = showPhoto ? `<td style="height: 34mm; vertical-align: middle;"><div class="photo-box panch-photo">ફોટો</div></td>` : '';
+            
+            return `<tr style="height: 34mm;">
                 <td class="bold">${toGujaratiDigits(i + 1)}.</td>
                 <td class="bold" style="line-height: 1.35; padding: 4px 2px;">${formatNameThreeRows(p.name)}</td>
                 <td>${toGujaratiDigits(p.age) || '-'}</td>
                 <td>${p.occ || 'ખેતી'}</td>
                 <td style="line-height: 1.3; font-size: 11.5px;">${p.vill || vill}</td>
-                <td style="line-height: 1.25; font-weight: 600; letter-spacing: 0.5px;">${formatAadharThreeRows(p.aadhar)}</td>
+                ${aadharTd}
                 <td style="height: 34mm;"></td>
-                <td style="height: 34mm; vertical-align: middle;"><div class="photo-box panch-photo">ફોટો</div></td>
-            </tr>`
-        ).join('');
+                ${photoTd}
+            </tr>`;
+        }).join('');
     }
 
     let rawAdv = safeGetValue('inp-advocate-name');
