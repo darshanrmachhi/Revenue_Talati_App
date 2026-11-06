@@ -801,7 +801,6 @@ function toggleTypeSpecificInputs() {
     }
     
     let otherStatus = safeGetValue('inp-other-status') || 'હયાત';
-    let isAlive = (type === 'હયાત') || (type === 'અન્ય' && otherStatus === 'હયાત');
     
     let titleMain = document.getElementById('title-main-person');
     let labelDec = document.getElementById('label-deceased');
@@ -811,11 +810,18 @@ function toggleTypeSpecificInputs() {
     let grpRel = document.getElementById('grp-relation');
     let grpDeath = document.getElementById('grp-deathdate');
     
+    // નવો સુધારો: અરજદારની ઉંમર વાળો ગૃપ (div) મેળવો 
+    // (inp-age ના parent div ને કંટ્રોલ કરવા)
+    let ageInput = document.getElementById('inp-age');
+    let grpAge = ageInput ? ageInput.parentElement : null;
+
     if (type === 'હયાત') {
         if (titleMain) titleMain.innerText = 'મુખ્ય વ્યક્તિની વિગત (અરજદાર પોતે)';
         if (grpDec) grpDec.style.display = 'none';
         if (grpRel) grpRel.style.display = 'none';
         if (grpDeath) grpDeath.style.display = 'none';
+        // હયાત હોય ત્યારે ઉંમર ફરજિયાત બતાવો
+        if (grpAge) grpAge.style.display = 'flex'; 
     } else if (type === 'અન્ય' && otherStatus === 'હયાત') {
         // અન્ય + હયાત (દા.ત. સંતાનના જાતિના દાખલા માટે)
         if (titleMain) titleMain.innerText = 'મુખ્ય વ્યક્તિની વિગત (જેમના માટે દાખલો છે)';
@@ -824,6 +830,8 @@ function toggleTypeSpecificInputs() {
         if (grpDec) grpDec.style.display = 'flex';
         if (grpRel) grpRel.style.display = 'flex';
         if (grpDeath) grpDeath.style.display = 'none'; // હયાત છે એટલે મરણ તારીખ છુપાવો
+        // અન્ય(હયાત) માં પણ ઉંમર જરૂરી છે
+        if (grpAge) grpAge.style.display = 'flex'; 
     } else {
         // મરણ અથવા અન્ય(મરણ)
         if (titleMain) titleMain.innerText = 'મુખ્ય ગુજરનારની વિગત';
@@ -832,6 +840,8 @@ function toggleTypeSpecificInputs() {
         if (grpDec) grpDec.style.display = 'flex';
         if (grpRel) grpRel.style.display = 'flex';
         if (grpDeath) grpDeath.style.display = 'flex'; // મરણ તારીખ બતાવો
+        // ગુજરનારના કિસ્સામાં આપણે ઉંમરની જરૂર નથી
+        if (grpAge) grpAge.style.display = 'none'; 
     }
     
     updateRootName();
