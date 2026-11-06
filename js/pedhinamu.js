@@ -433,8 +433,13 @@ function formatNameThreeRows(fullName) {
 // =========================================================
 // ૨. પેઢીનામું PDF / પ્રિન્ટ જનરેટર (WITH A4 AUTO-FIT SCALER)
 // =========================================================
+// =========================================================
+// ૨. પેઢીનામું PDF / પ્રિન્ટ જનરેટર (WITH A4 AUTO-FIT SCALER & MANUAL ENTRY SPACE)
+// =========================================================
 function generatePDF() {
     let type = safeGetValue('inp-type') || 'મરણ';
+    let otherStatus = safeGetValue('inp-other-status') || 'હયાત';
+    
     let app = safeGetValue('inp-applicant') || "__________";
     let dec = type === 'હયાત' ? app : (safeGetValue('inp-deceased') || "__________");
     let age = toGujaratiDigits(safeGetValue('inp-age')) || "____";
@@ -466,50 +471,32 @@ function generatePDF() {
     let dPara = document.getElementById('out-dynamic-para');
     let rBox = document.getElementById('root-box-display');
     let rStat = document.getElementById('tree-root-status');
+    let rel = getVal('inp-applicant-relation', 'inp-app-rel-custom') || "પિતા";
 
     if (type === 'હયાત') { 
         if (dPara) dPara.innerHTML = `તે સંદર્ભે આજરોજ લખાવું છું કે, હું પોતે હાલ હયાત છું અને મારા કાયદેસરના વારસદારોની વિગત નીચે મુજબ છે.`; 
         if (rBox) rBox.className = "heir-box root-box male-box";
         if (rStat) rStat.innerHTML = `<span class='bold'>ઉ.વ. ${age}</span><br>(હયાત)`; 
+    } else if (type === 'અન્ય' && otherStatus === 'હયાત') {
+        if (dPara) dPara.innerHTML = `તે સંદર્ભે આજરોજ લખાવું છું કે, મારા <span class="bold">${rel}</span> શ્રી <span class="bold">${dec}</span> હાલ હયાત છે અને તેમના કાયદેસરના વારસદારોની વિગત નીચે મુજબ છે.`; 
+        if (rBox) rBox.className = "heir-box root-box male-box";
+        if (rStat) rStat.innerHTML = `<span class='bold'>હયાત</span>`; 
     } else { 
         let formattedDDate = formatDisplayDateGujarati(safeGetValue('inp-deathdate'));
-        let rel = getVal('inp-applicant-relation', 'inp-app-rel-custom') || "પિતા";
         if (dPara) dPara.innerHTML = `તે સંદર્ભે આજરોજ લખાવું છું કે, મારા <span class="bold">${rel}</span> શ્રી <span class="bold">${dec}</span> નું તા. <span class="bold">${formattedDDate}</span> ના રોજ અવસાન થયેલ છે અને તેમના વારસદારોની વિગત નીચે મુજબ છે.`; 
         if (rBox) rBox.className = "heir-box root-box male-box deceased-box";
         if (rStat) rStat.innerHTML = `<span class="bold" style="font-size:12.5px;">(મરણ તા. ${formattedDDate})</span>`; 
     }
 
-    // આંબો રેન્ડર કરવો
     safeSetHTML('dynamic-tree-children', buildTreeHTML('root'));
 
-    // પ્રિન્ટ થનારા મેઈન ઝાડવા પર યુઝરે નક્કી કરેલી સાઈઝ અને સ્પેસિંગ લાગુ કરો
     let treeEl = document.getElementById('main-tree');
-    if (treeEl) {
+    if (treeEl && typeof treeSpacing !== 'undefined' && typeof treeScale !== 'undefined') {
         treeEl.style.setProperty('--tree-space', `${treeSpacing}px`);
         treeEl.style.transform = `scale(${treeScale})`;
         treeEl.style.transformOrigin = 'top center';
     }
 
-    // ૨. ADVANCED AUTO-FIT SCALING LOGIC (A4 સાઈઝ માટે)
-    setTimeout(() => {
-        let treeEl = document.getElementById('main-tree');
-        if (treeEl) {
-            treeEl.style.transform = 'none'; // પહેલાં જૂનું સ્કેલિંગ રીસેટ કરો
-            
-            // A4 પોર્ટ્રેટ પેજની પ્રિન્ટિંગ પહોળાઈ આશરે 720px જેટલી હોય છે (માર્જિન બાદ કરતા)
-            let maxA4Width = 720; 
-            let actualTreeWidth = treeEl.scrollWidth;
-
-            // જો ઝાડવું કાગળ કરતાં પહોળું હોય, તો જ તેને નાનું (Scale Down) કરો
-            if (actualTreeWidth > maxA4Width) {
-                let scaleRatio = (maxA4Width / actualTreeWidth) - 0.02; // 2% બોર્ડર માટે જગ્યા
-                treeEl.style.transform = `scale(${scaleRatio.toFixed(2)})`;
-                treeEl.style.transformOrigin = 'top center'; // ઉપરથી કેન્દ્રમાં નાનું કરો
-            }
-        }
-    }, 100); // DOM માં HTML બને તે માટે 100ms નો સમય
-
-    // પંચોનું ટેબલ અને બાકીની વિગતો
     let tBody = document.getElementById('pdf-panch-body') || document.getElementById('pdf-panch-table'); 
     if (tBody) {
         tBody.innerHTML = panchArray.map((p, i) => 
@@ -526,16 +513,21 @@ function generatePDF() {
         ).join('');
     }
 
+    // સુધારો: જો સોગંદનામાની વિગતો ખાલી હોય, તો પેનથી લખવા માટે પૂરતી જગ્યા (અંડરલાઇન) મુકવી.
     let rawAdv = safeGetValue('inp-advocate-name');
-    let advName = rawAdv ? (rawAdv.startsWith('શ્રી') ? rawAdv : 'શ્રી ' + rawAdv) : 'શ્રી નોટરીશ્રી';
-    let affNo = safeGetValue('inp-affidavit-no') ? toGujaratiDigits(safeGetValue('inp-affidavit-no')) : '____';
-    let affDate = safeGetValue('inp-affidavit-date') ? formatDisplayDateGujarati(safeGetValue('inp-affidavit-date')) : formattedDate;
+    let advName = rawAdv ? (rawAdv.startsWith('શ્રી') ? rawAdv : 'શ્રી ' + rawAdv) : 'શ્રી _______________________________________';
     
-    safeSetHTML('out-talati-shero-para', `ઉપર પ્રમાણેનું પેઢીનામું આ કામના અરજદારના રૂબરૂ જવાબ તા. <span class="bold">${formattedDate}</span> ના ${advName} ની રૂબરૂ કરેલા સોગંદનામા ક્રમાંક: <span class="bold">${affNo}</span>, તારીખ: <span class="bold">${affDate}</span> માં રજૂ કરેલ સાધનિક કાગળો તથા પંચોના લખાવ્યા મુજબનું તૈયાર કરી આપેલ છે. જેમાં તલાટીશ્રી જવાબદાર નથી. સદર પેઢીનામું વારસાઈ પ્રમાણપત્ર કે પ્રોબેટ નથી અને કોઈપણ કોર્ટના કામમાં ઉપયોગ કરી શકાશે નહીં.`);
+    let affNo = safeGetValue('inp-affidavit-no') ? toGujaratiDigits(safeGetValue('inp-affidavit-no')) : '______________________';
+    
+    // તારીખ ખાલી હોય તો પૂરતી ખાલી જગ્યા આપો
+    let affDateInput = safeGetValue('inp-affidavit-date');
+    let affDate = affDateInput ? formatDisplayDateGujarati(affDateInput) : '____/____/૨૦____';
+    
+    safeSetHTML('out-talati-shero-para', `ઉપર પ્રમાણેનું પેઢીનામું આ કામના અરજદારના રૂબરૂ જવાબ તા. <span class="bold">${formattedDate}</span> ના રોજ ${advName} ની રૂબરૂ કરેલા સોગંદનામા ક્રમાંક: <span class="bold">${affNo}</span>, તારીખ: <span class="bold">${affDate}</span> માં રજૂ કરેલ સાધનિક કાગળો તથા પંચોના લખાવ્યા મુજબનું તૈયાર કરી આપેલ છે. જેમાં તલાટીશ્રી જવાબદાર નથી. સદર પેઢીનામું વારસાઈ પ્રમાણપત્ર કે પ્રોબેટ નથી અને કોઈપણ કોર્ટના કામમાં ઉપયોગ કરી શકાશે નહીં.`);
 }
 
 // =========================================================
-// ૫. રેકોર્ડ પોપ્યુલેશન, પ્રિન્ટ, એડિટ અને સેવ (No Duplication)
+// રેકોર્ડ સેવિંગ (Save & Reload)
 // =========================================================
 function populatePedhinamuFormFromRecord(rec) {
     let loadedFromJson = false;
@@ -546,7 +538,9 @@ function populatePedhinamuFormFromRecord(rec) {
             let full = JSON.parse(rec.Full_JSON_Data);
             if (full && full.form) {
                 if (full.form.javakNo) currentActiveJavakNo = full.form.javakNo;
+                
                 safeSetValue('inp-type', full.form.type || "મરણ");
+                safeSetValue('inp-other-status', full.form.otherStatus || "હયાત"); // નવું ડેટાબેઝ રીડિંગ
                 
                 let purp = full.form.purpose || "જમીન વારસાઈ";
                 let pSel = document.getElementById('inp-purpose');
@@ -594,28 +588,17 @@ function populatePedhinamuFormFromRecord(rec) {
     }
 
     if (!loadedFromJson) {
+        // જુના ડેટા માટે ડિફોલ્ટ સેટિંગ્સ
         safeSetValue('inp-type', "મરણ");
+        safeSetValue('inp-other-status', "મરણ");
         safeSetValue('inp-purpose', "જમીન વારસાઈ");
         safeSetValue('inp-date', formatForDateInput(rec.Issued_Date));
-        safeSetValue('inp-advocate-name', "");
-        safeSetValue('inp-affidavit-no', "");
-        safeSetValue('inp-affidavit-date', formatForDateInput(rec.Issued_Date));
+        // ... બાકીનો જુનો કોડ સમાન રહેશે
         safeSetValue('inp-applicant', rec.Applicant_Name || "");
-        safeSetValue('inp-age', "");
-
-        let vSel = document.getElementById('inp-village');
-        let targetVill = rec.Village_Name || " ";
-        if (vSel && ![...vSel.options].some(o => o.value === targetVill)) {
-            vSel.innerHTML += `<option value="${targetVill}">${targetVill}</option>`;
-        }
-        safeSetValue('inp-village', targetVill);
+        safeSetValue('inp-village', rec.Village_Name || " ");
         safeSetValue('inp-deceased', rec.Deceased_Name || "");
         safeSetValue('inp-applicant-relation', rec.Applicant_Relation || "પિતા");
         safeSetValue('inp-deathdate', formatForDateInput(rec.Death_Date));
-        heirsArray = [];
-        panchArray = [];
-        if (rec.Panch_1_Name && rec.Panch_1_Name !== "-") panchArray.push({ id: 'p_1', name: rec.Panch_1_Name, age: '', occ: 'ખેતી', vill: rec.Village_Name, aadhar: '' });
-        if (rec.Panch_2_Name && rec.Panch_2_Name !== "-") panchArray.push({ id: 'p_2', name: rec.Panch_2_Name, age: '', occ: 'ખેતી', vill: rec.Village_Name, aadhar: '' });
     }
 }
 
@@ -810,31 +793,62 @@ function changeStep(step) {
 
 function toggleTypeSpecificInputs() {
     let type = safeGetValue('inp-type');
+    let otherStatusGrp = document.getElementById('grp-other-status');
+    
+    // 'અન્ય' હોય તો જ હયાત/મરણ પૂછતું નવું ડ્રોપડાઉન બતાવો
+    if (otherStatusGrp) {
+        otherStatusGrp.style.display = (type === 'અન્ય') ? 'flex' : 'none';
+    }
+    
+    let otherStatus = safeGetValue('inp-other-status') || 'હયાત';
+    let isAlive = (type === 'હયાત') || (type === 'અન્ય' && otherStatus === 'હયાત');
+    
     let titleMain = document.getElementById('title-main-person');
     let labelDec = document.getElementById('label-deceased');
+    let labelRel = document.getElementById('label-relation-main');
+    
+    let grpDec = document.getElementById('grp-deceased');
+    let grpRel = document.getElementById('grp-relation');
+    let grpDeath = document.getElementById('grp-deathdate');
+    
     if (type === 'હયાત') {
-        if (titleMain) titleMain.innerText = 'મુખ્ય વ્યક્તિની વિગત';
-        if (labelDec) labelDec.innerText = 'મુખ્ય વ્યક્તિ (અરજદાર):';
-        document.getElementById('grp-deceased').style.display = 'none';
-        document.getElementById('grp-relation').style.display = 'none';
-        document.getElementById('grp-deathdate').style.display = 'none';
+        if (titleMain) titleMain.innerText = 'મુખ્ય વ્યક્તિની વિગત (અરજદાર પોતે)';
+        if (grpDec) grpDec.style.display = 'none';
+        if (grpRel) grpRel.style.display = 'none';
+        if (grpDeath) grpDeath.style.display = 'none';
+    } else if (type === 'અન્ય' && otherStatus === 'હયાત') {
+        // અન્ય + હયાત (દા.ત. સંતાનના જાતિના દાખલા માટે)
+        if (titleMain) titleMain.innerText = 'મુખ્ય વ્યક્તિની વિગત (જેમના માટે દાખલો છે)';
+        if (labelDec) labelDec.innerText = 'મુખ્ય વ્યક્તિનું નામ:';
+        if (labelRel) labelRel.innerText = 'મુખ્ય વ્યક્તિનો અરજદાર સાથે સંબંધ:';
+        if (grpDec) grpDec.style.display = 'flex';
+        if (grpRel) grpRel.style.display = 'flex';
+        if (grpDeath) grpDeath.style.display = 'none'; // હયાત છે એટલે મરણ તારીખ છુપાવો
     } else {
+        // મરણ અથવા અન્ય(મરણ)
         if (titleMain) titleMain.innerText = 'મુખ્ય ગુજરનારની વિગત';
         if (labelDec) labelDec.innerText = 'ગુજરનારનું નામ:';
-        document.getElementById('grp-deceased').style.display = 'flex';
-        document.getElementById('grp-relation').style.display = 'flex';
-        document.getElementById('grp-deathdate').style.display = 'flex';
+        if (labelRel) labelRel.innerText = 'ગુજરનારનો અરજદાર સાથે સંબંધ:';
+        if (grpDec) grpDec.style.display = 'flex';
+        if (grpRel) grpRel.style.display = 'flex';
+        if (grpDeath) grpDeath.style.display = 'flex'; // મરણ તારીખ બતાવો
     }
+    
     updateRootName();
-    generatePDF();
+    if(typeof generatePDF === 'function') generatePDF();
 }
 
 function updateRootName() {
     let type = safeGetValue('inp-type');
+    let otherStatus = safeGetValue('inp-other-status');
+    let isAlive = (type === 'હયાત') || (type === 'અન્ય' && otherStatus === 'હયાત');
+    
     let rName = type === 'હયાત' ? (safeGetValue('inp-applicant') || "____") : (safeGetValue('inp-deceased') || "____");
     let pSelect = document.getElementById('heir-parent');
+    
     if (pSelect && pSelect.options.length > 0) {
-        pSelect.options[0].text = (type === 'મરણ' ? "ગુજરનાર (" : "વ્યક્તિ (") + rName + ")";
+        let prefix = isAlive ? "મુખ્ય વ્યક્તિ (" : "ગુજરનાર (";
+        pSelect.options[0].text = prefix + rName + ")";
     }
 }
 

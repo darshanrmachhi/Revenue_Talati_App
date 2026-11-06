@@ -634,6 +634,16 @@
                                 <option value="અન્ય">૩. અન્ય (જાતિનો દાખલો / લોન)</option>
                             </select>
                         </div>
+                        
+                        <!-- નવું ફીલ્ડ: માત્ર 'અન્ય' પસંદ કરે ત્યારે જ દેખાશે -->
+                        <div class="form-group" id="grp-other-status" style="display:none;">
+                            <label class="form-label">મુખ્ય વ્યક્તિની સ્થિતિ:</label>
+                            <select class="form-control" id="inp-other-status" onchange="toggleTypeSpecificInputs()">
+                                <option value="હયાત">હયાત</option>
+                                <option value="મરણ">મરણ</option>
+                            </select>
+                        </div>
+
                         <div class="form-group">
                             <label class="form-label">અરજીનો હેતુ:</label>
                             <select class="form-control" id="inp-purpose" onchange="checkCustom(this, 'inp-purpose-custom')">
