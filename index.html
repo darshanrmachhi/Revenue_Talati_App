@@ -684,12 +684,31 @@
                     
                     <div class="section-title" id="title-main-person">મુખ્ય ગુજરનારની વિગત</div>
                     <div class="form-grid-3">
-                        <div class="form-group" id="grp-deceased"><label class="form-label" id="label-deceased">મુખ્ય વ્યક્તિ/ગુજરનારનું નામ:</label><input type="text" class="form-control" id="inp-deceased" oninput="updateRootName()"></div>
-                        <div class="form-group" id="grp-relation"><label class="form-label" id="label-relation-main">ગુજરનારનો અરજદાર સાથે સંબંધ:</label><select class="form-control" id="inp-applicant-relation" onchange="checkCustom(this, 'inp-app-rel-custom')"><option value="પિતા">પિતા</option><option value="પતિ">પતિ</option><option value="custom">અન્ય (જાતે લખો)</option></select><input type="text" class="form-control custom-input" id="inp-app-rel-custom"></div>
-                        <div class="form-group" id="grp-deathdate"><label class="form-label">મરણ તારીખ:</label><input type="date" class="form-control" id="inp-deathdate"></div>
+                        <div class="form-group" id="grp-deceased">
+                            <label class="form-label" id="label-deceased">મુખ્ય વ્યક્તિ/ગુજરનારનું નામ:</label>
+                            <input type="text" class="form-control" id="inp-deceased" oninput="updateRootName()">
+                        </div>
+                        <div class="form-group" id="grp-relation">
+                            <label class="form-label" id="label-relation-main">ગુજરનારનો અરજદાર સાથે સંબંધ:</label>
+                            <select class="form-control" id="inp-applicant-relation" onchange="checkCustom(this, 'inp-app-rel-custom')">
+                                <option value="પિતા">પિતા</option>
+                                <option value="પતિ">પતિ</option>
+                                <option value="custom">અન્ય (જાતે લખો)</option>
+                            </select>
+                            <input type="text" class="form-control custom-input" id="inp-app-rel-custom">
+                        </div>
+                        
+                        <div class="form-group" id="grp-deathdate">
+                            <label class="form-label">મરણ તારીખ:</label>
+                            <input type="date" class="form-control" id="inp-deathdate">
+                        </div>
+                        
+                        <!-- નવું ઉમેરેલું ફીલ્ડ: મુખ્ય વ્યક્તિ હયાત હોય ત્યારે જ દેખાશે -->
+                        <div class="form-group" id="grp-main-age" style="display:none;">
+                            <label class="form-label">મુખ્ય વ્યક્તિની ઉંમર:</label>
+                            <input type="number" class="form-control" id="inp-main-age" placeholder="ઉંમર દાખલ કરો">
+                        </div>
                     </div>
-                    <div class="action-btns" style="justify-content: flex-end;"><button class="btn btn-primary" onclick="proceedToStep2()">આગળ વધો ➔</button></div>
-                </div>
 
                 <!-- Step 2 -->
                 <div id="step-content-2" class="step-content">

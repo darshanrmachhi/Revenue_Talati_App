@@ -480,7 +480,10 @@ function generatePDF() {
     } else if (type === 'અન્ય' && otherStatus === 'હયાત') {
         if (dPara) dPara.innerHTML = `તે સંદર્ભે આજરોજ લખાવું છું કે, મારા <span class="bold">${rel}</span> શ્રી <span class="bold">${dec}</span> હાલ હયાત છે અને તેમના કાયદેસરના વારસદારોની વિગત નીચે મુજબ છે.`; 
         if (rBox) rBox.className = "heir-box root-box male-box";
-        if (rStat) rStat.innerHTML = `<span class='bold'>હયાત</span>`; 
+        
+        // નવો સુધારો: મુખ્ય વ્યક્તિની ઉંમર અહીં છપાશે
+        let mainAge = toGujaratiDigits(safeGetValue('inp-main-age')) || "____";
+        if (rStat) rStat.innerHTML = `<span class='bold'>ઉ.વ. ${mainAge}</span><br>(હયાત)`; 
     } else { 
         let formattedDDate = formatDisplayDateGujarati(safeGetValue('inp-deathdate'));
         if (dPara) dPara.innerHTML = `તે સંદર્ભે આજરોજ લખાવું છું કે, મારા <span class="bold">${rel}</span> શ્રી <span class="bold">${dec}</span> નું તા. <span class="bold">${formattedDDate}</span> ના રોજ અવસાન થયેલ છે અને તેમના વારસદારોની વિગત નીચે મુજબ છે.`; 
@@ -513,13 +516,9 @@ function generatePDF() {
         ).join('');
     }
 
-    // સુધારો: જો સોગંદનામાની વિગતો ખાલી હોય, તો પેનથી લખવા માટે પૂરતી જગ્યા (અંડરલાઇન) મુકવી.
     let rawAdv = safeGetValue('inp-advocate-name');
     let advName = rawAdv ? (rawAdv.startsWith('શ્રી') ? rawAdv : 'શ્રી ' + rawAdv) : 'શ્રી _______________________________________';
-    
     let affNo = safeGetValue('inp-affidavit-no') ? toGujaratiDigits(safeGetValue('inp-affidavit-no')) : '______________________';
-    
-    // તારીખ ખાલી હોય તો પૂરતી ખાલી જગ્યા આપો
     let affDateInput = safeGetValue('inp-affidavit-date');
     let affDate = affDateInput ? formatDisplayDateGujarati(affDateInput) : '____/____/૨૦____';
     
@@ -540,7 +539,7 @@ function populatePedhinamuFormFromRecord(rec) {
                 if (full.form.javakNo) currentActiveJavakNo = full.form.javakNo;
                 
                 safeSetValue('inp-type', full.form.type || "મરણ");
-                safeSetValue('inp-other-status', full.form.otherStatus || "હયાત"); // નવું ડેટાબેઝ રીડિંગ
+                safeSetValue('inp-other-status', full.form.otherStatus || "હયાત"); 
                 
                 let purp = full.form.purpose || "જમીન વારસાઈ";
                 let pSel = document.getElementById('inp-purpose');
@@ -580,6 +579,10 @@ function populatePedhinamuFormFromRecord(rec) {
                 checkCustom(rSel, 'inp-app-rel-custom');
 
                 safeSetValue('inp-deathdate', formatForDateInput(full.form.deathdate || rec.Death_Date));
+                
+                // જૂના રેકોર્ડમાંથી ઉંમર પાછી લોડ કરવા
+                safeSetValue('inp-main-age', full.form.mainAge || ""); 
+
                 heirsArray = Array.isArray(full.heirs) ? full.heirs : [];
                 panchArray = Array.isArray(full.panch) ? full.panch : [];
                 loadedFromJson = true;
@@ -588,12 +591,10 @@ function populatePedhinamuFormFromRecord(rec) {
     }
 
     if (!loadedFromJson) {
-        // જુના ડેટા માટે ડિફોલ્ટ સેટિંગ્સ
         safeSetValue('inp-type', "મરણ");
         safeSetValue('inp-other-status', "મરણ");
         safeSetValue('inp-purpose', "જમીન વારસાઈ");
         safeSetValue('inp-date', formatForDateInput(rec.Issued_Date));
-        // ... બાકીનો જુનો કોડ સમાન રહેશે
         safeSetValue('inp-applicant', rec.Applicant_Name || "");
         safeSetValue('inp-village', rec.Village_Name || " ");
         safeSetValue('inp-deceased', rec.Deceased_Name || "");
@@ -631,10 +632,7 @@ function viewAndPrintExisting(pid) {
 // ૨. નવું પેઢીનામું સેવ કરી તાત્કાલિક પ્રિન્ટ કરવા માટે
 function saveAndPrint() {
     let btn = document.getElementById('print-btn');
-    if (btn) { 
-        btn.innerHTML = "⏳ સેવ થાય છે..."; 
-        btn.disabled = true; 
-    }
+    if (btn) { btn.innerHTML = "⏳ સેવ થાય છે..."; btn.disabled = true; }
     
     let type = safeGetValue('inp-type') || "મરણ";
     let app = safeGetValue('inp-applicant') || "-";
@@ -651,6 +649,7 @@ function saveAndPrint() {
         form: {
             javakNo: javakText,
             type: type,
+            otherStatus: safeGetValue('inp-other-status'),
             purpose: getVal('inp-purpose', 'inp-purpose-custom') || "વારસાઈ",
             date: safeGetValue('inp-date'),
             advocateName: safeGetValue('inp-advocate-name'),
@@ -661,7 +660,8 @@ function saveAndPrint() {
             village: safeGetValue('inp-village') || "-",
             deceased: safeGetValue('inp-deceased'),
             applicantRelation: getVal('inp-applicant-relation', 'inp-app-rel-custom') || "-",
-            deathdate: safeGetValue('inp-deathdate')
+            deathdate: safeGetValue('inp-deathdate'),
+            mainAge: safeGetValue('inp-main-age') // નવો ડેટા સંગ્રહ
         },
         heirs: heirsArray,
         panch: panchArray
@@ -683,14 +683,9 @@ function saveAndPrint() {
     };
 
     let afterSuccess = function() {
-        if (btn) { 
-            btn.innerHTML = "<i class='bi bi-printer-fill'></i> પ્રિન્ટ અને સેવ કરો"; 
-            btn.disabled = false; 
-        }
-        
+        if (btn) { btn.innerHTML = "<i class='bi bi-printer-fill'></i> પ્રિન્ટ અને સેવ કરો"; btn.disabled = false; }
         let page = document.getElementById('pedhinamu-page');
         if (page) page.style.display = 'block';
-
         setTimeout(() => {
             window.print();
             setTimeout(() => {
@@ -703,10 +698,7 @@ function saveAndPrint() {
     };
 
     let afterFailure = function(error) {
-        if (btn) { 
-            btn.innerHTML = "<i class='bi bi-printer-fill'></i> પ્રિન્ટ અને સેવ કરો"; 
-            btn.disabled = false; 
-        }
+        if (btn) { btn.innerHTML = "<i class='bi bi-printer-fill'></i> પ્રિન્ટ અને સેવ કરો"; btn.disabled = false; }
         alert("ફાયરબેઝ એરર: " + error.message);
     };
 
@@ -795,7 +787,6 @@ function toggleTypeSpecificInputs() {
     let type = safeGetValue('inp-type');
     let otherStatusGrp = document.getElementById('grp-other-status');
     
-    // 'અન્ય' હોય તો જ હયાત/મરણ પૂછતું નવું ડ્રોપડાઉન બતાવો
     if (otherStatusGrp) {
         otherStatusGrp.style.display = (type === 'અન્ય') ? 'flex' : 'none';
     }
@@ -809,39 +800,30 @@ function toggleTypeSpecificInputs() {
     let grpDec = document.getElementById('grp-deceased');
     let grpRel = document.getElementById('grp-relation');
     let grpDeath = document.getElementById('grp-deathdate');
-    
-    // નવો સુધારો: અરજદારની ઉંમર વાળો ગૃપ (div) મેળવો 
-    // (inp-age ના parent div ને કંટ્રોલ કરવા)
-    let ageInput = document.getElementById('inp-age');
-    let grpAge = ageInput ? ageInput.parentElement : null;
+    let grpMainAge = document.getElementById('grp-main-age'); // નવું ફીલ્ડ
 
     if (type === 'હયાત') {
         if (titleMain) titleMain.innerText = 'મુખ્ય વ્યક્તિની વિગત (અરજદાર પોતે)';
         if (grpDec) grpDec.style.display = 'none';
         if (grpRel) grpRel.style.display = 'none';
         if (grpDeath) grpDeath.style.display = 'none';
-        // હયાત હોય ત્યારે ઉંમર ફરજિયાત બતાવો
-        if (grpAge) grpAge.style.display = 'flex'; 
+        if (grpMainAge) grpMainAge.style.display = 'none';
     } else if (type === 'અન્ય' && otherStatus === 'હયાત') {
-        // અન્ય + હયાત (દા.ત. સંતાનના જાતિના દાખલા માટે)
         if (titleMain) titleMain.innerText = 'મુખ્ય વ્યક્તિની વિગત (જેમના માટે દાખલો છે)';
         if (labelDec) labelDec.innerText = 'મુખ્ય વ્યક્તિનું નામ:';
         if (labelRel) labelRel.innerText = 'મુખ્ય વ્યક્તિનો અરજદાર સાથે સંબંધ:';
         if (grpDec) grpDec.style.display = 'flex';
         if (grpRel) grpRel.style.display = 'flex';
-        if (grpDeath) grpDeath.style.display = 'none'; // હયાત છે એટલે મરણ તારીખ છુપાવો
-        // અન્ય(હયાત) માં પણ ઉંમર જરૂરી છે
-        if (grpAge) grpAge.style.display = 'flex'; 
+        if (grpDeath) grpDeath.style.display = 'none'; // મરણ તારીખ છુપાવો
+        if (grpMainAge) grpMainAge.style.display = 'flex'; // ઉંમરનું બોક્સ બતાવો
     } else {
-        // મરણ અથવા અન્ય(મરણ)
         if (titleMain) titleMain.innerText = 'મુખ્ય ગુજરનારની વિગત';
         if (labelDec) labelDec.innerText = 'ગુજરનારનું નામ:';
         if (labelRel) labelRel.innerText = 'ગુજરનારનો અરજદાર સાથે સંબંધ:';
         if (grpDec) grpDec.style.display = 'flex';
         if (grpRel) grpRel.style.display = 'flex';
         if (grpDeath) grpDeath.style.display = 'flex'; // મરણ તારીખ બતાવો
-        // ગુજરનારના કિસ્સામાં આપણે ઉંમરની જરૂર નથી
-        if (grpAge) grpAge.style.display = 'none'; 
+        if (grpMainAge) grpMainAge.style.display = 'none'; // ઉંમર છુપાવો
     }
     
     updateRootName();
