@@ -916,16 +916,22 @@ function applyAutoFitScale() {
     
     renderLivePreview();
     
+    // થોડો સમય આપો જેથી બ્રાઉઝર લાઈવ પ્રિવ્યૂ દોરી શકે
     setTimeout(() => {
         let treeEl = document.getElementById('preview-tree-element');
         if (treeEl) {
             let actualWidth = treeEl.scrollWidth;
-            let maxA4Width = 720; 
+            
+            // A4 પેપરની પ્રિન્ટિંગ પહોળાઈ આશરે 660px હોય છે (માર્જિન બાદ કરતા)
+            let maxA4Width = 660; 
+            
             if (actualWidth > maxA4Width) {
-                treeScale = (maxA4Width / actualWidth) - 0.02;
+                treeScale = (maxA4Width / actualWidth) - 0.02; // A4 પેપરમાં ફિટ થવા માટેનું સાચું માપ
                 treeSpacing = 10; // મોટા આંબા માટે સ્પેસિંગ આપોઆપ ઘટાડી દો
+                
                 document.getElementById('val-scale').innerText = Math.round(treeScale * 100) + '%';
                 document.getElementById('val-spacing').innerText = treeSpacing + 'px';
+                
                 renderLivePreview();
             }
         }

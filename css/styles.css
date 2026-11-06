@@ -906,8 +906,18 @@ body {
 .list-item { padding: 10px 15px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; border-left: 3px solid var(--primary); background: #f8fafc; margin-bottom: 8px; font-size:14px;}
 
 /* Tree Structure */
-.tree-wrapper { width: 100%; display: flex; justify-content: center; overflow: visible; padding-bottom: 10px; margin-bottom: 5px;}
-.tree { display: flex; justify-content: center; margin-top: 15px; width: max-content; }
+.tree-wrapper {
+        width: 100% !important;
+        overflow: visible !important;
+        display: flex !important;
+        justify-content: center !important;
+    }
+
+    /* સુધારો: અહી 100% ના બદલે max-content હોવું ફરજિયાત છે, નહીંતર ઝાડવું કાગળમાં સંકોચાઈ જશે */
+    .tree {
+        width: max-content !important; 
+        transform-origin: top center !important;
+    }
 .tree ul { padding-top: 20px; position: relative; display: flex; justify-content: center; padding-left: 0; margin: 0; }
 .tree ul ul { padding-top: 20px; }
 .tree li { float: left; text-align: center; list-style-type: none; position: relative; padding: 20px 5px 0 5px; }
