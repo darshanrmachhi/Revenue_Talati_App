@@ -148,13 +148,20 @@ function closePedhinamuModal() {
 
 function onParentChange() {
     let pId = safeGetValue('heir-parent');
-    if (pId === 'root') {
+    
+    // પસંદ કરેલ શાખામાં હાલ કેટલા વારસદારો છે તે ગણો
+    let existingHeirs = heirsArray.filter(h => h.parentId === pId);
+    
+    if (existingHeirs.length === 0) {
+        // જો શાખામાં આ પહેલો જ વારસદાર હોય, તો બાય ડિફોલ્ટ "પત્ની" સેટ કરો
         safeSetValue('heir-gender', 'સ્ત્રી');
         updateRelationDropdown();
         safeSetValue('heir-relation', 'પત્ની');
     } else {
+        // જો પત્ની ઉમેરાઈ ગઈ હોય (અથવા પહેલેથી કોઈ વારસદાર હોય), તો ડિફોલ્ટ "પુત્ર" સેટ કરો
         safeSetValue('heir-gender', 'પુરુષ');
         updateRelationDropdown();
+        safeSetValue('heir-relation', 'પુત્ર');
     }
 }
 
@@ -243,7 +250,12 @@ function addOrUpdateHeir() {
     safeSetValue('heir-death-date', '');
     document.getElementById('heir-wrap').checked = false;
     document.getElementById('heir-nirvansh').checked = false;
+    
     updateParentDropdown();
+    
+    // નવો સુધારો: નવો વારસદાર ઉમેરાઈ જાય એટલે ઓટોમેટિક બીજો વિકલ્પ સેટ થઈ જાય
+    onParentChange(); 
+    
     updateHeirListDisplay();
     generatePDF();
 }
@@ -883,14 +895,13 @@ function updateRootName() {
 
 function updateRelationDropdown() { 
     let gender = safeGetValue('heir-gender');
-    let pId = safeGetValue('heir-parent');
     let relSelect = document.getElementById('heir-relation');
     if (!relSelect) return;
 
     if (gender === 'પુરુષ') {
-        relSelect.innerHTML = (pId === 'root') ? '<option value="પુત્ર">પુત્ર</option><option value="પતિ">પતિ</option>' : '<option value="પુત્ર">પુત્ર</option>';
+        relSelect.innerHTML = '<option value="પુત્ર">પુત્ર</option><option value="પતિ">પતિ</option>';
     } else {
-        relSelect.innerHTML = (pId === 'root') ? '<option value="પત્ની">પત્ની</option><option value="પુત્રી">પુત્રી</option>' : '<option value="પુત્રી">પુત્રી</option>';
+        relSelect.innerHTML = '<option value="પત્ની">પત્ની</option><option value="પુત્રી">પુત્રી</option>';
     }
 }
 
