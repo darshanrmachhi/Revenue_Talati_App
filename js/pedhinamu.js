@@ -335,7 +335,11 @@ function updateHeirListDisplay() {
 
 function addOrUpdatePanch() { 
     let name = safeGetValue('panch-name');
-    if (!name) return alert('પંચનું નામ લખો.'); 
+    if (!name) return alert('પંચનું નામ લખો.');
+    let aadharVal = safeGetValue('panch-aadhar').replace(/[^0-9]/g, '');
+    if (aadharVal.length > 0 && aadharVal.length !== 12) {
+        return alert('કૃપા કરી ૧૨ આંકડાનો સાચો આધાર નંબર દાખલ કરો અથવા ખાનું ખાલી રાખો.');
+    } 
     let pData = {
         name: name,
         age: safeGetValue('panch-age'),
@@ -412,9 +416,10 @@ function buildTreeHTML(pId) {
         if (c.status === 'હયાત' && ageNum < 18 && ageNum > 0) boxClass += ' minor-box';
         if (c.wrap) boxClass += ' wrapped-box';
         
+        let isMinor = (c.status === 'હયાત' && ageNum > 0 && ageNum < 18);
         let stat = c.status === 'મરણ' 
             ? `<br><span style="font-size:11.5px;">(મરણ તા. ${formatDisplayDateGujarati(c.deathDate)})</span>` 
-            : `<br><span>ઉ.વ. ${toGujaratiDigits(c.age)}</span>`;
+            : `<br><span>ઉ.વ. ${toGujaratiDigits(c.age)}${isMinor ? '<br><b>(સગીર)</b>' : ''}</span>`;
             
         html += `<li><div class="heir-box ${boxClass}"><span class="bold">${c.name}</span><br>(${c.relation})${stat}</div>`;
         
@@ -1025,4 +1030,27 @@ function applyAutoFitScale() {
             }
         }
     }, 50);
+}
+
+// =========================================================
+// SMART FEATURES LOGIC (Dates & Aadhar Validation)
+// =========================================================
+function autoFillAffidavitDate(selectedDate) {
+    let affDateInput = document.getElementById('inp-affidavit-date');
+    if (affDateInput && (!affDateInput.value || affDateInput.value === '')) {
+        affDateInput.value = selectedDate;
+        if (typeof generatePDF === 'function') generatePDF();
+    }
+}
+
+function validateAadharInput(inputEl) {
+    let val = inputEl.value.replace(/[^0-9]/g, ''); // માત્ર આંકડા જ માન્ય
+    inputEl.value = val;
+    if (val.length > 0 && val.length < 12) {
+        inputEl.style.borderColor = 'red';
+        inputEl.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.15)';
+    } else {
+        inputEl.style.borderColor = '#cbd5e1'; // નોર્મલ કલર
+        inputEl.style.boxShadow = 'none';
+    }
 }

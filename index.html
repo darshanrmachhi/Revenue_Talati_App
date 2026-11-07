@@ -782,7 +782,7 @@
                             <div class="form-group"><label class="form-label">ઉંમર:</label><input type="number" class="form-control" id="panch-age"></div>
                             <div class="form-group"><label class="form-label">ગામ:</label><select class="form-control" id="panch-vill"></select></div>
                             <div class="form-group"><label class="form-label">વ્યવસાય:</label><input type="text" class="form-control" id="panch-occ" value="ખેતી"></div>
-                            <div class="form-group"><label class="form-label">આધાર નંબર:</label><input type="text" class="form-control" id="panch-aadhar" maxlength="12" placeholder="૧૨ આંકડા"></div>
+                            <div class="form-group"><label class="form-label">આધાર નંબર:</label><input type="text" class="form-control" id="panch-aadhar" maxlength="12" placeholder="૧૨ આંકડા" oninput="validateAadharInput(this)"></div>
                         </div>
                         <div style="text-align: right; margin-top: 10px;"><button class="btn btn-primary" id="add-panch-btn" onclick="addOrUpdatePanch()">+ પંચ ઉમેરો</button></div>
                     </div>
