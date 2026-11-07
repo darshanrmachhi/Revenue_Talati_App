@@ -436,7 +436,7 @@ function buildTreeHTML(pId) {
     // કોમ્પેક્ટ અને ફ્લેટ સ્ટાઈલમાં અંડરલાઇન સાથે આ લાઈન ઉમેરાશે.
     if (pId === 'root' || ch.length > 0) {
         html += `<li>
-            <div style="border:none; background:transparent; padding:6px 2px; max-width:85px; white-space:normal; display:inline-block; vertical-align:top;">
+            <div style="border:none; background:transparent; padding:6px 2px; width:110px; white-space:nowrap; display:inline-block; vertical-align:top;">
                 <span class="bold underline" style="font-size:11.5px; line-height:1.4; color:#0f172a;">આ સિવાય અન્ય<br>કોઈ વારસ નથી.</span>
             </div>
         </li>`;
@@ -461,14 +461,19 @@ function formatNameThreeRows(fullName) {
 // ૨. પેઢીનામું PDF / પ્રિન્ટ જનરેટર (WITH A4 AUTO-FIT SCALER & MANUAL ENTRY SPACE)
 // =========================================================
 function generatePDF() {
-    let type = safeGetValue('inp-type') || 'મરણ';
-    let otherStatus = safeGetValue('inp-other-status') || 'હયાત';
+    let mainStatus = safeGetValue('inp-main-status') || 'મરણ';
+    let purpose = getVal('inp-purpose', 'inp-purpose-custom') || "જમીન વારસાઈ કરવા";
+    let beneRel = getVal('inp-bene-rel', 'inp-bene-rel-custom') || "પોતાના માટે";
+    let beneName = safeGetValue('inp-bene-name') || "";
+    let appRel = getVal('inp-applicant-relation', 'inp-app-rel-custom') || "પિતા";
     
     let app = safeGetValue('inp-applicant') || "__________";
-    let dec = type === 'હયાત' ? app : (safeGetValue('inp-deceased') || "__________");
+    let dec = appRel === 'પોતે' ? app : (safeGetValue('inp-deceased') || "__________");
     let age = toGujaratiDigits(safeGetValue('inp-age')) || "____";
+    let mainAge = toGujaratiDigits(safeGetValue('inp-main-age')) || "____";
     let vill = safeGetValue('inp-village') || "__________";
     let formattedDate = formatDisplayDateGujarati(safeGetValue('inp-date'));
+    let deathDate = formatDisplayDateGujarati(safeGetValue('inp-deathdate'));
 
     safeSetText('out-applicant', app);
     safeSetText('out-applicant2', app);
@@ -480,43 +485,52 @@ function generatePDF() {
     safeSetText('out-date2', formattedDate);
     safeSetText('out-date4', formattedDate);
     safeSetText('tree-deceased-name', dec);
-    safeSetHTML('out-purpose-str', `<span class="bold underline">${getVal('inp-purpose', 'inp-purpose-custom') || "જમીન વારસાઈ"}</span>`);
     
-    if (currentActiveJavakNo) {
-        safeSetText('out-javak-no', currentActiveJavakNo);
-    } else {
+    if (currentActiveJavakNo) { safeSetText('out-javak-no', currentActiveJavakNo); } 
+    else {
         let curDate = new Date();
-        let yStr = toGujaratiDigits(curDate.getFullYear());
-        let mStr = toGujaratiDigits(('0' + (curDate.getMonth() + 1)).slice(-2));
-        let srNo = toGujaratiDigits(allPedhinamuList ? allPedhinamuList.length + 1 : 1);
-        safeSetText('out-javak-no', `જાવક નં. : ${yStr}/${mStr}/${srNo}`);
+        safeSetText('out-javak-no', `જાવક નં. : ${toGujaratiDigits(curDate.getFullYear())}/${toGujaratiDigits(('0'+(curDate.getMonth()+1)).slice(-2))}/${toGujaratiDigits(allPedhinamuList ? allPedhinamuList.length + 1 : 1)}`);
     }
 
+    // --- ૧. લાભાર્થી અને હેતુ વાળું વાક્ય બનાવવું ---
+    let beneString = "";
+    if (beneRel === "પોતાના માટે") {
+        beneString = "પોતાના માટે";
+    } else {
+        let salutation = "";
+        if (beneName && !beneName.includes("શ્રી") && !beneName.includes("કુમારી")) {
+            if (beneRel.includes("પત્ની") || beneRel.includes("પુત્રી") || beneRel.includes("માતા")) salutation = "શ્રીમતી/કુમારી ";
+            else salutation = "શ્રી ";
+        }
+        beneString = `${beneRel} ${salutation}${beneName} ના`;
+    }
+    
+    safeSetHTML('out-purpose-str', `<span class="bold underline">${beneString} ${purpose}</span>`);
+
+    // --- ૨. મુખ્ય વ્યક્તિ (હયાત/મરણ) વાળો ફકરો અને બોક્સ ---
     let dPara = document.getElementById('out-dynamic-para');
     let rBox = document.getElementById('root-box-display');
     let rStat = document.getElementById('tree-root-status');
-    let rel = getVal('inp-applicant-relation', 'inp-app-rel-custom') || "પિતા";
 
-    if (type === 'હયાત') { 
+    if (appRel === 'પોતે') { 
         if (dPara) dPara.innerHTML = `તે સંદર્ભે આજરોજ લખાવું છું કે, હું પોતે હાલ હયાત છું અને મારા કાયદેસરના વારસદારોની વિગત નીચે મુજબ છે.`; 
         if (rBox) rBox.className = "heir-box root-box male-box";
         if (rStat) rStat.innerHTML = `<span class='bold'>ઉ.વ. ${age}</span><br>(હયાત)`; 
-    } else if (type === 'અન્ય' && otherStatus === 'હયાત') {
-        if (dPara) dPara.innerHTML = `તે સંદર્ભે આજરોજ લખાવું છું કે, મારા <span class="bold">${rel}</span> શ્રી <span class="bold">${dec}</span> હાલ હયાત છે અને તેમના કાયદેસરના વારસદારોની વિગત નીચે મુજબ છે.`; 
-        if (rBox) rBox.className = "heir-box root-box male-box";
+    } else {
+        let title = dec.startsWith("શ્રી") ? "" : (appRel.includes("માતા") || appRel.includes("પત્ની") ? "શ્રીમતી " : "શ્રી ");
         
-        // નવો સુધારો: મુખ્ય વ્યક્તિની ઉંમર અહીં છપાશે
-        let mainAge = toGujaratiDigits(safeGetValue('inp-main-age')) || "____";
-        if (rStat) rStat.innerHTML = `<span class='bold'>ઉ.વ. ${mainAge}</span><br>(હયાત)`; 
-    } else { 
-        let formattedDDate = formatDisplayDateGujarati(safeGetValue('inp-deathdate'));
-        if (dPara) dPara.innerHTML = `તે સંદર્ભે આજરોજ લખાવું છું કે, મારા <span class="bold">${rel}</span> શ્રી <span class="bold">${dec}</span> નું તા. <span class="bold">${formattedDDate}</span> ના રોજ અવસાન થયેલ છે અને તેમના વારસદારોની વિગત નીચે મુજબ છે.`; 
-        if (rBox) rBox.className = "heir-box root-box male-box deceased-box";
-        if (rStat) rStat.innerHTML = `<span class="bold" style="font-size:12.5px;">(મરણ તા. ${formattedDDate})</span>`; 
+        if (mainStatus === 'હયાત') {
+            if (dPara) dPara.innerHTML = `તે સંદર્ભે આજરોજ લખાવું છું કે, મારા <span class="bold">${appRel} ${title}${dec}</span> હાલ હયાત છે અને તેમના કાયદેસરના વારસદારોની વિગત નીચે મુજબ છે.`; 
+            if (rBox) rBox.className = "heir-box root-box male-box";
+            if (rStat) rStat.innerHTML = `<span class='bold'>ઉ.વ. ${mainAge}</span><br>(હયાત)`; 
+        } else {
+            if (dPara) dPara.innerHTML = `તે સંદર્ભે આજરોજ લખાવું છું કે, મારા <span class="bold">${appRel} ${title}${dec}</span> નું તા. <span class="bold">${deathDate}</span> ના રોજ અવસાન થયેલ છે અને તેમના વારસદારોની વિગત નીચે મુજબ છે.`; 
+            if (rBox) rBox.className = "heir-box root-box male-box deceased-box";
+            if (rStat) rStat.innerHTML = `<span class="bold" style="font-size:12.5px;">(મરણ તા. ${deathDate})</span>`; 
+        }
     }
 
     safeSetHTML('dynamic-tree-children', buildTreeHTML('root'));
-
     let treeEl = document.getElementById('main-tree');
     if (treeEl && typeof treeSpacing !== 'undefined' && typeof treeScale !== 'undefined') {
         treeEl.style.setProperty('--tree-space', `${treeSpacing}px`);
@@ -524,18 +538,14 @@ function generatePDF() {
         treeEl.style.transformOrigin = 'top center';
     }
 
-    // ---------------------------------------------------------
-    // પંચોનું ટેબલ (આધાર અને ફોટો ના ચેકબોક્સ મુજબ ડાયનેમિક)
-    // ---------------------------------------------------------
+    // પંચોનું ટેબલ અને શેરો
     let showAadhar = document.getElementById('chk-show-aadhar') ? document.getElementById('chk-show-aadhar').checked : true;
     let showPhoto = document.getElementById('chk-show-photo') ? document.getElementById('chk-show-photo').checked : true;
-
     let tHead = document.getElementById('pdf-panch-head');
     let tBody = document.getElementById('pdf-panch-body') || document.getElementById('pdf-panch-table'); 
     
     if (tHead && tBody) {
-        // ૧. હેડર (TH) ડાયનેમિકલી બનાવો
-        let headHtml = `<tr style="background: #f8fafc;">
+        tHead.innerHTML = `<tr style="background: #f8fafc;">
             <th style="width: 5%;">અ.નં</th>
             <th style="width: ${showAadhar ? '17%' : '20%'};">પંચનું નામ</th>
             <th style="width: 6%;">ઉ.વ.</th>
@@ -545,13 +555,10 @@ function generatePDF() {
             <th style="width: ${showPhoto ? '18%' : '22%'};">રૂબરૂ સહી</th>
             ${showPhoto ? `<th style="width: 14%;">ફોટો</th>` : ''}
         </tr>`;
-        tHead.innerHTML = headHtml;
 
-        // ૨. બોડી (TD) ડાયનેમિકલી બનાવો
         tBody.innerHTML = panchArray.map((p, i) => {
             let aadharTd = showAadhar ? `<td style="line-height: 1.25; font-weight: 600; letter-spacing: 0.5px;">${formatAadharThreeRows(p.aadhar)}</td>` : '';
             let photoTd = showPhoto ? `<td style="height: 34mm; vertical-align: middle;"><div class="photo-box panch-photo">ફોટો</div></td>` : '';
-            
             return `<tr style="height: 34mm;">
                 <td class="bold">${toGujaratiDigits(i + 1)}.</td>
                 <td class="bold" style="line-height: 1.35; padding: 4px 2px;">${formatNameThreeRows(p.name)}</td>
@@ -566,12 +573,13 @@ function generatePDF() {
     }
 
     let rawAdv = safeGetValue('inp-advocate-name');
-    let advName = rawAdv ? (rawAdv.startsWith('શ્રી') ? rawAdv : 'શ્રી ' + rawAdv) : 'શ્રી _______________________________________';
-    let affNo = safeGetValue('inp-affidavit-no') ? toGujaratiDigits(safeGetValue('inp-affidavit-no')) : '______________________';
+    let advName = rawAdv ? (rawAdv.startsWith('શ્રી') ? rawAdv : 'શ્રી ' + rawAdv) : 'શ્રી <span style="display:inline-block; min-width:180px; border-bottom:1px solid #000; margin:0 5px;"></span>';
+    let affNo = safeGetValue('inp-affidavit-no');
+    let affNoStr = affNo ? toGujaratiDigits(affNo) : '<span style="display:inline-block; min-width:100px; border-bottom:1px solid #000; margin:0 5px;"></span>';
     let affDateInput = safeGetValue('inp-affidavit-date');
-    let affDate = affDateInput ? formatDisplayDateGujarati(affDateInput) : '____/____/૨૦____';
+    let affDate = affDateInput ? formatDisplayDateGujarati(affDateInput) : '<span style="display:inline-block; min-width:90px; border-bottom:1px solid #000; margin:0 5px;"></span>';
     
-    safeSetHTML('out-talati-shero-para', `ઉપર પ્રમાણેનું પેઢીનામું આ કામના અરજદારના રૂબરૂ જવાબ તા. <span class="bold">${formattedDate}</span> ના રોજ ${advName} ની રૂબરૂ કરેલા સોગંદનામા ક્રમાંક: <span class="bold">${affNo}</span>, તારીખ: <span class="bold">${affDate}</span> માં રજૂ કરેલ સાધનિક કાગળો તથા પંચોના લખાવ્યા મુજબનું તૈયાર કરી આપેલ છે. જેમાં તલાટીશ્રી જવાબદાર નથી. સદર પેઢીનામું વારસાઈ પ્રમાણપત્ર કે પ્રોબેટ નથી અને કોઈપણ કોર્ટના કામમાં ઉપયોગ કરી શકાશે નહીં.`);
+    safeSetHTML('out-talati-shero-para', `ઉપર પ્રમાણેનું પેઢીનામું આ કામના અરજદારના રૂબરૂ જવાબ તા. <span class="bold">${formattedDate}</span> ના રોજ ${advName} ની રૂબરૂ કરેલા સોગંદનામા ક્રમાંક: <span class="bold">${affNoStr}</span>, તારીખ: <span class="bold">${affDate}</span> માં રજૂ કરેલ સાધનિક કાગળો તથા પંચોના લખાવ્યા મુજબનું તૈયાર કરી આપેલ છે. જેમાં તલાટીશ્રી જવાબદાર નથી. સદર પેઢીનામું વારસાઈ પ્રમાણપત્ર કે પ્રોબેટ નથી અને કોઈપણ કોર્ટના કામમાં ઉપયોગ કરી શકાશે નહીં.`);
 }
 
 // =========================================================
@@ -587,19 +595,28 @@ function populatePedhinamuFormFromRecord(rec) {
             if (full && full.form) {
                 if (full.form.javakNo) currentActiveJavakNo = full.form.javakNo;
                 
-                safeSetValue('inp-type', full.form.type || "મરણ");
-                safeSetValue('inp-other-status', full.form.otherStatus || "હયાત"); 
+                // Backwards Compatibility (જૂના ડેટાબેઝના 'મરણ/હયાત/અન્ય' ને નવા માળખામાં બેસાડવા)
+                let mStatus = full.form.mainStatus || (full.form.type === 'હયાત' ? 'હયાત' : (full.form.type === 'અન્ય' ? full.form.otherStatus || 'હયાત' : 'મરણ'));
+                safeSetValue('inp-main-status', mStatus); 
                 
-                let purp = full.form.purpose || "જમીન વારસાઈ";
+                let purp = full.form.purpose || "જમીન વારસાઈ કરવા";
                 let pSel = document.getElementById('inp-purpose');
                 if (pSel && [...pSel.options].some(o => o.value === purp)) {
-                    safeSetValue('inp-purpose', purp);
-                    safeSetValue('inp-purpose-custom', '');
+                    safeSetValue('inp-purpose', purp); safeSetValue('inp-purpose-custom', '');
                 } else {
-                    safeSetValue('inp-purpose', 'custom');
-                    safeSetValue('inp-purpose-custom', purp);
+                    safeSetValue('inp-purpose', 'custom'); safeSetValue('inp-purpose-custom', purp);
                 }
                 checkCustom(pSel, 'inp-purpose-custom');
+
+                let bRel = full.form.beneRel || "પોતાના માટે";
+                let bSel = document.getElementById('inp-bene-rel');
+                if (bSel && [...bSel.options].some(o => o.value === bRel)) {
+                    safeSetValue('inp-bene-rel', bRel); safeSetValue('inp-bene-rel-custom', '');
+                } else {
+                    safeSetValue('inp-bene-rel', 'custom'); safeSetValue('inp-bene-rel-custom', bRel);
+                }
+                toggleBeneNameInput();
+                safeSetValue('inp-bene-name', full.form.beneName || "");
 
                 safeSetValue('inp-date', formatForDateInput(full.form.date || rec.Issued_Date));
                 safeSetValue('inp-advocate-name', full.form.advocateName || "");
@@ -619,17 +636,13 @@ function populatePedhinamuFormFromRecord(rec) {
                 let rel = full.form.applicantRelation || rec.Applicant_Relation || "પિતા";
                 let rSel = document.getElementById('inp-applicant-relation');
                 if (rSel && [...rSel.options].some(o => o.value === rel)) {
-                    safeSetValue('inp-applicant-relation', rel);
-                    safeSetValue('inp-app-rel-custom', '');
+                    safeSetValue('inp-applicant-relation', rel); safeSetValue('inp-app-rel-custom', '');
                 } else {
-                    safeSetValue('inp-applicant-relation', 'custom');
-                    safeSetValue('inp-app-rel-custom', rel);
+                    safeSetValue('inp-applicant-relation', 'custom'); safeSetValue('inp-app-rel-custom', rel);
                 }
                 checkCustom(rSel, 'inp-app-rel-custom');
 
                 safeSetValue('inp-deathdate', formatForDateInput(full.form.deathdate || rec.Death_Date));
-                
-                // જૂના રેકોર્ડમાંથી ઉંમર પાછી લોડ કરવા
                 safeSetValue('inp-main-age', full.form.mainAge || ""); 
 
                 heirsArray = Array.isArray(full.heirs) ? full.heirs : [];
@@ -640,9 +653,10 @@ function populatePedhinamuFormFromRecord(rec) {
     }
 
     if (!loadedFromJson) {
-        safeSetValue('inp-type', "મરણ");
-        safeSetValue('inp-other-status', "મરણ");
-        safeSetValue('inp-purpose', "જમીન વારસાઈ");
+        safeSetValue('inp-main-status', "મરણ");
+        safeSetValue('inp-purpose', "જમીન વારસાઈ કરવા");
+        safeSetValue('inp-bene-rel', "પોતાના માટે");
+        toggleBeneNameInput();
         safeSetValue('inp-date', formatForDateInput(rec.Issued_Date));
         safeSetValue('inp-applicant', rec.Applicant_Name || "");
         safeSetValue('inp-village', rec.Village_Name || " ");
@@ -683,9 +697,11 @@ function saveAndPrint() {
     let btn = document.getElementById('print-btn');
     if (btn) { btn.innerHTML = "⏳ સેવ થાય છે..."; btn.disabled = true; }
     
-    let type = safeGetValue('inp-type') || "મરણ";
+    let mainStatus = safeGetValue('inp-main-status') || 'મરણ';
+    let appRel = getVal('inp-applicant-relation', 'inp-app-rel-custom') || "પિતા";
     let app = safeGetValue('inp-applicant') || "-";
-    let dec = type === 'હયાત' ? app + " (હયાતીમાં)" : (safeGetValue('inp-deceased') || "-");
+    let dec = appRel === 'પોતે' ? app : (safeGetValue('inp-deceased') || "-");
+    
     let p1 = panchArray.length > 0 ? panchArray[0].name : "-";
     let p2 = panchArray.length > 1 ? panchArray[1].name : "-";
     let isEditing = currentEditingPedhinamuId !== null;
@@ -697,9 +713,10 @@ function saveAndPrint() {
     let fullSnapshot = {
         form: {
             javakNo: javakText,
-            type: type,
-            otherStatus: safeGetValue('inp-other-status'),
-            purpose: getVal('inp-purpose', 'inp-purpose-custom') || "વારસાઈ",
+            mainStatus: mainStatus,
+            purpose: getVal('inp-purpose', 'inp-purpose-custom') || "જમીન વારસાઈ કરવા",
+            beneRel: getVal('inp-bene-rel', 'inp-bene-rel-custom') || "પોતાના માટે",
+            beneName: safeGetValue('inp-bene-name'),
             date: safeGetValue('inp-date'),
             advocateName: safeGetValue('inp-advocate-name'),
             affidavitNo: safeGetValue('inp-affidavit-no'),
@@ -708,9 +725,9 @@ function saveAndPrint() {
             age: safeGetValue('inp-age'),
             village: safeGetValue('inp-village') || "-",
             deceased: safeGetValue('inp-deceased'),
-            applicantRelation: getVal('inp-applicant-relation', 'inp-app-rel-custom') || "-",
+            applicantRelation: appRel,
             deathdate: safeGetValue('inp-deathdate'),
-            mainAge: safeGetValue('inp-main-age') // નવો ડેટા સંગ્રહ
+            mainAge: safeGetValue('inp-main-age')
         },
         heirs: heirsArray,
         panch: panchArray
@@ -719,15 +736,15 @@ function saveAndPrint() {
     let payload = {
         Javak_No: javakText,
         Village_Name: safeGetValue('inp-village') || "-",
-        Deceased_Name: dec,
+        Deceased_Name: dec + (mainStatus === 'હયાત' ? " (હયાતીમાં)" : ""),
         Death_Date: safeGetValue('inp-deathdate') || "-",
         Applicant_Name: app,
-        Applicant_Relation: getVal('inp-applicant-relation', 'inp-app-rel-custom') || "-",
+        Applicant_Relation: appRel,
         Applicant_Mobile: "-",
         Issued_Date: safeGetValue('inp-date') ? formatDisplayDateGujarati(safeGetValue('inp-date')) : new Date().toLocaleDateString('en-GB'),
         Panch_1_Name: p1,
         Panch_2_Name: p2,
-        Remarks: getVal('inp-purpose', 'inp-purpose-custom') || "વારસાઈ",
+        Remarks: getVal('inp-purpose', 'inp-purpose-custom') || "જમીન વારસાઈ",
         Full_JSON_Data: JSON.stringify(fullSnapshot)
     };
 
@@ -832,47 +849,51 @@ function changeStep(step) {
     generatePDF(); 
 }
 
-function toggleTypeSpecificInputs() {
-    let type = safeGetValue('inp-type');
-    let otherStatusGrp = document.getElementById('grp-other-status');
+// નવું ફંક્શન: લાભાર્થીના નામનું ખાનું ખોલ-બંધ કરવા માટે
+function toggleBeneNameInput() {
+    let rel = getVal('inp-bene-rel', 'inp-bene-rel-custom');
+    let grpName = document.getElementById('grp-bene-name');
     
-    if (otherStatusGrp) {
-        otherStatusGrp.style.display = (type === 'અન્ય') ? 'flex' : 'none';
+    if (grpName) {
+        // જો 'પોતાના માટે' હોય તો નામનું ખાનું છુપાવો, નહીંતર બતાવો
+        grpName.style.display = (rel === 'પોતાના માટે') ? 'none' : 'flex';
     }
     
-    let otherStatus = safeGetValue('inp-other-status') || 'હયાત';
+    // જો 'અન્ય (જાતે લખો)' સિલેક્ટ કર્યું હોય તો કસ્ટમ ટેક્સ્ટ બોક્સ બતાવવા
+    checkCustom(document.getElementById('inp-bene-rel'), 'inp-bene-rel-custom');
+    
+    // પીડીએફ લાઈવ અપડેટ કરવા
+    if(typeof generatePDF === 'function') generatePDF();
+}
+
+function toggleTypeSpecificInputs() {
+    let mainStatus = safeGetValue('inp-main-status') || 'મરણ';
+    let appRel = getVal('inp-applicant-relation', 'inp-app-rel-custom');
     
     let titleMain = document.getElementById('title-main-person');
     let labelDec = document.getElementById('label-deceased');
-    let labelRel = document.getElementById('label-relation-main');
     
     let grpDec = document.getElementById('grp-deceased');
-    let grpRel = document.getElementById('grp-relation');
     let grpDeath = document.getElementById('grp-deathdate');
-    let grpMainAge = document.getElementById('grp-main-age'); // નવું ફીલ્ડ
+    let grpMainAge = document.getElementById('grp-main-age');
 
-    if (type === 'હયાત') {
-        if (titleMain) titleMain.innerText = 'મુખ્ય વ્યક્તિની વિગત (અરજદાર પોતે)';
+    if (appRel === 'પોતે') {
+        if (titleMain) titleMain.innerText = '૪. મુખ્ય વ્યક્તિની વિગત (અરજદાર પોતે)';
         if (grpDec) grpDec.style.display = 'none';
-        if (grpRel) grpRel.style.display = 'none';
         if (grpDeath) grpDeath.style.display = 'none';
         if (grpMainAge) grpMainAge.style.display = 'none';
-    } else if (type === 'અન્ય' && otherStatus === 'હયાત') {
-        if (titleMain) titleMain.innerText = 'મુખ્ય વ્યક્તિની વિગત (જેમના માટે દાખલો છે)';
-        if (labelDec) labelDec.innerText = 'મુખ્ય વ્યક્તિનું નામ:';
-        if (labelRel) labelRel.innerText = 'મુખ્ય વ્યક્તિનો અરજદાર સાથે સંબંધ:';
-        if (grpDec) grpDec.style.display = 'flex';
-        if (grpRel) grpRel.style.display = 'flex';
-        if (grpDeath) grpDeath.style.display = 'none'; // મરણ તારીખ છુપાવો
-        if (grpMainAge) grpMainAge.style.display = 'flex'; // ઉંમરનું બોક્સ બતાવો
     } else {
-        if (titleMain) titleMain.innerText = 'મુખ્ય ગુજરનારની વિગત';
-        if (labelDec) labelDec.innerText = 'ગુજરનારનું નામ:';
-        if (labelRel) labelRel.innerText = 'ગુજરનારનો અરજદાર સાથે સંબંધ:';
+        if (titleMain) titleMain.innerText = mainStatus === 'હયાત' ? '૪. મુખ્ય વ્યક્તિની વિગત' : '૪. મુખ્ય ગુજરનારની વિગત';
+        if (labelDec) labelDec.innerText = mainStatus === 'હયાત' ? 'મુખ્ય વ્યક્તિનું નામ:' : 'ગુજરનારનું નામ:';
         if (grpDec) grpDec.style.display = 'flex';
-        if (grpRel) grpRel.style.display = 'flex';
-        if (grpDeath) grpDeath.style.display = 'flex'; // મરણ તારીખ બતાવો
-        if (grpMainAge) grpMainAge.style.display = 'none'; // ઉંમર છુપાવો
+        
+        if (mainStatus === 'હયાત') {
+            if (grpDeath) grpDeath.style.display = 'none';
+            if (grpMainAge) grpMainAge.style.display = 'flex';
+        } else {
+            if (grpDeath) grpDeath.style.display = 'flex';
+            if (grpMainAge) grpMainAge.style.display = 'none';
+        }
     }
     
     updateRootName();
@@ -880,15 +901,14 @@ function toggleTypeSpecificInputs() {
 }
 
 function updateRootName() {
-    let type = safeGetValue('inp-type');
-    let otherStatus = safeGetValue('inp-other-status');
-    let isAlive = (type === 'હયાત') || (type === 'અન્ય' && otherStatus === 'હયાત');
+    let mainStatus = safeGetValue('inp-main-status') || 'મરણ';
+    let appRel = getVal('inp-applicant-relation', 'inp-app-rel-custom');
     
-    let rName = type === 'હયાત' ? (safeGetValue('inp-applicant') || "____") : (safeGetValue('inp-deceased') || "____");
+    let rName = appRel === 'પોતે' ? (safeGetValue('inp-applicant') || "____") : (safeGetValue('inp-deceased') || "____");
     let pSelect = document.getElementById('heir-parent');
     
     if (pSelect && pSelect.options.length > 0) {
-        let prefix = isAlive ? "મુખ્ય વ્યક્તિ (" : "ગુજરનાર (";
+        let prefix = mainStatus === 'હયાત' ? "મુખ્ય વ્યક્તિ (" : "ગુજરનાર (";
         pSelect.options[0].text = prefix + rName + ")";
     }
 }

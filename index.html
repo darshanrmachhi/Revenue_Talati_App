@@ -624,75 +624,90 @@
 
                 <!-- Step 1 -->
                 <div id="step-content-1" class="step-content active">
-                    <div class="section-title" style="margin-top:0;">અરજીનો પ્રકાર અને હેતુ</div>
+                    <div class="section-title" style="margin-top:0;">૧. અરજીનો હેતુ અને લાભાર્થીની વિગત</div>
                     <div class="form-grid-3">
                         <div class="form-group">
-                            <label class="form-label">પેઢીનામાનો પ્રકાર:</label>
-                            <select class="form-control" id="inp-type" onchange="toggleTypeSpecificInputs()">
-                                <option value="મરણ">૧. મરણ (જમીન વારસાઈ)</option>
-                                <option value="હયાત">૨. હયાત (પોતાની હયાતીમાં હક્ક)</option>
-                                <option value="અન્ય">૩. અન્ય (જાતિનો દાખલો / લોન)</option>
+                            <label class="form-label" style="color:#b91c1c;">મુખ્ય વ્યક્તિની સ્થિતિ:</label>
+                            <select class="form-control" id="inp-main-status" onchange="toggleTypeSpecificInputs()" style="font-weight:bold;">
+                                <option value="મરણ">મરણ (ગુજરી ગયેલ છે)</option>
+                                <option value="હયાત">હયાત (હાલ જીવિત છે)</option>
                             </select>
                         </div>
                         
-                        <!-- નવું ફીલ્ડ: માત્ર 'અન્ય' પસંદ કરે ત્યારે જ દેખાશે -->
-                        <div class="form-group" id="grp-other-status" style="display:none;">
-                            <label class="form-label">મુખ્ય વ્યક્તિની સ્થિતિ:</label>
-                            <select class="form-control" id="inp-other-status" onchange="toggleTypeSpecificInputs()">
-                                <option value="હયાત">હયાત</option>
-                                <option value="મરણ">મરણ</option>
-                            </select>
-                        </div>
-
                         <div class="form-group">
-                            <label class="form-label">અરજીનો હેતુ:</label>
+                            <label class="form-label" style="color:#0d47a1;">અરજીનો હેતુ (કારણ):</label>
                             <select class="form-control" id="inp-purpose" onchange="checkCustom(this, 'inp-purpose-custom')">
-                                <option value="જમીન વારસાઈ">જમીન વારસાઈ</option>
+                                <option value="જમીન વારસાઈ કરવા">જમીન વારસાઈ કરવા</option>
                                 <option value="હયાતીમાં હક્ક દાખલ કરવા">હયાતીમાં હક્ક દાખલ કરવા</option>
+                                <option value="લોન / બેંકના કામ અર્થે">લોન / બેંકના કામ અર્થે</option>
+                                <option value="જાતિનો દાખલો મેળવવા">જાતિનો દાખલો મેળવવા</option>
                                 <option value="custom">અન્ય (જાતે લખો)</option>
                             </select>
                             <input type="text" class="form-control custom-input" id="inp-purpose-custom" placeholder="અહીં હેતુ લખો">
                         </div>
+
+                        <div class="form-group">
+                            <label class="form-label" style="color:#047857;">પેઢીનામું કોના માટે કઢાવવાનું છે?:</label>
+                            <select class="form-control" id="inp-bene-rel" onchange="toggleBeneNameInput()">
+                                <option value="પોતાના માટે">પોતાના માટે (Self)</option>
+                                <option value="મારા પુત્ર">મારા પુત્ર માટે</option>
+                                <option value="મારી પુત્રી">મારી પુત્રી માટે</option>
+                                <option value="મારી પત્ની">મારી પત્ની માટે</option>
+                                <option value="મારા પતિ">મારા પતિ માટે</option>
+                                <option value="custom">અન્ય સંબંધ (જાતે લખો)</option>
+                            </select>
+                            <input type="text" class="form-control custom-input" id="inp-bene-rel-custom" placeholder="દા.ત. મારા ભાઈ">
+                        </div>
+                    </div>
+
+                    <!-- લાભાર્થીનું નામ (જો 'પોતાના માટે' સિવાય કંઈ પસંદ કરે તો જ ખુલશે) -->
+                    <div class="form-grid-3" id="grp-bene-name" style="display:none; margin-top:-5px; margin-bottom:15px;">
+                        <div class="form-group" style="grid-column: span 3;">
+                            <label class="form-label">લાભાર્થીનું પૂરું નામ (જેમના માટે દાખલો કઢાવવાનો છે):</label>
+                            <input type="text" class="form-control" id="inp-bene-name" placeholder="દા.ત. મહેશભાઈ રમેશભાઈ પટેલ">
+                        </div>
+                    </div>
+
+                    <div class="section-title">૨. સોગંદનામાની વિગત (તલાટી શેરા માટે)</div>
+                    <div class="form-grid-3">
                         <div class="form-group">
                             <label class="form-label">અરજીની તારીખ:</label>
                             <input type="date" class="form-control" id="inp-date">
                         </div>
-                    </div>
-                    
-                    <div class="section-title">સોગંદનામાની વિગત (તલાટી શેરા માટે)</div>
-                    <div class="form-grid-3">
                         <div class="form-group">
                             <label class="form-label">નોટરી / વકીલશ્રીનું નામ:</label>
                             <input type="text" class="form-control" id="inp-advocate-name" placeholder="દા.ત. કે. એમ. પટેલ">
                         </div>
                         <div class="form-group">
-                            <label class="form-label">સોગંદનામા ક્રમાંક:</label>
-                            <input type="text" class="form-control" id="inp-affidavit-no" placeholder="દા.ત. ૧૨૫૪/૨૦૨૬">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">સોગંદનામા તારીખ:</label>
-                            <input type="date" class="form-control" id="inp-affidavit-date">
+                            <label class="form-label">સોગંદનામા ક્રમાંક અને તારીખ:</label>
+                            <div style="display:flex; gap:6px;">
+                                <input type="text" class="form-control" id="inp-affidavit-no" placeholder="ક્રમાંક">
+                                <input type="date" class="form-control" id="inp-affidavit-date">
+                            </div>
                         </div>
                     </div>
 
-                    <div class="section-title">અરજદારની વિગત</div>
+                    <div class="section-title">૩. અરજદારની વિગત</div>
                     <div class="form-grid-3">
                         <div class="form-group"><label class="form-label">અરજદારનું નામ:</label><input type="text" class="form-control" id="inp-applicant" placeholder="પૂરું નામ"></div>
                         <div class="form-group"><label class="form-label">અરજદારની ઉંમર:</label><input type="number" class="form-control" id="inp-age" placeholder="ઉંમર"></div>
                         <div class="form-group"><label class="form-label">રહેવાસી (ગામ):</label><select class="form-control" id="inp-village"></select></div>
                     </div>
                     
-                    <div class="section-title" id="title-main-person">મુખ્ય ગુજરનારની વિગત</div>
+                    <div class="section-title" id="title-main-person">૪. મુખ્ય વ્યક્તિ / ગુજરનારની વિગત</div>
                     <div class="form-grid-3">
                         <div class="form-group" id="grp-deceased">
-                            <label class="form-label" id="label-deceased">મુખ્ય વ્યક્તિ/ગુજરનારનું નામ:</label>
+                            <label class="form-label" id="label-deceased">મુખ્ય વ્યક્તિનું નામ:</label>
                             <input type="text" class="form-control" id="inp-deceased" oninput="updateRootName()">
                         </div>
                         <div class="form-group" id="grp-relation">
-                            <label class="form-label" id="label-relation-main">ગુજરનારનો અરજદાર સાથે સંબંધ:</label>
-                            <select class="form-control" id="inp-applicant-relation" onchange="checkCustom(this, 'inp-app-rel-custom')">
+                            <label class="form-label" id="label-relation-main">મુખ્ય વ્યક્તિનો અરજદાર સાથે સંબંધ:</label>
+                            <select class="form-control" id="inp-applicant-relation" onchange="checkCustom(this, 'inp-app-rel-custom'); toggleTypeSpecificInputs();">
                                 <option value="પિતા">પિતા</option>
+                                <option value="માતા">માતા</option>
                                 <option value="પતિ">પતિ</option>
+                                <option value="પત્ની">પત્ની</option>
+                                <option value="પોતે">પોતે (અરજદાર જ મુખ્ય વ્યક્તિ છે)</option>
                                 <option value="custom">અન્ય (જાતે લખો)</option>
                             </select>
                             <input type="text" class="form-control custom-input" id="inp-app-rel-custom">
@@ -703,14 +718,12 @@
                             <input type="date" class="form-control" id="inp-deathdate">
                         </div>
                         
-                        <!-- નવું ઉમેરેલું ફીલ્ડ: મુખ્ય વ્યક્તિ હયાત હોય ત્યારે જ દેખાશે -->
                         <div class="form-group" id="grp-main-age" style="display:none;">
                             <label class="form-label">મુખ્ય વ્યક્તિની ઉંમર:</label>
                             <input type="number" class="form-control" id="inp-main-age" placeholder="ઉંમર દાખલ કરો">
                         </div>
                     </div>
-                    
-                    <!-- ભૂલથી ડીલીટ થયેલું "આગળ વધો" બટન અને બંધ થતો div -->
+
                     <div class="action-btns" style="justify-content: flex-end;">
                         <button class="btn btn-primary" onclick="proceedToStep2()">આગળ વધો ➔</button>
                     </div>
